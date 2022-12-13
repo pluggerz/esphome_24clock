@@ -1,7 +1,1 @@
-# over-the-air support
-ota: # depends on wifi
-#  password: !secret ota_password
-
-wifi:
-#   ssid: !secret wifi_ssid
-#   password: !secret wifi_password
+# not yet used
