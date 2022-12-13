@@ -11,3 +11,10 @@ pcf8574: # depends on i2c
     address: 0x38
     pcf8575: false
 
+time:
+  - platform: homeassistant
+    id: current_time   
+
+# home assistant support
+#api: # depends on wifi
+#  password: !secret api_password 
