@@ -3,3 +3,11 @@ esphome:
   platform: ESP8266
   board: nodemcuv2
   esp8266_restore_from_flash: true
+
+i2c:  
+
+pcf8574: # depends on i2c
+  - id: 'pcf8574_hub'
+    address: 0x38
+    pcf8575: false
+
