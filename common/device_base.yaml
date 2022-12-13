@@ -3,7 +3,8 @@ esphome:
   platform: ESP8266
   board: nodemcuv2
   esp8266_restore_from_flash: true
-
+  libraries:
+    - "EspSoftwareSerial"
 i2c:  
 
 pcf8574: # depends on i2c
