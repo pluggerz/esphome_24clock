@@ -13,6 +13,8 @@ namespace clock24
     {
     private:
         esphome::time::RealTimeClock *time_;
+        bool dumped = false;
+        int _performers = -1;
 
     protected:
         virtual void dump_config() override;
