@@ -5,7 +5,8 @@ esphome:
 #  platformio_options:
 #    board_build.f_cpu: 80000000L
   esp8266_restore_from_flash: true
-#  libraries:
+  libraries:
+    - ESP8266TimerInterrupt
 #    - "EspSoftwareSerial"
         
 i2c:  
