@@ -2,8 +2,8 @@ esphome:
   name: ${node_name}
   platform: ESP8266
   board: nodemcuv2
-  platformio_options:
-    board_build.f_cpu: 80000000L
+  #platformio_options:
+  #  board_build.f_cpu: 80000000L
   esp8266_restore_from_flash: true
   libraries:
     - "EspSoftwareSerial"
