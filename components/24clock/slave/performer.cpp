@@ -6,7 +6,8 @@
 
 // OneWireProtocol protocol;
 onewire::RxOnewire rx;
-onewire::TxOnewire underlying_tx;
+
+onewire::TxOnewire underlying_tx(onewire::TX_BAUD);
 onewire::BufferedTxOnewire<5> tx(&underlying_tx);
 
 OneWireTracker tracker;
@@ -154,7 +155,7 @@ void setup()
     Leds::publish();
 
     rx.setup();
-    rx.begin();
+    rx.begin(onewire::RX_BAUD);
 
     tx.setup();
 
@@ -171,6 +172,25 @@ void setup()
 
 LoopFunction current = reset_mode;
 
+#if MODE == MODE_ONEWIRE_PASSTROUGH
+void loop()
+{
+    // for debugging
+    Millis now = millis();
+    if (now - t0 > 10)
+    {
+        t0 = now;
+        Leds::publish();
+    }
+
+    if (tracker.pending())
+    {
+        tracker.replicate();
+    }
+}
+#endif
+
+#if MODE >= MODE_ONEWIRE_MIRROR
 void loop()
 {
     // for debugging
@@ -184,13 +204,6 @@ void loop()
     Micros now_in_micros = micros();
     tx.loop(now_in_micros);
     rx.loop(now_in_micros);
-#if MODE == MODE_ONEWIRE_PASSTROUGH
-    if (tracker.pending())
-    {
-        tracker.replicate();
-    }
-#endif
-
     if (rx.pending())
     {
 #if MODE == MODE_ONEWIRE_MIRROR
@@ -206,3 +219,4 @@ void loop()
     if (current_action != nullptr)
         current_action->loop();
 }
+#endif

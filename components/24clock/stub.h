@@ -5,7 +5,7 @@
 #define MODE_ONEWIRE_CMD 3
 #define MODE_ONEWIRE_INTERACT 4
 
-#define MODE MODE_ONEWIRE_INTERACT
+#define MODE MODE_ONEWIRE_PASSTROUGH
 
 typedef unsigned long Micros;
 typedef unsigned long Millis;

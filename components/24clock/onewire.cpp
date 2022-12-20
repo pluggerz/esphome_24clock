@@ -1,6 +1,10 @@
 #include "onewire.h"
 
 #ifdef ESP8266
+
+// uint32_t *onewire::rx_basereg = PIN_TO_BASEREG(SYNC_IN_PIN);
+// IO_REG_TYPE onewire::rx_bitmask = PIN_TO_BITMASK(SYNC_IN_PIN);
+
 #include "esphome/core/log.h"
 using namespace esphome;
 
@@ -12,7 +16,134 @@ const char *const TAG = "onewire";
 using onewire::RxOnewire;
 using onewire::TxOnewire;
 
+#ifdef USE_RX_INTERRUPT
+RxOnewire *rx_owner = nullptr;
+
+#ifdef SLAVE
+#define IRAM_ATTR
+#endif // SLAVE
+
+IRAM_ATTR void rx_handle_interrupt_rising()
+{
+    if (rx_owner == nullptr)
+        return;
+    rx_owner->handle_interrupt(true);
+}
+
+IRAM_ATTR void rx_handle_interrupt_falling()
+{
+    if (rx_owner == nullptr)
+        return;
+    rx_owner->handle_interrupt(false);
+}
+
+volatile Micros last = 0;
+volatile bool nibble_state;
+volatile int rise_counter = 0;
+volatile int check_counter = 0;
+
+void RxOnewire::handle_interrupt(bool rising)
+{
+    loop(micros());
+
+    /*
+        if (rising)
+            rise_counter++;
+        else
+            rise_counter--;
+        auto compare = read();
+
+        if (compare != rising)
+        {
+            ESP_LOGW(TAG, "receive: rising = %d compare = %d -> %d", 0 + rising, 0 + compare, check_counter);
+        }
+        else
+            check_counter++;
+        if (check_counter > 100)
+        {
+            ESP_LOGW(TAG, "receive: RESET CHECK");
+            check_counter = 0;
+        }
+        return;
+        Micros now = micros();
+        Micros delay = now - last;
+        last = now;
+
+        int nibbles = (delay + (_rx_delay >> 1)) / _rx_delay;
+        int remainder = delay - nibbles * _rx_delay;
+        int diff = 100 * abs(remainder) / _rx_delay;
+
+        if (_rx_bit == RX_BIT_INITIAL)
+        {
+            // looking for a start
+            if (rising == false && nibbles == 2)
+            {
+                _rx_bit = RX_BIT_INITIAL - 1;
+                nibble_state = LOW;
+                // ESP_LOGW(TAG, "receive: INITIAL");
+            }
+            // JUST FIND NEXT
+            return;
+        }
+        if (_rx_bit == RX_BIT_INITIAL - 1)
+        {
+            if (rising == false)
+            {
+                // ESP_LOGW(TAG, "receive: RISING FALSE!?");
+                reset(false);
+                return;
+            }
+            bool is_end = 0 == (nibbles & 1);
+            if (is_end)
+            {
+                // done
+                // ESP_LOGI(TAG, "receive: END");
+                reset(false);
+                return;
+            }
+            int zeros = nibbles >> 1;
+            _rx_value = 1 << zeros;
+            _rx_bit = zeros;
+
+            // ESP_LOGI(TAG, "receive: CURRENT: rx_value = %d", _rx_value);
+            reset(false);
+            return;
+        }*/
+}
+#endif // USE_RX_INTERRUPT
+
+void RxOnewire::begin(int baud)
+{
+    _rx_delay = 1000000L / baud;
+
+#ifdef USE_RX_INTERRUPT
+    rx_owner = this;
+    attachInterrupt(digitalPinToInterrupt(SYNC_IN_PIN), rx_handle_interrupt_rising, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(SYNC_IN_PIN), rx_handle_interrupt_falling, FALLING);
+#endif
+
+    reset(false);
+#ifdef DOLOG
+    ESP_LOGI(TAG, "OneWireProtocol: %dbaud %d delay", baud, _rx_delay);
+#endif
+}
+
 void RxOnewire::loop(Micros now)
+{
+    if (_rx_delay == 0)
+        // forgot to call begin?
+        return;
+
+    if (_rx_loop)
+    {
+        return;
+    }
+    _rx_loop = true;
+    inner_loop(now);
+    _rx_loop = false;
+}
+
+void RxOnewire::inner_loop(Micros now)
 {
     if (_rx_bit == RX_BIT_INITIAL)
     {
@@ -40,7 +171,7 @@ void RxOnewire::loop(Micros now)
             return;
 
         int raw_delta = now - _rx_tstart;
-        int expected_delta = onewire::_tx_delay * onewire::START_BITS;
+        int expected_delta = _rx_delay * onewire::START_BITS;
         int diff_in_perc = 100 * abs(expected_delta - raw_delta) / expected_delta;
 #ifdef DOLOG
         int delta = raw_delta / onewire::START_BITS;
@@ -48,17 +179,17 @@ void RxOnewire::loop(Micros now)
 #endif
         if (diff_in_perc > 10)
         {
-#ifdef DOLOG
-            ESP_LOGW(TAG, "receive:  check: raw_delta=%d raw_delta/startbits=%d expected=%d diff_in_perc=%d pointer=%f", raw_delta, delta, onewire::_tx_delay, diff_in_perc, recieve_pointer());
-#endif
+// #ifdef DOLOG
+//             ESP_LOGW(TAG, "receive:  check: raw_delta=%d raw_delta/startbits=%d expected=%d diff_in_perc=%d pointer=%f", raw_delta, delta, _rx_delay, diff_in_perc, recieve_pointer());
+// #endif
 #ifdef DOLED
             Leds::set(1, rgb_color(0xFF, 0x00, 0x00));
             Leds::set(LED_COUNT - 6, rgb_color(0x00, 0x00, 0xFF));
 #endif
-#ifdef DOLOG
-            ESP_LOGV(TAG, "receive:  IGNORE rx_value=%d, rx_bit=%d, delta=%d, diff_in_perc=%d, pointer=%f)", _rx_value, _rx_bit, delta, diff_in_perc, recieve_pointer());
-#endif
-            // ignore
+            // #ifdef DOLOG
+            //             ESP_LOGV(TAG, "receive:  IGNORE rx_value=%d, rx_bit=%d, delta=%d, diff_in_perc=%d, pointer=%f)", _rx_value, _rx_bit, delta, diff_in_perc, recieve_pointer());
+            // #endif
+            //  ignore
             _rx_bit = RX_BIT_INITIAL;
             return;
         }
@@ -73,7 +204,7 @@ void RxOnewire::loop(Micros now)
     // first bit is special
     if (_rx_bit == -onewire::START_BITS)
     {
-        if (now - _rx_t0 < (onewire::_tx_delay >> 1))
+        if (now - _rx_t0 < (_rx_delay >> 1))
         {
             // ignore for first snapshot
             return;
@@ -96,12 +227,12 @@ void RxOnewire::loop(Micros now)
 
     // read data
     const auto delta = now - _rx_t0;
-    if (delta < onewire::_tx_delay)
+    if (delta < _rx_delay)
     {
         // ignore for first snapshot
         return;
     }
-    _rx_t0 += onewire::_tx_delay;
+    _rx_t0 += _rx_delay;
 
     bool state = read();
     if (_rx_bit < MAX_DATA_BITS)
@@ -238,10 +369,10 @@ void TxOnewire::loop(Micros now)
     }
 
     const auto delta = now - _tx_t0;
-    if (delta < onewire::_tx_delay)
+    if (delta < _tx_delay)
         return;
 
-    _tx_t0 += onewire::_tx_delay;
+    _tx_t0 += _tx_delay;
     if (_tx_bit < 0)
     {
         bool bit = _tx_bit != -1;
@@ -312,12 +443,13 @@ void TxOnewire::loop(Micros now)
     }
 }
 
+/* TODO: remove
 void OneWireProtocol::loop()
 {
     Micros now = micros();
     TxOnewire::loop(now);
     RxOnewire::loop(now);
-}
+}*/
 
 void TxOnewire::transmit(onewire::Value value)
 {
@@ -351,13 +483,13 @@ void TxOnewire::transmit(onewire::Value value)
     }
     else
     {
-        noInterrupts();
+        // noInterrupts();
         write(true);
         while (!transmitted())
         {
             loop(micros());
-            // yield();
+            //  yield();
         }
-        interrupts();
+        // interrupts();
     }
 }

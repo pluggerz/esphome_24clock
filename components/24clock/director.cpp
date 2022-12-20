@@ -20,7 +20,7 @@ clock24::Master::Master()
 
 onewire::RxOnewire rx;
 
-onewire::TxOnewire underlying_tx;
+onewire::TxOnewire underlying_tx(onewire::TX_BAUD);
 onewire::BufferedTxOnewire<5> tx(&underlying_tx);
 
 const char *cmd2string(const CmdEnum &cmd)
@@ -172,8 +172,9 @@ void clock24::Master::setup()
     pinMode(USB_POWER_PIN, INPUT);
 
     rx.setup();
-    rx.begin();
-    rx.async = false;
+    rx.begin(onewire::RX_BAUD);
+    // rx.async = false;
+
     tx.setup();
     // tx.disable_async();
 
