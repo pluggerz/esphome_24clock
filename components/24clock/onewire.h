@@ -38,7 +38,7 @@ constexpr int8_t MAX_DATA_BITS = 32;
 
 namespace onewire
 {
-    constexpr uint32_t RX_BAUD = 1000;
+    constexpr uint32_t RX_BAUD = 500;
     constexpr uint32_t TX_BAUD = RX_BAUD;
 
     // for now globally fixed
@@ -61,14 +61,18 @@ namespace onewire
     {
 
     public:
-        // static int timer_attach_state;
-        // static TimerInterrupt *rx;
-        // static TimerInterrupt *tx;
+        static int timer_attach_state;
+        static TimerInterrupt *rx;
+        static TimerInterrupt *tx;
 
         virtual void timer_interrupt() = 0;
 
-        // static void start();
-        // static void kill();
+        static void attach();
+        static void kill();
+
+        // to be refactored
+        static void disableTimer();
+        static void enableTimer();
     };
 
     class Rx
@@ -199,14 +203,14 @@ namespace onewire
     };
 
 #ifdef TX_TIMER
-    class TxOnewire : public Tx //, public TimerInterrupt
+    class TxOnewire : public Tx, public TimerInterrupt
 #else
     class TxOnewire : public Tx
 #endif
     {
     private:
 #ifdef TX_TIMER
-        // MOVE2RAM void timer_interrupt() override;
+        MOVE2RAM void timer_interrupt() override;
 #endif
     protected:
 #ifndef TX_TIMER
@@ -245,8 +249,6 @@ namespace onewire
 
         void setup();
 #ifdef TX_TIMER
-        MOVE2RAM void timer_loop();
-        MOVE2RAM void loop(Micros now) __attribute__((always_inline)){};
 #else
         MOVE2RAM void loop(Micros now);
 #endif
@@ -301,7 +303,9 @@ namespace onewire
 
         MOVE2RAM void loop(Micros now)
         {
+#ifndef TX_TIMER
             _tx_onewire->loop(now);
+#endif
             if (!buffer.is_empty() && _tx_onewire->transmitted())
             {
                 _tx_onewire->transmit(buffer.pop());

@@ -406,6 +406,7 @@ void Director::loop()
 void Director::kill()
 {
     ESP_LOGW(TAG, "OTA detected, will kill me...");
+
     tx.kill();
     rx.kill();
     _killed = true;

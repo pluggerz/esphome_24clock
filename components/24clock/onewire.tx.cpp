@@ -10,6 +10,7 @@ const char *const TAG = "1wireTX";
 #define DOLOG
 #endif
 
+using onewire::TimerInterrupt;
 using onewire::Tx;
 using onewire::TxOnewire;
 
@@ -19,37 +20,13 @@ volatile uint32_t tx_last_time = 0;
 volatile uint32_t tx_total_time = 0;
 volatile uint32_t tx_ticks = 0;
 
-#ifdef TX_TIMER
-//  Credits go: https://github.com/khoih-prog/ESP8266TimerInterrupt
-
-// Select a Timer Clock
-#define USING_TIM_DIV1 false   // for shortest and most accurate timer
-#define USING_TIM_DIV16 true   // for medium time and medium accurate timer
-#define USING_TIM_DIV256 false // for longest timer but least accurate. Default
-
-#include "ESP8266TimerInterrupt.h"
-#include "ESP8266_ISR_Timer.hpp"
-
-#include <ESP8266_ISR_Timer.h>
-
-// Init ESP8266 only and only Timer 1
-ESP8266Timer ITimer;
-
-TxOnewire *tx_timer = nullptr;
-void IRAM_ATTR TxTimerHandler()
-{
-    //  ESP_LOGI(TAG, "next!");
-    tx_timer->timer_loop();
-}
-#endif
-
 void TxOnewire::setup()
 {
     Tx::setup();
 
 #ifdef TX_TIMER
-    tx_succeeded = ITimer.attachInterruptInterval(_tx_delay, TxTimerHandler);
-    tx_timer = this;
+    TimerInterrupt::attach();
+    TimerInterrupt::tx = this;
 #endif // TX_TIMER
 }
 
@@ -64,11 +41,11 @@ void TxOnewire::dump_config()
 }
 
 #ifdef TX_TIMER
-void TxOnewire::timer_loop()
+void TxOnewire::timer_interrupt()
 {
     if (_tx_bit == LAST_TX_BIT + 4)
     {
-        ITimer.disableTimer();
+        TimerInterrupt::disableTimer();
         // done
         return;
     }
@@ -197,7 +174,7 @@ void TxOnewire::transmit(onewire::Value value)
         return;
     }
 #ifdef TX_TIMER
-    ITimer.disableTimer();
+    TimerInterrupt::disableTimer();
 #endif
     if (tx_ticks > 0)
     {
@@ -234,7 +211,7 @@ void TxOnewire::transmit(onewire::Value value)
 
     // write(true);
 #ifdef TX_TIMER
-    ITimer.enableTimer();
+    TimerInterrupt::enableTimer();
 #endif
 }
 
@@ -245,6 +222,6 @@ void TxOnewire::kill()
 #endif
     _tx_delay = 0;
 #ifdef TX_TIMER
-    ITimer.detachInterrupt();
+    TimerInterrupt::kill();
 #endif
 }
