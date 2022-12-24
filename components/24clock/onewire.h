@@ -41,15 +41,11 @@ constexpr int8_t MAX_DATA_BITS = 32;
 
 namespace onewire
 {
-    constexpr uint32_t RX_BAUD = 1500;
-    constexpr uint32_t TX_BAUD = RX_BAUD;
+    constexpr uint32_t BAUD = 1200;
 
     class RxOnewire;
     class TxOnewire;
 
-    // for now globally fixed
-    // constexpr uint32_t RX_BAUD = 100;
-    // constexpr uint32_t TX_BAUD = RX_BAUD;
     constexpr int8_t START_BITS = 2;
 
     typedef uint16_t Value;
@@ -72,6 +68,7 @@ namespace onewire
         static TxOnewire *tx;
 
         static void attach();
+        static void restart();
         static void kill();
 
         // to be refactored
@@ -205,7 +202,6 @@ namespace onewire
     class TxOnewire : public Tx
     {
     protected:
-        Micros _tx_tstart;
         uint32_t _tx_delay;
 
         const int8_t LAST_TX_BIT = MAX_DATA_BITS + 4;
@@ -275,7 +271,7 @@ namespace onewire
             buffer.push(value);
         }
 
-        MOVE2RAM void loop(Micros now)
+        MOVE2RAM void loop()
         {
             if (!buffer.is_empty() && _tx_onewire->transmitted())
             {

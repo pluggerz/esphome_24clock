@@ -165,7 +165,7 @@ void RxOnewire::begin()
 
     reset(false);
 #ifdef DOLOG
-    ESP_LOGI(TAG, "OneWireProtocol: %dbaud", RX_BAUD);
+    ESP_LOGI(TAG, "OneWireProtocol: %dbaud", BAUD);
 #endif
 }
 

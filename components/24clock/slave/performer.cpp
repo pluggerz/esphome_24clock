@@ -10,7 +10,7 @@
 // OneWireProtocol protocol;
 onewire::RxOnewire rx;
 
-onewire::TxOnewire underlying_tx(onewire::TX_BAUD);
+onewire::TxOnewire underlying_tx(onewire::BAUD);
 onewire::BufferedTxOnewire<5> tx(&underlying_tx);
 rs485::Gate gate;
 
@@ -281,7 +281,7 @@ void loop()
     {
 
         t0 = now;
-        // Leds::publish();
+        Leds::publish();
     }
 
     channel.loop();
@@ -314,6 +314,14 @@ void loop()
 */
 
 #if MODE >= MODE_ONEWIRE_MIRROR && MODE != MODE_CHANNEL && MODE != MODE_ONEWIRE_SLAVE_TRANSMITTER
+
+namespace Hal
+{
+    void yield()
+    {
+    }
+} // namespace Hal
+
 void loop()
 {
     // for debugging
@@ -324,9 +332,7 @@ void loop()
         Leds::publish();
     }
 
-    Micros now_in_micros = micros();
-    tx.loop(now_in_micros);
-    rx.loop(now_in_micros);
+    tx.loop();
     channel.loop();
 
     if (rx.pending())
