@@ -1,13 +1,12 @@
 #include "onewire.h"
 
-#ifdef NEXT_GEN
-
 #ifdef TX_TIMER
 
 using onewire::TimerInterrupt;
 
-TimerInterrupt *TimerInterrupt::rx;
-TimerInterrupt *TimerInterrupt::tx;
+TimerInterrupt *TimerInterrupt::rx = nullptr;
+TimerInterrupt *TimerInterrupt::tx = nullptr;
+
 int TimerInterrupt::timer_attach_state = -2;
 
 // Select a Timer Clock
@@ -30,7 +29,6 @@ void IRAM_ATTR TxTimerHandler()
 {
     tx_rx_cycle++;
     auto interrupt = tx_rx_cycle & 1 ? TimerInterrupt::tx : TimerInterrupt::rx;
-    interrupt = TimerInterrupt::tx;
     if (interrupt != nullptr)
         interrupt->timer_interrupt();
 }
@@ -39,19 +37,26 @@ void TimerInterrupt::kill()
 {
     if (TimerInterrupt::timer_attach_state >= 0)
     {
-
         ITimer.detachInterrupt();
         TimerInterrupt::timer_attach_state = -2;
     }
 }
 
-void TimerInterrupt::start()
+void TimerInterrupt::attach()
 {
     if (TimerInterrupt::timer_attach_state >= 0)
         return;
     auto delay = (1000000L / RX_BAUD);
-    TimerInterrupt::timer_attach_state = ITimer.attachInterruptInterval(delay, TxTimerHandler);
+    TimerInterrupt::timer_attach_state = ITimer.attachInterruptInterval(delay >> 1, TxTimerHandler);
 }
-#endif
 
+// to be refactored
+void TimerInterrupt::disableTimer()
+{
+    ITimer.disableTimer();
+}
+void TimerInterrupt::enableTimer()
+{
+    ITimer.enableTimer();
+}
 #endif
