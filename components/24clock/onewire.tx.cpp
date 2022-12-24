@@ -16,12 +16,6 @@ using onewire::TxOnewire;
 
 TxOnewire *OnewireInterrupt::tx = nullptr;
 
-int tx_succeeded = -2;
-volatile uint32_t tx_first_time = 0;
-volatile uint32_t tx_last_time = 0;
-volatile uint32_t tx_total_time = 0;
-volatile uint32_t tx_ticks = 0;
-
 void TxOnewire::setup()
 {
     Tx::setup();
@@ -34,8 +28,8 @@ void TxOnewire::dump_config()
 {
 #ifdef DOLOG
     ESP_LOGCONFIG(TAG, "  TxOnewire");
-    ESP_LOGCONFIG(TAG, "     tx_succeeded: %d", tx_succeeded);
     ESP_LOGCONFIG(TAG, "     re_pin: %d", RS485_RE_PIN);
+    ESP_LOGCONFIG(TAG, "     OnewireInterrupt::tx: 0x%d", OnewireInterrupt::tx);
     // ESP_LOGCONFIG(TAG, "     state: %d", state);
 #endif
 }
@@ -44,7 +38,7 @@ void TxOnewire::timer_interrupt()
 {
     if (_tx_bit == LAST_TX_BIT + 4)
     {
-        OnewireInterrupt::disableTimer();
+        // OnewireInterrupt::disableTimer();
         // done
         return;
     }
@@ -53,19 +47,8 @@ void TxOnewire::timer_interrupt()
 
 void TxOnewire::write_to_sync()
 {
-    // for checking actual bitrate
-    auto now = micros();
-    if (tx_last_time != 0 && _tx_tstart != 0)
-    {
-        auto delay = now - tx_last_time;
-        tx_ticks++;
-        tx_total_time += delay;
-    }
-    tx_last_time = now;
-
     if (_tx_bit == -onewire::START_BITS - 1)
     {
-        _tx_tstart = micros();
         _tx_bit++;
         write(true);
         return;
@@ -148,16 +131,9 @@ void TxOnewire::transmit(onewire::Value value)
     {
         return;
     }
-    OnewireInterrupt::disableTimer();
-    if (tx_ticks > 0)
-    {
-#ifdef DOLOG
-        ESP_LOGD(TAG, "tx_ticks=%d tx_total_time=%d delay=%d, average=%f missed: %d", tx_ticks, tx_total_time, _tx_delay, float(tx_total_time) / tx_ticks, tx_last_time - tx_first_time - tx_total_time);
-#endif
-        tx_ticks = 0;
-        tx_total_time = 0;
-    }
-    tx_first_time = tx_last_time = 0;
+    _tx_bit = LAST_TX_BIT + 1;
+
+    // OnewireInterrupt::disableTimer();
 #ifdef DOLOG
     if (_tx_bit != LAST_TX_BIT && _tx_bit != LAST_TX_BIT + 1)
     {
@@ -166,10 +142,11 @@ void TxOnewire::transmit(onewire::Value value)
 #endif
 
     _tx_nibble = false;
-    _tx_bit = -onewire::START_BITS - 1;
     _tx_value = value & onewire::DATA_MASK;
     _tx_remainder_value = _tx_value;
-    _tx_tstart = 0L;
+
+    // this one should be done last
+    _tx_bit = -onewire::START_BITS - 1;
 #ifdef DOLOG
     if (_tx_value != value)
     {
@@ -180,7 +157,7 @@ void TxOnewire::transmit(onewire::Value value)
     ESP_LOGD(TAG, "transmit: START tx_value=%d", _tx_value);
     ESP_LOGV(TAG, "transmit: START HIGH tx_value=%d, tx_bit=%d)", _tx_value, _tx_bit);
 #endif
-    OnewireInterrupt::enableTimer();
+    // OnewireInterrupt::enableTimer();
 }
 
 void TxOnewire::kill()

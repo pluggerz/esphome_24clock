@@ -34,11 +34,11 @@ ESP8266Timer ITimer1;
 #include "TimerInterrupt.h"
 #endif
 
-volatile uint8_t tx_rx_cycle = 0;
+volatile uint8_t tx_rx_cycle = 1;
 
 void MOVE2RAM TxTimerHandler()
 {
-    if (tx_rx_cycle++ & 1)
+    if (tx_rx_cycle & 1)
     {
         auto interrupt = OnewireInterrupt::tx;
         if (interrupt != nullptr)
@@ -50,6 +50,7 @@ void MOVE2RAM TxTimerHandler()
         if (interrupt != nullptr)
             interrupt->timer_interrupt();
     }
+    tx_rx_cycle++;
 }
 
 void OnewireInterrupt::kill()
@@ -59,6 +60,15 @@ void OnewireInterrupt::kill()
         ITimer1.detachInterrupt();
         OnewireInterrupt::timer_attach_state = -2;
     }
+}
+
+void OnewireInterrupt::restart()
+{
+    if (OnewireInterrupt::timer_attach_state < 0)
+        return;
+
+    ITimer1.restartTimer();
+    tx_rx_cycle = 1;
 }
 
 void OnewireInterrupt::attach()
@@ -71,7 +81,7 @@ void OnewireInterrupt::attach()
 
     // note we use attachInterrupt, instead of attachInterruptInterval since ESP library assumes micros,
     // while arduino assumes millis
-    float delay = float((1000000L / (RX_BAUD << 1))) / 1000.0 / 1000.0; // in micros
+    float delay = float((1000000L / (BAUD << 1))) / 1000.0 / 1000.0; // in micros
     OnewireInterrupt::timer_attach_state = ITimer1.attachInterrupt(1.0 / float(delay), TxTimerHandler);
 }
 

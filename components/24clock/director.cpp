@@ -33,7 +33,7 @@ Director::Director()
 
 onewire::RxOnewire rx;
 
-onewire::TxOnewire underlying_tx(onewire::TX_BAUD);
+onewire::TxOnewire underlying_tx(onewire::BAUD);
 onewire::BufferedTxOnewire<5> tx(&underlying_tx);
 
 #define RECEIVER_BUFFER_SIZE 128
@@ -280,43 +280,36 @@ void Director::setup()
 #endif
 }
 
-#if MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_ONEWIRE_MIRROR
+#if MODE == MODE_ONEWIRE_VALUE || MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_ONEWIRE_MIRROR
 onewire::Value value = 0;
+int received = false;
 
 void Director::loop()
 {
     if (!dumped)
         return;
 
-    Micros now = micros();
-    rx.loop(now);
-    tx.loop(now);
+    tx.loop();
     if (rx.pending())
     {
         auto value = rx.flush();
-        ESP_LOGI(TAG, "RECEIVED: {%d}", value);
+        ESP_LOGD(TAG, "RECEIVED: {%d}", value);
+        received++;
     }
     if (tx.transmitted())
     {
-        ESP_LOGI(TAG, "TRANSMIT: {value=%d}", value);
+        delay(20);
+        ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
         tx.transmit(value++);
-        if (value > 250)
+        if (value >= 48)
+        {
+            ESP_LOGI(TAG, "TRANSMIT: transmitted 48 values received %d values, uptime ", received);
             value = 0;
+            received = 0;
+        }
     }
 }
 #endif
-
-/*
-#if MODE == MODE_CHANNEL
-void Director::loop()
-{
-    if (!dumped)
-        return;
-    channel.loop();
-    tick_action.loop();
-}
-#endif
-*/
 
 #if MODE == MODE_ONEWIRE_CMD || MODE == MODE_CHANNEL
 int test_count_value = 0;
