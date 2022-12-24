@@ -16,13 +16,13 @@ CODEOWNERS = ["@hvandenesker"]
 
 clock24_ns = cg.esphome_ns.namespace("clock24")
 
-MasterClock24 = clock24_ns.class_("Master", cg.Component)
+Director24 = clock24_ns.class_("Director", cg.Component)
 
 CONF_TIME_ID = 'time_id'
 
 CONFIG_SCHEMA = _Schema(
     {
-        cv.Optional(CONF_ID, default='master'): cv.declare_id(MasterClock24),
+        cv.Optional(CONF_ID, default='director'): cv.declare_id(Director24),
         cv.Optional(CONF_TIME_ID, default='current_time'): cv.use_id(time_.RealTimeClock),
 #        cv.GenerateID(): cv.declare_id(OClockStubController),
 #        cv.Optional(CONF_COUNT_START, -1): cv.int_range(min=-1, max=64),

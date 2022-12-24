@@ -9,12 +9,13 @@
 
 namespace clock24
 {
-    class Master : public esphome::Component
+    class Director : public esphome::Component
     {
     private:
         esphome::time::RealTimeClock *time_;
         bool dumped = false;
         int _performers = -1;
+        bool _killed = false;
 
     protected:
         virtual void dump_config() override;
@@ -22,7 +23,9 @@ namespace clock24
         virtual void loop() override;
 
     public:
-        Master();
+        Director();
+
+        void kill();
 
         void set_time(esphome::time::RealTimeClock *value)
         {

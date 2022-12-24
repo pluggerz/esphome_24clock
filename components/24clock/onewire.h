@@ -1,8 +1,7 @@
 #ifndef ONEWIRE_H
 #define ONEWIRE_H
 
-#include "stub.h"
-
+#include "pinio.h"
 #include "pins.h"
 #include "ringbuffer.h"
 
@@ -16,9 +15,12 @@
 
 constexpr int8_t MAX_DATA_BITS = 32;
 
+#ifdef ESP8266
+
 // #define USE_RX_INTERRUPT
 
-#ifdef ESP8266
+#define TX_TIMER
+
 #define MOVE2RAM IRAM_ATTR
 
 // credits to: https://github.com/PaulStoffregen/Encoder/
@@ -36,7 +38,7 @@ constexpr int8_t MAX_DATA_BITS = 32;
 
 namespace onewire
 {
-    constexpr uint32_t RX_BAUD = 100;
+    constexpr uint32_t RX_BAUD = 1000;
     constexpr uint32_t TX_BAUD = RX_BAUD;
 
     // for now globally fixed
@@ -55,6 +57,20 @@ namespace onewire
     static IO_REG_TYPE tx_bitmask = PIN_TO_BITMASK(SYNC_OUT_PIN);
 #endif
 
+    class TimerInterrupt
+    {
+
+    public:
+        // static int timer_attach_state;
+        // static TimerInterrupt *rx;
+        // static TimerInterrupt *tx;
+
+        virtual void timer_interrupt() = 0;
+
+        // static void start();
+        // static void kill();
+    };
+
     class Rx
     {
         bool _rx_last_state = false, _rx_state = false;
@@ -62,9 +78,6 @@ namespace onewire
 #ifdef DOLED
         int last_read = -1;
 #endif
-    public:
-        bool async = true;
-
     protected:
         bool last_state() const
         {
@@ -74,15 +87,7 @@ namespace onewire
         MOVE2RAM bool read() __attribute__((always_inline))
         {
             _rx_last_state = _rx_state;
-#ifdef ESP8266
-            _rx_state = DIRECT_PIN_READ(rx_basereg, rx_bitmask);
-#else
-#ifdef USE_FAST_GPIO
-            bool state = retFastGPIO::Pin<SYNC_IN_PIN>::isInputHigh();
-#else
-            _rx_state = digitalRead(SYNC_IN_PIN) == HIGH;
-#endif // USE_FAST_GPIO
-#endif // ESP8266
+            _rx_state = PIN_READ(SYNC_IN_PIN);
 
 #ifdef DOLED
             if ((_rx_state ? 1 : 0) != last_read)
@@ -108,7 +113,6 @@ namespace onewire
 #endif
 
     public:
-        bool async = true;
         void setup()
         {
             pinMode(SYNC_OUT_PIN, OUTPUT);
@@ -117,19 +121,7 @@ namespace onewire
 
         MOVE2RAM void write(bool state) __attribute__((always_inline))
         {
-#ifdef IGNOREESP8266
-            if (state)
-                DIRECT_PIN_SET(tx_basereg, tx_bitmask);
-            else
-                DIRECT_PIN_CLEAR(tx_basereg, tx_bitmask);
-#else
-#ifdef USE_FAST_GPIO
-            FastGPIO::Pin<SYNC_OUT_PIN>::setOutputValue(state);
-#else
-            digitalWrite(SYNC_OUT_PIN, state ? HIGH : LOW);
-#endif // USE_FAST_GPIO
-#endif // ESP8266
-
+            PIN_WRITE(SYNC_OUT_PIN, state);
 #ifdef DOLED
             if ((state ? 1 : 0) != last_written)
             {
@@ -189,6 +181,10 @@ namespace onewire
             return _rx_available;
         }
 
+        void kill()
+        {
+        }
+
         /***
          * if pending() == true, then returns the read byte, otherwise -1
          */
@@ -198,15 +194,26 @@ namespace onewire
             return _rx_last_value;
         }
         void begin(int baud);
+
         MOVE2RAM void loop(Micros now);
     };
 
-    class TxOnewire : public onewire::Tx
+#ifdef TX_TIMER
+    class TxOnewire : public Tx //, public TimerInterrupt
+#else
+    class TxOnewire : public Tx
+#endif
     {
+    private:
+#ifdef TX_TIMER
+        // MOVE2RAM void timer_interrupt() override;
+#endif
     protected:
+#ifndef TX_TIMER
         Micros _tx_t0;
+#endif
         Micros _tx_tstart;
-        const uint32_t _tx_delay;
+        uint32_t _tx_delay;
 
         const int8_t LAST_TX_BIT = MAX_DATA_BITS + 4;
         int8_t _tx_bit = LAST_TX_BIT;
@@ -214,22 +221,42 @@ namespace onewire
 
         onewire::Value _tx_value, _tx_remainder_value;
 
+#ifdef TX_TIMER
+        float transmit_pointer() const
+        {
+            return -1.0;
+        }
+#else
         float transmit_pointer() const
         {
             // return float(micros()) / float(_tx_delay);
             return (micros() - float(_tx_tstart)) / float(_tx_delay);
         }
+#endif
+
+        void write_to_sync();
 
     public:
         TxOnewire(int baud) : _tx_delay(1000000L / baud) {}
+
+        void dump_config();
+
+        void kill();
+
+        void setup();
+#ifdef TX_TIMER
+        MOVE2RAM void timer_loop();
+        MOVE2RAM void loop(Micros now) __attribute__((always_inline)){};
+#else
+        MOVE2RAM void loop(Micros now);
+#endif
 
         void transmit(onewire::Value value);
 
         bool transmitted() const
         {
-            return _tx_bit == MAX_DATA_BITS + 4;
+            return _tx_delay == 0 || _tx_bit == MAX_DATA_BITS + 4;
         }
-        void loop(Micros now);
     };
 
     template <uint16_t SIZE>
@@ -245,14 +272,19 @@ namespace onewire
         BufferedTxOnewire(TxOnewire *tx_onewire) : _tx_onewire(tx_onewire)
         {
         }
+        void dump_config()
+        {
+            _tx_onewire->dump_config();
+        }
+
+        void kill()
+        {
+            _tx_onewire->kill();
+        }
+
         bool transmitted() const
         {
             return buffer.is_empty() && _tx_onewire->transmitted();
-        }
-
-        void disable_async()
-        {
-            _tx_onewire->async = false;
         }
 
         void setup()
@@ -267,7 +299,7 @@ namespace onewire
             buffer.push(value);
         }
 
-        void loop(Micros now)
+        MOVE2RAM void loop(Micros now)
         {
             _tx_onewire->loop(now);
             if (!buffer.is_empty() && _tx_onewire->transmitted())
@@ -311,22 +343,5 @@ public:
         return last;
     }
 };
-
-/* TODO: remove
-class OneWireProtocol : public onewire::RxOnewire, public onewire::TxOnewire
-{
-public:
-private:
-public:
-    void loop();
-
-    void setup()
-    {
-        Rx::setup();
-        Tx::setup();
-    }
-
-    void listen();
-};*/
 
 #endif

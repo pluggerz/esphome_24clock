@@ -1,7 +1,10 @@
 #include "stub.h"
 
-#include "onewire.h"
 #include "pins.h"
+#include "pinio.h"
+#include "onewire.h"
+#include "channel.h"
+#include "channel.interop.h"
 #include "leds.h"
 
 // OneWireProtocol protocol;
@@ -9,8 +12,17 @@ onewire::RxOnewire rx;
 
 onewire::TxOnewire underlying_tx(onewire::TX_BAUD);
 onewire::BufferedTxOnewire<5> tx(&underlying_tx);
+rs485::Gate gate;
 
-OneWireTracker tracker;
+// OneWireTracker tracker;
+
+#define RECEIVER_BUFFER_SIZE 128
+
+class PerformerChannel : public rs485::BufferChannel<RECEIVER_BUFFER_SIZE>
+{
+public:
+    void process(const byte *bytes, const byte length) override;
+} channel;
 
 Micros t0 = 0;
 int performer_id = -1;
@@ -56,7 +68,7 @@ void show_action(const OneCommand &cmd)
     Leds::publish();
 }
 
-class InitializeAction : public DelayAction
+class DefaultAction : public DelayAction
 {
 public:
     virtual void update() override
@@ -83,6 +95,7 @@ public:
     }
 } default_action;
 
+#if MODE >= MODE_ONEWIRE_INTERACT
 class ResetAction : public DelayAction
 {
 public:
@@ -113,9 +126,14 @@ public:
                 break;
 
             case DIRECTOR_ACCEPT:
-                transmit(cmd.next_source());
                 performer_id = cmd.msg.src;
                 set_action(&default_action);
+
+                transmit(cmd.next_source());
+
+                // channel.baudrate(9600);
+                channel.baudrate(cmd.accept.baudrate);
+                channel.start_receiving();
                 break;
 
             default:
@@ -127,6 +145,7 @@ public:
         DelayAction::loop();
     }
 } reset_action;
+#endif
 
 Action *current_action = nullptr;
 
@@ -145,8 +164,19 @@ void set_action(Action *action)
         current_action->setup();
 }
 
+#if MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_CHANNEL
+
+void follow_change()
+{
+    PIN_WRITE(SYNC_OUT_PIN, PIN_READ(SYNC_IN_PIN));
+}
+#endif
+
 void setup()
 {
+    pinMode(SLAVE_RS485_TXD_DPIN, OUTPUT);
+    pinMode(SLAVE_RS485_RXD_DPIN, INPUT);
+
     Leds::setup();
 
     // tracker.setup();
@@ -159,6 +189,16 @@ void setup()
 
     tx.setup();
 
+    channel.setup();
+
+#if MODE == MODE_CHANNEL || MODE == MODE_ONEWIRE_CMD || MODE == MODE_ONEWIRE_PASSTROUGH
+    channel.baudrate(9600);
+    channel.start_receiving();
+#endif
+
+    gate.setup();
+    gate.start_receiving();
+
 #ifdef APA102_USE_FAST_GPIO
     Leds::set(LED_COUNT - 1, rgb_color(0xFF, 0xFF, 0x00));
 #else
@@ -168,29 +208,86 @@ void setup()
 #if MODE >= MODE_ONEWIRE_INTERACT
     set_action(&reset_action);
 #endif
+
+#if MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_CHANNEL
+    auto interupt = digitalPinToInterrupt(SYNC_IN_PIN);
+    if (interupt < 0)
+    {
+        Leds::set_all(rgb_color(0xFF, 0x00, 0x00));
+        Leds::publish();
+        while (true)
+        {
+        }
+    }
+    else
+    {
+        Leds::set_all(rgb_color(0x00, 0xFf, 0x00));
+        Leds::publish();
+
+        delay(2000);
+    }
+    attachInterrupt(interupt, follow_change, CHANGE);
+#endif
 }
 
 LoopFunction current = reset_mode;
 
-#if MODE == MODE_ONEWIRE_PASSTROUGH
+#if MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_CHANNEL
+
+namespace Hal
+{
+    void yield()
+    {
+        /*
+        if (tracker.pending())
+        {
+            tracker.replicate();
+        }
+        */
+    }
+} // namespace Hal
+
 void loop()
 {
     // for debugging
     Millis now = millis();
-    if (now - t0 > 10)
+    if (now - t0 > 25)
     {
+
+        t0 = now;
+        // Leds::publish();
+    }
+
+    channel.loop();
+    /*if (tracker.pending())
+    {
+        tracker.replicate();
+    }*/
+}
+#endif
+
+/*
+#if MODE == MODE_CHANNEL
+void loop()
+{
+    // for debugging
+    Millis now = millis();
+    if (now - t0 > 25)
+    {
+        Leds::set(0, PIN_READ(RS485_DE_PIN) ? rgb_color(0, 0xFF, 0) : rgb_color(0xff, 0, 0));
+        Leds::set(1, PIN_READ(RS485_RE_PIN) ? rgb_color(0, 0xFF, 0) : rgb_color(0xff, 0, 0));
+
         t0 = now;
         Leds::publish();
     }
 
-    if (tracker.pending())
-    {
-        tracker.replicate();
-    }
+    Leds::publish();
+    channel.loop();
 }
 #endif
+*/
 
-#if MODE >= MODE_ONEWIRE_MIRROR
+#if MODE >= MODE_ONEWIRE_MIRROR && MODE != MODE_CHANNEL
 void loop()
 {
     // for debugging
@@ -204,6 +301,8 @@ void loop()
     Micros now_in_micros = micros();
     tx.loop(now_in_micros);
     rx.loop(now_in_micros);
+    channel.loop();
+
     if (rx.pending())
     {
 #if MODE == MODE_ONEWIRE_MIRROR
@@ -220,3 +319,26 @@ void loop()
         current_action->loop();
 }
 #endif
+
+void PerformerChannel::process(const byte *bytes, const byte length)
+{
+
+    ChannelMessage *msg = (ChannelMessage *)bytes;
+    switch (msg->getMsgEnum())
+    {
+    case ChannelMsgEnum::MSG_TICK:
+        if (performer_id >= 0)
+        {
+            Leds::set(LED_CHANNEL, rgb_color(0xff, 0x00, 0xFF));
+            Leds::publish();
+
+            transmit(OneCommand::tock(performer_id));
+        }
+        break;
+
+    default:
+        Leds::set(LED_CHANNEL, rgb_color(0xff, 0x00, 0x00));
+        Leds::publish();
+        break;
+    }
+}

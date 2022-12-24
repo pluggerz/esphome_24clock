@@ -11,11 +11,12 @@ OneCommand OneCommand::online()
     return cmd;
 }
 
-OneCommand OneCommand::accept()
+OneCommand OneCommand::Accept::create(uint32_t baudrate_)
 {
     OneCommand cmd;
     cmd.msg.src = SRC_MASTER;
     cmd.msg.cmd = CmdEnum::DIRECTOR_ACCEPT;
+    cmd.accept.baudrate = baudrate_;
     return cmd;
 }
 
@@ -24,5 +25,13 @@ OneCommand OneCommand::ping()
     OneCommand cmd;
     cmd.msg.src = SRC_MASTER;
     cmd.msg.cmd = CmdEnum::DIRECTOR_PING;
+    return cmd;
+}
+
+OneCommand OneCommand::tock(int performer_id)
+{
+    OneCommand cmd;
+    cmd.msg.src = performer_id;
+    cmd.msg.cmd = CmdEnum::TOCK;
     return cmd;
 }
