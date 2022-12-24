@@ -14,6 +14,8 @@ using onewire::OnewireInterrupt;
 using onewire::Tx;
 using onewire::TxOnewire;
 
+TxOnewire *OnewireInterrupt::tx = nullptr;
+
 int tx_succeeded = -2;
 volatile uint32_t tx_first_time = 0;
 volatile uint32_t tx_last_time = 0;
@@ -24,10 +26,8 @@ void TxOnewire::setup()
 {
     Tx::setup();
 
-#ifdef TX_TIMER
     OnewireInterrupt::attach();
     OnewireInterrupt::tx = this;
-#endif // TX_TIMER
 }
 
 void TxOnewire::dump_config()
@@ -36,11 +36,10 @@ void TxOnewire::dump_config()
     ESP_LOGCONFIG(TAG, "  TxOnewire");
     ESP_LOGCONFIG(TAG, "     tx_succeeded: %d", tx_succeeded);
     ESP_LOGCONFIG(TAG, "     re_pin: %d", RS485_RE_PIN);
-    ESP_LOGCONFIG(TAG, "     state: %d", state);
+    // ESP_LOGCONFIG(TAG, "     state: %d", state);
 #endif
 }
 
-#ifdef TX_TIMER
 void TxOnewire::timer_interrupt()
 {
     if (_tx_bit == LAST_TX_BIT + 4)
@@ -51,24 +50,6 @@ void TxOnewire::timer_interrupt()
     }
     write_to_sync();
 }
-#endif
-
-#ifndef TX_TIMER
-void TxOnewire::loop(Micros now)
-{
-    if (_tx_bit == LAST_TX_BIT + 4)
-    {
-        // done
-        return;
-    }
-
-    const auto delta = now - _tx_t0;
-    if (delta < _tx_delay)
-        return;
-
-    write_to_sync();
-}
-#endif
 
 void TxOnewire::write_to_sync()
 {
@@ -85,23 +66,17 @@ void TxOnewire::write_to_sync()
     if (_tx_bit == -onewire::START_BITS - 1)
     {
         _tx_tstart = micros();
-#ifndef TX_TIMER
-        _tx_t0 = _tx_tstart;
-#endif
         _tx_bit++;
         write(true);
         return;
     }
 
-#ifndef TX_TIMER
-    _tx_t0 += _tx_delay;
-#endif
     if (_tx_bit < 0)
     {
         bool bit = _tx_bit != -1;
         write(bit);
 #ifdef DOLOG
-        ESP_LOGV(TAG, "transmit: START %s tx_value=%d, tx_bit=%d, pointer=%f)", bit ? "HIGH" : "LOW ", _tx_value, _tx_bit, transmit_pointer());
+        ESP_LOGV(TAG, "transmit: START %s tx_value=%d, tx_bit=%d)", bit ? "HIGH" : "LOW ", _tx_value, _tx_bit);
 #endif
         _tx_bit++;
         return;
@@ -119,7 +94,7 @@ void TxOnewire::write_to_sync()
             _tx_remainder_value -= mask;
         }
 #ifdef DOLOG
-        ESP_LOGV(TAG, "transmit: DATA%s %s tx_value=%d, tx_bit=%d, pointer=%f)", _tx_nibble ? "S" : "F", written ? "HIGH" : "LOW ", _tx_value, _tx_bit, transmit_pointer());
+        ESP_LOGV(TAG, "transmit: DATA%s %s tx_value=%d, tx_bit=%d)", _tx_nibble ? "S" : "F", written ? "HIGH" : "LOW ", _tx_value, _tx_bit);
 #endif
         if (_tx_nibble)
         {
@@ -133,7 +108,7 @@ void TxOnewire::write_to_sync()
     if (_tx_bit == MAX_DATA_BITS)
     {
 #ifdef DOLOG
-        ESP_LOGV(TAG, "transmit: END1  LOW  tx_value=%d, tx_bit=%d, pointer=%f)", _tx_value, _tx_bit, transmit_pointer());
+        ESP_LOGV(TAG, "transmit: END1  LOW  tx_value=%d, tx_bit=%d)", _tx_value, _tx_bit);
 #endif
 
         write(false);
@@ -142,7 +117,7 @@ void TxOnewire::write_to_sync()
     else if (_tx_bit == MAX_DATA_BITS + 1)
     {
 #ifdef DOLOG
-        ESP_LOGV(TAG, "transmit: END2  HIGH tx_value=%d, tx_bit=%d, pointer=%f)", _tx_value, _tx_bit, transmit_pointer());
+        ESP_LOGV(TAG, "transmit: END2  HIGH tx_value=%d, tx_bit=%d)", _tx_value, _tx_bit);
 #endif
         write(true);
 
@@ -151,7 +126,7 @@ void TxOnewire::write_to_sync()
     else if (_tx_bit == MAX_DATA_BITS + 2)
     {
 #ifdef DOLOG
-        ESP_LOGV(TAG, "transmit: END3  LOW tx_value=%d, tx_bit=%d, pointer=%f)", _tx_value, _tx_bit, transmit_pointer());
+        ESP_LOGV(TAG, "transmit: END3  LOW tx_value=%d, tx_bit=%d)", _tx_value, _tx_bit);
 #endif
         write(false);
 
@@ -160,7 +135,7 @@ void TxOnewire::write_to_sync()
     else if (_tx_bit == MAX_DATA_BITS + 3)
     {
 #ifdef DOLOG
-        ESP_LOGV(TAG, "transmit: FINAL tx_value=%d, tx_bit=%d, pointer=%f)", _tx_value, _tx_bit, transmit_pointer());
+        ESP_LOGV(TAG, "transmit: FINAL tx_value=%d, tx_bit=%d)", _tx_value, _tx_bit);
         ESP_LOGD(TAG, "transmit: END tx_value=%d", _tx_value);
 #endif
         _tx_bit = LAST_TX_BIT;
@@ -173,9 +148,7 @@ void TxOnewire::transmit(onewire::Value value)
     {
         return;
     }
-#ifdef TX_TIMER
     OnewireInterrupt::disableTimer();
-#endif
     if (tx_ticks > 0)
     {
 #ifdef DOLOG
@@ -188,7 +161,7 @@ void TxOnewire::transmit(onewire::Value value)
 #ifdef DOLOG
     if (_tx_bit != LAST_TX_BIT && _tx_bit != LAST_TX_BIT + 1)
     {
-        ESP_LOGW(TAG, "transmit not complete !?: tx_value=%d, tx_bit=%d, pointre=%f)", _tx_value, _tx_bit, transmit_pointer());
+        ESP_LOGW(TAG, "transmit not complete !?: tx_value=%d, tx_bit=%d)", _tx_value, _tx_bit);
     }
 #endif
 
@@ -200,19 +173,14 @@ void TxOnewire::transmit(onewire::Value value)
 #ifdef DOLOG
     if (_tx_value != value)
     {
-        ESP_LOGW(TAG, "Warning masked value(=%d) is not same as input(=%d), pointer=%f", _tx_value, value, transmit_pointer());
+        ESP_LOGW(TAG, "Warning masked value(=%d) is not same as input(=%d)", _tx_value, value);
     }
 #endif
 #ifdef DOLOG
     ESP_LOGD(TAG, "transmit: START tx_value=%d", _tx_value);
-    ESP_LOGV(TAG, "transmit: START HIGH tx_value=%d, tx_bit=%d, pointer=%f)", _tx_value, _tx_bit, transmit_pointer());
+    ESP_LOGV(TAG, "transmit: START HIGH tx_value=%d, tx_bit=%d)", _tx_value, _tx_bit);
 #endif
-    // reset(true);
-
-    // write(true);
-#ifdef TX_TIMER
     OnewireInterrupt::enableTimer();
-#endif
 }
 
 void TxOnewire::kill()
@@ -221,7 +189,5 @@ void TxOnewire::kill()
     ESP_LOGW(TAG, "kill()");
 #endif
     _tx_delay = 0;
-#ifdef TX_TIMER
     OnewireInterrupt::kill();
-#endif
 }

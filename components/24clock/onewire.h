@@ -1,6 +1,11 @@
 #ifndef ONEWIRE_H
 #define ONEWIRE_H
 
+// HHL = START
+// HL = 1
+// LH = 0
+// LHL = END
+
 #include "pinio.h"
 #include "pins.h"
 #include "ringbuffer.h"
@@ -14,8 +19,6 @@
 #endif
 
 constexpr int8_t MAX_DATA_BITS = 32;
-
-#define TX_TIMER
 
 #ifdef ESP8266
 
@@ -38,8 +41,11 @@ constexpr int8_t MAX_DATA_BITS = 32;
 
 namespace onewire
 {
-    constexpr uint32_t RX_BAUD = 1000;
+    constexpr uint32_t RX_BAUD = 1500;
     constexpr uint32_t TX_BAUD = RX_BAUD;
+
+    class RxOnewire;
+    class TxOnewire;
 
     // for now globally fixed
     // constexpr uint32_t RX_BAUD = 100;
@@ -62,10 +68,8 @@ namespace onewire
 
     public:
         static int timer_attach_state;
-        static OnewireInterrupt *rx;
-        static OnewireInterrupt *tx;
-
-        MOVE2RAM virtual void timer_interrupt() = 0;
+        static RxOnewire *rx;
+        static TxOnewire *tx;
 
         static void attach();
         static void kill();
@@ -136,6 +140,8 @@ namespace onewire
         }
     };
 
+    const int8_t RX_BIT_INITIAL = -onewire::START_BITS - 1;
+
     /**
      * @brief
      *
@@ -148,32 +154,31 @@ namespace onewire
      */
     class RxOnewire : public onewire::Rx
     {
-        void inner_loop(Micros now);
-        volatile bool _rx_loop = false;
-
     protected:
-        Micros _rx_t0;
+        // last read value, valid if _rx_available is true
+        volatile onewire::Value _rx_last_value;
+        volatile bool _rx_available = false;
+
         Micros _rx_tstart;
         uint32_t _rx_delay = 0;
 
-        onewire::Value _rx_last_value;
-
-        bool _rx_nibble = false;
-        const int8_t RX_BIT_INITIAL = -onewire::START_BITS - 1;
-        int8_t _rx_bit = RX_BIT_INITIAL;
-        bool _rx_available = false;
-
-        onewire::Value _rx_value;
+        // vars for the scanner
+        volatile int8_t _rx_bit = RX_BIT_INITIAL;
+        volatile bool _rx_nibble = false;     //
+        volatile onewire::Value _rx_value;    // keep track of the scanned data
+        volatile bool _rx_last_state = false; // last read state
 
         void reset(bool forced);
-
-        float recieve_pointer() const
+        void reset_interrupt()
         {
-            return float(micros()) / float(_rx_delay);
-            // return (micros() - float(_rx_tstart)) / float(_tx_delay);
+            _rx_nibble = false;
+            _rx_bit = onewire::RX_BIT_INITIAL;
         }
 
     public:
+        MOVE2RAM void timer_interrupt();
+        MOVE2RAM void timer_interrupt(bool last, bool current);
+
         MOVE2RAM void handle_interrupt(bool rising);
         /***
          * pending:
@@ -198,24 +203,11 @@ namespace onewire
             return _rx_last_value;
         }
         void begin(int baud);
-
-        MOVE2RAM void loop(Micros now);
     };
 
-#ifdef TX_TIMER
-    class TxOnewire : public Tx, public OnewireInterrupt
-#else
     class TxOnewire : public Tx
-#endif
     {
-    private:
-#ifdef TX_TIMER
-        MOVE2RAM void timer_interrupt() override;
-#endif
     protected:
-#ifndef TX_TIMER
-        Micros _tx_t0;
-#endif
         Micros _tx_tstart;
         uint32_t _tx_delay;
 
@@ -224,19 +216,6 @@ namespace onewire
         bool _tx_nibble = false;
 
         onewire::Value _tx_value, _tx_remainder_value;
-
-#ifdef TX_TIMER
-        float transmit_pointer() const
-        {
-            return -1.0;
-        }
-#else
-        float transmit_pointer() const
-        {
-            // return float(micros()) / float(_tx_delay);
-            return (micros() - float(_tx_tstart)) / float(_tx_delay);
-        }
-#endif
 
         void write_to_sync();
 
@@ -248,12 +227,10 @@ namespace onewire
         void kill();
 
         void setup();
-#ifdef TX_TIMER
-#else
-        MOVE2RAM void loop(Micros now);
-#endif
 
         void transmit(onewire::Value value);
+
+        MOVE2RAM void timer_interrupt();
 
         bool transmitted() const
         {
@@ -303,9 +280,6 @@ namespace onewire
 
         MOVE2RAM void loop(Micros now)
         {
-#ifndef TX_TIMER
-            _tx_onewire->loop(now);
-#endif
             if (!buffer.is_empty() && _tx_onewire->transmitted())
             {
                 _tx_onewire->transmit(buffer.pop());

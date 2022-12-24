@@ -1,11 +1,6 @@
 #include "onewire.h"
 
-#ifdef TX_TIMER
-
 using onewire::OnewireInterrupt;
-
-OnewireInterrupt *OnewireInterrupt::rx = nullptr;
-OnewireInterrupt *OnewireInterrupt::tx = nullptr;
 
 int OnewireInterrupt::timer_attach_state = -2;
 
@@ -43,9 +38,18 @@ volatile uint8_t tx_rx_cycle = 0;
 
 void MOVE2RAM TxTimerHandler()
 {
-    auto interrupt = tx_rx_cycle++ & 1 ? OnewireInterrupt::tx : OnewireInterrupt::rx;
-    if (interrupt != nullptr)
-        interrupt->timer_interrupt();
+    if (tx_rx_cycle++ & 1)
+    {
+        auto interrupt = OnewireInterrupt::tx;
+        if (interrupt != nullptr)
+            interrupt->timer_interrupt();
+    }
+    else
+    {
+        auto interrupt = OnewireInterrupt::rx;
+        if (interrupt != nullptr)
+            interrupt->timer_interrupt();
+    }
 }
 
 void OnewireInterrupt::kill()
@@ -80,4 +84,3 @@ void OnewireInterrupt::enableTimer()
 {
     ITimer1.enableTimer();
 }
-#endif

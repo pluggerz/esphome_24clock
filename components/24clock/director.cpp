@@ -231,6 +231,24 @@ public:
     }
 } tick_action;
 
+class TestOnewireAction : public DelayAction
+{
+    bool send = false;
+    Millis t0;
+
+public:
+    TestOnewireAction() : DelayAction(1000)
+    {
+    }
+    virtual void update() override
+    {
+        if (tx.transmitted())
+        {
+            tx.transmit(3);
+        }
+    }
+} test_onewire_action;
+
 void Director::setup()
 {
     ESP_LOGI(TAG, "Master: setup!");
@@ -301,32 +319,38 @@ void Director::loop()
 */
 
 #if MODE == MODE_ONEWIRE_CMD || MODE == MODE_CHANNEL
-int test_count_value;
+int test_count_value = 0;
 void Director::loop()
 {
     if (!dumped)
         return;
 
 #if MODE == MODE_CHANNEL
-    channel.loop();
-    tick_action.loop();
+        // channel.loop();
+        // tick_action.loop();
+        // test_onewire_action.loop();
 #endif
 
     Micros now = micros();
-    rx.loop(now);
+    // rx.loop(now);
     tx.loop(now);
     if (rx.pending())
     {
         OneCommand cmd;
         cmd.raw = rx.flush();
-        logw_cmd("RECEIVED", cmd);
-        if (cmd.msg.cmd == CmdEnum::DIRECTOR_ACCEPT)
-            ESP_LOGI(TAG, "  -> Accept(%d)", cmd.accept.baudrate);
+        if (cmd.raw == 100)
+        {
+            ESP_LOGI(TAG, "  GOT: %d", cmd.raw);
+        }
+        // logw_cmd("RECEIVED", cmd);
+        // if (cmd.msg.cmd == CmdEnum::DIRECTOR_ACCEPT)
+        //     ESP_LOGI(TAG, "  -> Accept(%d)", cmd.accept.baudrate);
     }
     if (tx.transmitted())
     {
-        delay(10);
-        tx.transmit(255);
+        tx.transmit(test_count_value++);
+        if (test_count_value > 300)
+            test_count_value = 0;
 
         // OneCommand cmd = OneCommand::Accept::create(0xFF);
         // logw_cmd("TRANSMIT ACCEPT(140)", cmd);
