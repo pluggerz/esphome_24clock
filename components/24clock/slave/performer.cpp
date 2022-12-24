@@ -232,18 +232,46 @@ void setup()
 
 LoopFunction current = reset_mode;
 
+#if MODE == MODE_ONEWIRE_SLAVE_TRANSMITTER
+namespace Hal
+{
+    void yield()
+    {
+    }
+} // namespace Hal
+
+void loop()
+{
+    Millis now = millis();
+    if (now - t0 > 25)
+    {
+        t0 = now;
+        Leds::publish();
+    }
+
+    tx.loop(micros()); // still needed, because of buffering :S
+    if (tx.transmitted())
+    {
+        Leds::set(4, rgb_color(0xFf, 0xFF, 0x00));
+        Leds::publish();
+
+        delay(20);
+        tx.transmit(128);
+
+        Leds::set(4, rgb_color(0xFF, 0x00, 0xFF));
+        Leds::publish();
+
+        delay(20);
+    }
+}
+#endif
+
 #if MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_CHANNEL
 
 namespace Hal
 {
     void yield()
     {
-        /*
-        if (tracker.pending())
-        {
-            tracker.replicate();
-        }
-        */
     }
 } // namespace Hal
 
@@ -287,7 +315,7 @@ void loop()
 #endif
 */
 
-#if MODE >= MODE_ONEWIRE_MIRROR && MODE != MODE_CHANNEL
+#if MODE >= MODE_ONEWIRE_MIRROR && MODE != MODE_CHANNEL && MODE != MODE_ONEWIRE_SLAVE_TRANSMITTER
 void loop()
 {
     // for debugging

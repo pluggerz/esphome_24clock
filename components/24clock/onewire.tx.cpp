@@ -10,7 +10,7 @@ const char *const TAG = "1wireTX";
 #define DOLOG
 #endif
 
-using onewire::TimerInterrupt;
+using onewire::OnewireInterrupt;
 using onewire::Tx;
 using onewire::TxOnewire;
 
@@ -25,8 +25,8 @@ void TxOnewire::setup()
     Tx::setup();
 
 #ifdef TX_TIMER
-    TimerInterrupt::attach();
-    TimerInterrupt::tx = this;
+    OnewireInterrupt::attach();
+    OnewireInterrupt::tx = this;
 #endif // TX_TIMER
 }
 
@@ -45,7 +45,7 @@ void TxOnewire::timer_interrupt()
 {
     if (_tx_bit == LAST_TX_BIT + 4)
     {
-        TimerInterrupt::disableTimer();
+        OnewireInterrupt::disableTimer();
         // done
         return;
     }
@@ -174,7 +174,7 @@ void TxOnewire::transmit(onewire::Value value)
         return;
     }
 #ifdef TX_TIMER
-    TimerInterrupt::disableTimer();
+    OnewireInterrupt::disableTimer();
 #endif
     if (tx_ticks > 0)
     {
@@ -211,7 +211,7 @@ void TxOnewire::transmit(onewire::Value value)
 
     // write(true);
 #ifdef TX_TIMER
-    TimerInterrupt::enableTimer();
+    OnewireInterrupt::enableTimer();
 #endif
 }
 
@@ -222,6 +222,6 @@ void TxOnewire::kill()
 #endif
     _tx_delay = 0;
 #ifdef TX_TIMER
-    TimerInterrupt::kill();
+    OnewireInterrupt::kill();
 #endif
 }

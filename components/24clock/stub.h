@@ -4,13 +4,16 @@
 #define MODE_ONEWIRE_MIRROR 2
 #define MODE_ONEWIRE_CMD 3
 
+// make sure one slave is transmitter, and others are not!
+#define MODE_ONEWIRE_SLAVE_TRANSMITTER 4
+
 // make sure all slaves+master use this one as well
-#define MODE_CHANNEL 4
+#define MODE_CHANNEL 5
 
 // MODE_ONEWIRE_INTERACT can work with PASSTHROUGH and MIRROR for saves
-#define MODE_ONEWIRE_INTERACT 5
+#define MODE_ONEWIRE_INTERACT 6
 
-#define MODE MODE_CHANNEL
+#define MODE MODE_ONEWIRE_SLAVE_TRANSMITTER
 
 typedef unsigned long Micros;
 typedef unsigned long Millis;

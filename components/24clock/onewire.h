@@ -15,11 +15,11 @@
 
 constexpr int8_t MAX_DATA_BITS = 32;
 
+#define TX_TIMER
+
 #ifdef ESP8266
 
 // #define USE_RX_INTERRUPT
-
-#define TX_TIMER
 
 #define MOVE2RAM IRAM_ATTR
 
@@ -38,7 +38,7 @@ constexpr int8_t MAX_DATA_BITS = 32;
 
 namespace onewire
 {
-    constexpr uint32_t RX_BAUD = 500;
+    constexpr uint32_t RX_BAUD = 1000;
     constexpr uint32_t TX_BAUD = RX_BAUD;
 
     // for now globally fixed
@@ -57,15 +57,15 @@ namespace onewire
     static IO_REG_TYPE tx_bitmask = PIN_TO_BITMASK(SYNC_OUT_PIN);
 #endif
 
-    class TimerInterrupt
+    class OnewireInterrupt
     {
 
     public:
         static int timer_attach_state;
-        static TimerInterrupt *rx;
-        static TimerInterrupt *tx;
+        static OnewireInterrupt *rx;
+        static OnewireInterrupt *tx;
 
-        virtual void timer_interrupt() = 0;
+        MOVE2RAM virtual void timer_interrupt() = 0;
 
         static void attach();
         static void kill();
@@ -203,7 +203,7 @@ namespace onewire
     };
 
 #ifdef TX_TIMER
-    class TxOnewire : public Tx, public TimerInterrupt
+    class TxOnewire : public Tx, public OnewireInterrupt
 #else
     class TxOnewire : public Tx
 #endif
