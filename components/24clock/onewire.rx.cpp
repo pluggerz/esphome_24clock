@@ -35,12 +35,16 @@ void RxOnewire::timer_interrupt(bool last, bool current)
             else if (current && !last)
             { // actual end symbol
                 _rx_bit = MAX_DATA_BITS + 2;
+#ifdef DOLOG
                 ESP_LOGV(TAG, "receive:  Possible END");
+#endif
             }
             else
             {
-                // invalid state!
+// invalid state!
+#ifdef DOLOG
                 ESP_LOGW(TAG, "receive:  INVALID !?");
+#endif
                 reset_interrupt();
             }
             return;
@@ -49,7 +53,9 @@ void RxOnewire::timer_interrupt(bool last, bool current)
         {
             if (current)
                 _rx_value |= 1 << _rx_bit;
+#ifdef DOLOG
             ESP_LOGV(TAG, "receive:  DATAF: %s @%d (%d)", current ? "HIGH" : "LOW", _rx_bit, _rx_value);
+#endif
             _rx_nibble = true;
             return;
         }
@@ -59,10 +65,16 @@ void RxOnewire::timer_interrupt(bool last, bool current)
     {
     case MAX_DATA_BITS + 2:
         if (current)
+        {
+#ifdef DOLOG
             ESP_LOGI(TAG, "receive:  INVALIF END !?");
+#endif
+        }
         else
         {
+#ifdef DOLOG
             ESP_LOGD(TAG, "receive:  END -> %d", _rx_value);
+#endif
             _rx_last_value = _rx_value;
             _rx_available = true;
         }
@@ -73,7 +85,9 @@ void RxOnewire::timer_interrupt(bool last, bool current)
     case MAX_DATA_BITS:
         if (current != (_rx_bit == MAX_DATA_BITS ? false : true))
         {
+#ifdef DOLOG
             ESP_LOGI(TAG, "NOT EXPECTED !?");
+#endif
             reset_interrupt();
         }
         else
@@ -90,7 +104,9 @@ void RxOnewire::timer_interrupt(bool last, bool current)
                 reset_interrupt();
                 return;
             }
+#ifdef DOLOG
             ESP_LOGV(TAG, "receive:  START DETECTED");
+#endif
             _rx_bit = 0;
             _rx_nibble = false;
             _rx_value = 0;
@@ -101,7 +117,9 @@ void RxOnewire::timer_interrupt(bool last, bool current)
         return;
 
     default:
+#ifdef DOLOG
         ESP_LOGV(TAG, "receive:  UNKNOWN STATE!?");
+#endif
         reset_interrupt();
     }
 }
@@ -135,10 +153,8 @@ void RxOnewire::handle_interrupt(bool state)
 
 #endif // USE_RX_INTERRUPT
 
-void RxOnewire::begin(int baud)
+void RxOnewire::begin()
 {
-    _rx_delay = 1000000L / baud;
-
     OnewireInterrupt::attach();
     OnewireInterrupt::rx = this;
 
@@ -149,7 +165,7 @@ void RxOnewire::begin(int baud)
 
     reset(false);
 #ifdef DOLOG
-    ESP_LOGI(TAG, "OneWireProtocol: %dbaud %d delay", baud, _rx_delay);
+    ESP_LOGI(TAG, "OneWireProtocol: %dbaud", RX_BAUD);
 #endif
 }
 
@@ -172,7 +188,6 @@ void onewire::RxOnewire::reset(bool forced)
 #endif
     }
     _rx_value = 0;
-    _rx_tstart = 0;
     _rx_bit = RX_BIT_INITIAL;
     _rx_nibble = false;
 

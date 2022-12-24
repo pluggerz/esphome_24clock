@@ -14,8 +14,6 @@ onewire::TxOnewire underlying_tx(onewire::TX_BAUD);
 onewire::BufferedTxOnewire<5> tx(&underlying_tx);
 rs485::Gate gate;
 
-// OneWireTracker tracker;
-
 #define RECEIVER_BUFFER_SIZE 128
 
 class PerformerChannel : public rs485::BufferChannel<RECEIVER_BUFFER_SIZE>
@@ -185,7 +183,7 @@ void setup()
     Leds::publish();
 
     rx.setup();
-    rx.begin(onewire::RX_BAUD);
+    rx.begin();
 
     tx.setup();
 

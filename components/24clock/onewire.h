@@ -159,9 +159,6 @@ namespace onewire
         volatile onewire::Value _rx_last_value;
         volatile bool _rx_available = false;
 
-        Micros _rx_tstart;
-        uint32_t _rx_delay = 0;
-
         // vars for the scanner
         volatile int8_t _rx_bit = RX_BIT_INITIAL;
         volatile bool _rx_nibble = false;     //
@@ -202,7 +199,7 @@ namespace onewire
             _rx_available = false;
             return _rx_last_value;
         }
-        void begin(int baud);
+        void begin();
     };
 
     class TxOnewire : public Tx
@@ -293,33 +290,5 @@ namespace onewire
         }
     };
 }
-
-class OneWireTracker : public onewire::Rx, public onewire::Tx
-{
-    bool last = false;
-    bool changed = true;
-
-public:
-    bool pending()
-    {
-        if (changed)
-            return true;
-
-        auto state = read();
-        if (last == state)
-            return false;
-
-        last = state;
-        changed = true;
-        return true;
-    }
-
-    bool replicate()
-    {
-        write(last);
-        changed = false;
-        return last;
-    }
-};
 
 #endif

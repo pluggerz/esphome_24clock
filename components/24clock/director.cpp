@@ -271,7 +271,7 @@ void Director::setup()
     channel.start_transmitting();
 
     rx.setup();
-    rx.begin(onewire::RX_BAUD);
+    rx.begin();
 
     tx.setup();
 
