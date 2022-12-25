@@ -162,13 +162,15 @@ void set_action(Action *action)
         current_action->setup();
 }
 
-#if MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_CHANNEL
-
 void follow_change()
 {
-    PIN_WRITE(SYNC_OUT_PIN, PIN_READ(SYNC_IN_PIN));
-}
+    bool state = PIN_READ(SYNC_IN_PIN);
+#if MODE == MODE_ONEWIRE_PASSTROUGH
+    PIN_WRITE(SYNC_OUT_PIN, state);
+    Leds::set_ex(LED_SYNC_OUT, state ? LedColors::red : LedColors::green);
 #endif
+    Leds::set_ex(LED_SYNC_IN, state ? LedColors::red : LedColors::green);
+}
 
 void setup()
 {
@@ -177,13 +179,13 @@ void setup()
 
     Leds::setup();
 
-    // tracker.setup();
-
-    Leds::set_all(rgb_color(0xFF, 0xFF, 0xFF));
-    Leds::publish();
-
     rx.setup();
+#if MODE != MODE_ONEWIRE_PASSTROUGH
+#ifdef DOLED
+    Leds::set_ex(LED_ONEWIRE, LedColors::purple);
+#endif
     rx.begin();
+#endif
 
     tx.setup();
 
@@ -197,35 +199,18 @@ void setup()
     gate.setup();
     gate.start_receiving();
 
-#ifdef APA102_USE_FAST_GPIO
-    Leds::set(LED_COUNT - 1, rgb_color(0xFF, 0xFF, 0x00));
-#else
-    Leds::set(LED_COUNT - 1, rgb_color(0x00, 0xFF, 0xFF));
+#ifndef APA102_USE_FAST_GPIO
+    Leds::error(LEDS_ERROR_MISSING_APA102_USE_FAST_GPIO);
 #endif
 
 #if MODE >= MODE_ONEWIRE_INTERACT
     set_action(&reset_action);
 #endif
 
-#if MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_CHANNEL
     auto interupt = digitalPinToInterrupt(SYNC_IN_PIN);
     if (interupt < 0)
-    {
-        Leds::set_all(rgb_color(0xFF, 0x00, 0x00));
-        Leds::publish();
-        while (true)
-        {
-        }
-    }
-    else
-    {
-        Leds::set_all(rgb_color(0x00, 0xFf, 0x00));
-        Leds::publish();
-
-        delay(2000);
-    }
+        Leds::error(LEDS_ERROR_NO_INTERRUPT);
     attachInterrupt(interupt, follow_change, CHANGE);
-#endif
 }
 
 LoopFunction current = reset_mode;
@@ -285,10 +270,6 @@ void loop()
     }
 
     channel.loop();
-    /*if (tracker.pending())
-    {
-        tracker.replicate();
-    }*/
 }
 #endif
 

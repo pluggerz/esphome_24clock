@@ -77,6 +77,9 @@ void RxOnewire::timer_interrupt(bool last, bool current)
 #endif
             _rx_last_value = _rx_value;
             _rx_available = true;
+#ifdef DOLED
+            Leds::set_ex(LED_ONEWIRE, LedColors::green);
+#endif
         }
         reset_interrupt();
         return;
@@ -110,6 +113,9 @@ void RxOnewire::timer_interrupt(bool last, bool current)
             _rx_bit = 0;
             _rx_nibble = false;
             _rx_value = 0;
+#ifdef DOLED
+            Leds::set_ex(LED_ONEWIRE, LedColors::blue);
+#endif
             return;
         }
         else if (current && last)
@@ -174,8 +180,7 @@ void onewire::RxOnewire::reset(bool forced)
     if (forced && _rx_bit != RX_BIT_INITIAL)
     {
 #ifdef DOLED
-        Leds::set(LED_COUNT - 6, rgb_color(0xFF, 0x00, 0x00));
-        // Leds::publish();
+        Leds::set_ex(LED_ONEWIRE, LedColors::red);
 #endif
 #ifdef DOLOG
         ESP_LOGW(TAG, "receive: RESET rx_value=%d, rx_bit=%d) -> pre start bit", _rx_value, _rx_bit);
@@ -184,14 +189,10 @@ void onewire::RxOnewire::reset(bool forced)
     else
     {
 #ifdef DOLED
-        Leds::set(LED_COUNT - 6, rgb_color(0x00, 0xFF, 0x00));
+        //    Leds::set_ex(LED_ONEWIRE, LedColors::blue);
 #endif
     }
     _rx_value = 0;
     _rx_bit = RX_BIT_INITIAL;
     _rx_nibble = false;
-
-#ifdef DOLED
-    Leds::set(1, rgb_color(0, 0, 0xFF));
-#endif
 }

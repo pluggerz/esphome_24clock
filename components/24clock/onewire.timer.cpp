@@ -8,8 +8,8 @@ int OnewireInterrupt::timer_attach_state = -2;
 //  Credits go: https://github.com/khoih-prog/ESP8266TimerInterrupt
 
 // Select a Timer Clock
-#define USING_TIM_DIV1 false   // for shortest and most accurate timer
-#define USING_TIM_DIV16 true   // for medium time and medium accurate timer
+#define USING_TIM_DIV1 true    // for shortest and most accurate timer
+#define USING_TIM_DIV16 false  // for medium time and medium accurate timer
 #define USING_TIM_DIV256 false // for longest timer but least accurate. Default
 
 #include "ESP8266TimerInterrupt.h"
@@ -29,7 +29,7 @@ ESP8266Timer ITimer1;
 #define USE_TIMER_4 false
 #define USE_TIMER_5 false
 
-//  Credits go: https://github.com/khoih-prog/ESP8266TimerInterrupt
+//  Credits go: https://github.com/khoih-prog/TimerInterrupt
 
 #include "TimerInterrupt.h"
 #endif

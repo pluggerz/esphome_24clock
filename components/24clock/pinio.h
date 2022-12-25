@@ -3,11 +3,6 @@
 
 #include "stub.h"
 
-#ifndef ESP8266
-#include <FastGPIO.h>
-#define USE_FAST_GPIO
-#endif
-
 #ifdef ESP8266
 #define PIN_MODE "direct read/digital write"
 // credits to: https://github.com/PaulStoffregen/Encoder/
@@ -22,7 +17,7 @@
 #define PIN_READ(PIN) \
     DIRECT_PIN_READ(PIN_TO_BASEREG(PIN), PIN_TO_BITMASK(PIN))
 #else
-#ifdef USE_FAST_GPIO
+#ifdef APA102_USE_FAST_GPIO
 #define PIN_MODE = "FastGPIO"
 
 #define PIN_WRITE(PIN, state) \
@@ -40,7 +35,7 @@
 #define PIN_READ(PIN) \
     digitalRead(PIN) == HIGH
 
-#endif // USE_FAST_GPIO
+#endif // APA102_USE_FAST_GPIO
 #endif // ESP8266
 
 #endif

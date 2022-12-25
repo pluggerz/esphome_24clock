@@ -15,7 +15,7 @@
 // MODE_ONEWIRE_INTERACT can work with PASSTHROUGH and MIRROR for saves
 #define MODE_ONEWIRE_INTERACT 7
 
-#define MODE MODE_ONEWIRE_PASSTROUGH
+#define MODE MODE_ONEWIRE_MIRROR
 
 typedef unsigned long Micros;
 typedef unsigned long Millis;

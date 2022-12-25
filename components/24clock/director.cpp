@@ -293,17 +293,24 @@ void Director::loop()
     if (rx.pending())
     {
         auto value = rx.flush();
-        ESP_LOGD(TAG, "RECEIVED: {%d}", value);
+        if (onewire::BAUD < 200)
+            ESP_LOGI(TAG, "RECEIVED: {%d}", value);
+        else
+            ESP_LOGD(TAG, "RECEIVED: {%d}", value);
         received++;
     }
     if (tx.transmitted())
     {
         delay(20);
-        ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
+        if (onewire::BAUD < 200)
+            ESP_LOGI(TAG, "TRANSMIT: {value=%d}", value);
+        else
+            ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
         tx.transmit(value++);
         if (value >= 48)
         {
             ESP_LOGI(TAG, "TRANSMIT: transmitted 48 values received %d values, uptime ", received);
+
             value = 0;
             received = 0;
         }

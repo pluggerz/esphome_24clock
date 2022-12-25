@@ -41,7 +41,7 @@ constexpr int8_t MAX_DATA_BITS = 32;
 
 namespace onewire
 {
-    constexpr uint32_t BAUD = 1200;
+    constexpr uint32_t BAUD = 10;
 
     class RxOnewire;
     class TxOnewire;
@@ -131,7 +131,7 @@ namespace onewire
             if ((state ? 1 : 0) != last_written)
             {
                 last_written = state ? 1 : 0;
-                Leds::set(2, state ? rgb_color(0xFF, 0, 0) : rgb_color(0x00, 0xFF, 0));
+                Leds::set_ex(LED_SYNC_OUT, state ? LedColors::red : LedColors::green);
             }
 #endif
         }
@@ -225,9 +225,9 @@ namespace onewire
 
         MOVE2RAM void timer_interrupt();
 
-        bool transmitted() const
+        MOVE2RAM bool transmitted() const
         {
-            return _tx_delay == 0 || _tx_bit == MAX_DATA_BITS + 4;
+            return _tx_delay == 0 || _tx_bit == LAST_TX_BIT;
         }
     };
 

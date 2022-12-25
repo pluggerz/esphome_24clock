@@ -43,6 +43,7 @@ void TxOnewire::timer_interrupt()
         return;
     }
     write_to_sync();
+    return;
 }
 
 void TxOnewire::write_to_sync()
@@ -131,7 +132,6 @@ void TxOnewire::transmit(onewire::Value value)
     {
         return;
     }
-    _tx_bit = LAST_TX_BIT + 1;
 
     // OnewireInterrupt::disableTimer();
 #ifdef DOLOG
@@ -140,6 +140,7 @@ void TxOnewire::transmit(onewire::Value value)
         ESP_LOGW(TAG, "transmit not complete !?: tx_value=%d, tx_bit=%d)", _tx_value, _tx_bit);
     }
 #endif
+    _tx_bit = LAST_TX_BIT;
 
     _tx_nibble = false;
     _tx_value = value & onewire::DATA_MASK;

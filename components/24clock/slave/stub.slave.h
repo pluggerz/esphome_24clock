@@ -2,7 +2,9 @@
 
 #include "Arduino.h"
 
-#define LED_COUNT 12
+#include <FastGPIO.h>
+#define APA102_USE_FAST_GPIO
 
+#define LED_COUNT 12
 
 #define LED_CHANNEL 3
