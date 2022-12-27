@@ -25,7 +25,6 @@ const char *const TAG = "channel";
 using rs485::Channel;
 using rs485::Gate;
 
-
 // Helper class to calucalte CRC8
 class CRC8
 {
@@ -112,6 +111,9 @@ public:
         available_ = false;
         inputPos_ = 0;
         startTime_ = 0;
+#ifdef DOLED
+        Leds::set_ex(LED_CHANNEL_STATE, LedColors::purple);
+#endif
     }
 
     // reset
@@ -359,6 +361,9 @@ void Gate::setup()
 {
     pinMode(RS485_DE_PIN, OUTPUT);
     pinMode(RS485_RE_PIN, OUTPUT);
+#ifdef DOLED
+    Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
+#endif
 #ifdef DOLOG
     ESP_LOGI(TAG, "state: setup");
 #endif
@@ -372,8 +377,11 @@ void Gate::start_receiving()
     // make sure we are done with sending
     Serial.flush();
 
-    digitalWrite(RS485_DE_PIN, LOW);
-    digitalWrite(RS485_RE_PIN, LOW);
+    PIN_WRITE(RS485_DE_PIN, false);
+    PIN_WRITE(RS485_RE_PIN, false);
+#ifdef DOLED
+    Leds::set_ex(LED_CHANNEL_STATE, LedColors::blue);
+#endif
 
     state = RECEIVING;
 #ifdef DOLOG
@@ -385,8 +393,8 @@ void Gate::start_transmitting()
     if (state == TRANSMITTING)
         return;
 
-    digitalWrite(RS485_DE_PIN, HIGH);
-    digitalWrite(RS485_RE_PIN, LOW);
+    PIN_WRITE(RS485_DE_PIN, HIGH);
+    PIN_WRITE(RS485_RE_PIN, LOW);
 
     state = TRANSMITTING;
 #ifdef DOLOG
@@ -422,7 +430,7 @@ void Channel::loop()
     if (_baudrate == 0)
     {
 #ifdef DOLED
-        Leds::set(LED, rgb_color(0x00, 0x00, 0xFF));
+        Leds::set_ex(LED_CHANNEL_STATE, LedColors::orange);
 #endif
         return;
     }
@@ -430,7 +438,7 @@ void Channel::loop()
     if (!gate.is_receiving() || !_protocol)
     {
 #ifdef DOLED
-        Leds::set(LED, rgb_color(0xFF, 0x00, 0x00));
+        Leds::set_ex(LED_CHANNEL_STATE, LedColors::red);
 #endif
         return;
     }
@@ -439,13 +447,16 @@ void Channel::loop()
 #define alternative 10
     if (last_channel_process_ && millis() - last_channel_process_ > 50)
     {
+        Leds::set_ex(LED_CHANNEL_STATE, LedColors::blue);
+        Leds::publish();
 
         Leds::set(alternative, rgb_color(0x00, 0x00, 0xFF));
-        Leds::publish();
         last_channel_process_ = 0;
     }
     else
     {
+        Leds::set_ex(LED_CHANNEL_STATE, LedColors::purple);
+
         Leds::set(alternative, rgb_color(0xFF, 0xFF, 0x00));
     }
 #endif
@@ -453,7 +464,7 @@ void Channel::loop()
     if (!((BasicProtocol *)_protocol)->update())
     {
 #ifdef DOLED
-        Leds::set(LED, rgb_color(0xFF, 0xFF, 0x00));
+        Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
 #endif
         return;
     }

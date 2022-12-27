@@ -35,14 +35,38 @@ ESP8266Timer ITimer1;
 #endif
 
 volatile uint8_t tx_rx_cycle = 1;
-
+volatile bool in_between_tick = false;
 void MOVE2RAM TxTimerHandler()
 {
     if (tx_rx_cycle & 1)
     {
-        auto interrupt = OnewireInterrupt::tx;
-        if (interrupt != nullptr)
-            interrupt->timer_interrupt();
+        auto tx = OnewireInterrupt::tx;
+        if (!tx || !tx->active())
+        {
+            // ignore
+        }
+        else if (in_between_tick)
+        {
+            PIN_WRITE(SYNC_OUT_PIN, false);
+            in_between_tick = false;
+#ifdef DOLED
+            Leds::set_ex(LED_SYNC_OUT, LedColors::black);
+#endif
+        }
+        else if (tx->transmitted())
+        {
+            in_between_tick = !in_between_tick;
+            if (in_between_tick)
+                PIN_WRITE(SYNC_OUT_PIN, true);
+#ifdef DOLED
+            Leds::set_ex(LED_SYNC_OUT, in_between_tick ? LedColors::blue : LedColors::black);
+#endif
+        }
+        else
+        {
+            tx->timer_interrupt();
+            in_between_tick = false;
+        }
     }
     else
     {
@@ -94,3 +118,5 @@ void OnewireInterrupt::enableTimer()
 {
     ITimer1.enableTimer();
 }
+
+

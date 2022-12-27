@@ -169,7 +169,11 @@ void follow_change()
     PIN_WRITE(SYNC_OUT_PIN, state);
     Leds::set_ex(LED_SYNC_OUT, state ? LedColors::red : LedColors::green);
 #endif
-    Leds::set_ex(LED_SYNC_IN, state ? LedColors::red : LedColors::green);
+    auto rx = onewire::OnewireInterrupt::rx;
+    if (!rx || !rx->reading())
+        Leds::set_ex(LED_SYNC_IN, state ? LedColors::blue : LedColors::black);
+    else
+        Leds::set_ex(LED_SYNC_IN, state ? LedColors::green : LedColors::black);
 }
 
 void setup()
@@ -178,6 +182,7 @@ void setup()
     pinMode(SLAVE_RS485_RXD_DPIN, INPUT);
 
     Leds::setup();
+    Leds::blink(LedColors::green, 1);
 
     rx.setup();
 #if MODE != MODE_ONEWIRE_PASSTROUGH
@@ -185,19 +190,25 @@ void setup()
     Leds::set_ex(LED_ONEWIRE, LedColors::purple);
 #endif
     rx.begin();
+    Leds::blink(LedColors::green, 2);
 #endif
 
     tx.setup();
-
+#if MODE != MODE_ONEWIRE_PASSTROUGH
+    tx.begin();
+#endif
+    Leds::blink(LedColors::green, 3);
     channel.setup();
 
 #if MODE == MODE_CHANNEL || MODE == MODE_ONEWIRE_CMD || MODE == MODE_ONEWIRE_PASSTROUGH
     channel.baudrate(9600);
     channel.start_receiving();
+    Leds::blink(LedColors::green, 4);
 #endif
 
     gate.setup();
     gate.start_receiving();
+    Leds::blink(LedColors::green, 5);
 
 #ifndef APA102_USE_FAST_GPIO
     Leds::error(LEDS_ERROR_MISSING_APA102_USE_FAST_GPIO);
@@ -211,45 +222,12 @@ void setup()
     if (interupt < 0)
         Leds::error(LEDS_ERROR_NO_INTERRUPT);
     attachInterrupt(interupt, follow_change, CHANGE);
+    Leds::blink(LedColors::green, 6);
 }
 
 LoopFunction current = reset_mode;
 
-#if MODE == MODE_ONEWIRE_SLAVE_TRANSMITTER
-namespace Hal
-{
-    void yield()
-    {
-    }
-} // namespace Hal
-
-void loop()
-{
-    Millis now = millis();
-    if (now - t0 > 25)
-    {
-        t0 = now;
-        Leds::publish();
-    }
-
-    tx.loop(micros()); // still needed, because of buffering :S
-    if (tx.transmitted())
-    {
-        Leds::set(4, rgb_color(0xFf, 0xFF, 0x00));
-        Leds::publish();
-
-        delay(20);
-        tx.transmit(128);
-
-        Leds::set(4, rgb_color(0xFF, 0x00, 0xFF));
-        Leds::publish();
-
-        delay(20);
-    }
-}
-#endif
-
-#if MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_CHANNEL
+#if MODE == MODE_ONEWIRE_PASSTROUGH
 
 namespace Hal
 {
@@ -273,28 +251,7 @@ void loop()
 }
 #endif
 
-/*
-#if MODE == MODE_CHANNEL
-void loop()
-{
-    // for debugging
-    Millis now = millis();
-    if (now - t0 > 25)
-    {
-        Leds::set(0, PIN_READ(RS485_DE_PIN) ? rgb_color(0, 0xFF, 0) : rgb_color(0xff, 0, 0));
-        Leds::set(1, PIN_READ(RS485_RE_PIN) ? rgb_color(0, 0xFF, 0) : rgb_color(0xff, 0, 0));
-
-        t0 = now;
-        Leds::publish();
-    }
-
-    Leds::publish();
-    channel.loop();
-}
-#endif
-*/
-
-#if MODE >= MODE_ONEWIRE_MIRROR && MODE != MODE_CHANNEL && MODE != MODE_ONEWIRE_SLAVE_TRANSMITTER
+#if MODE >= MODE_ONEWIRE_MIRROR
 
 namespace Hal
 {

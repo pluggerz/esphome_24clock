@@ -38,3 +38,5 @@ namespace Leds
 #define LED_SYNC_IN 2
 #define LED_ONEWIRE 3
 #define LED_SYNC_OUT 4
+
+#define LED_CHANNEL_STATE 11

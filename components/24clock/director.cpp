@@ -202,7 +202,7 @@ class TickChannelAction : public DelayAction
     Millis t0;
 
 public:
-    TickChannelAction() : DelayAction(500)
+    TickChannelAction() : DelayAction(1000)
     {
     }
     virtual void update() override
@@ -252,7 +252,7 @@ public:
 void Director::setup()
 {
     ESP_LOGI(TAG, "Master: setup!");
-    highFrequencyLoopRequester.start();
+    // highFrequencyLoopRequester.start();
 
     pinMode(LED_BUILTIN, OUTPUT);
 
@@ -274,6 +274,7 @@ void Director::setup()
     rx.begin();
 
     tx.setup();
+    tx.begin();
 
 #if MODE >= MODE_ONEWIRE_INTERACT
     accept_action.start();
@@ -282,7 +283,7 @@ void Director::setup()
 
 #if MODE == MODE_ONEWIRE_VALUE || MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_ONEWIRE_MIRROR
 onewire::Value value = 0;
-int received = false;
+int received = 0;
 
 void Director::loop()
 {
@@ -326,14 +327,15 @@ void Director::loop()
         return;
 
 #if MODE == MODE_CHANNEL
-        // channel.loop();
-        // tick_action.loop();
-        // test_onewire_action.loop();
+    channel.loop();
+    tick_action.loop();
+
+    // test_onewire_action.loop();
 #endif
 
     Micros now = micros();
     // rx.loop(now);
-    tx.loop(now);
+    tx.loop();
     if (rx.pending())
     {
         OneCommand cmd;
@@ -342,19 +344,6 @@ void Director::loop()
         {
             ESP_LOGI(TAG, "  GOT: %d", cmd.raw);
         }
-        // logw_cmd("RECEIVED", cmd);
-        // if (cmd.msg.cmd == CmdEnum::DIRECTOR_ACCEPT)
-        //     ESP_LOGI(TAG, "  -> Accept(%d)", cmd.accept.baudrate);
-    }
-    if (tx.transmitted())
-    {
-        tx.transmit(test_count_value++);
-        if (test_count_value > 300)
-            test_count_value = 0;
-
-        // OneCommand cmd = OneCommand::Accept::create(0xFF);
-        // logw_cmd("TRANSMIT ACCEPT(140)", cmd);
-        // transmit(cmd);
     }
 }
 #endif

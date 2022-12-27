@@ -83,12 +83,12 @@ void set_all_raw(const rgb_color &color, int leds)
 
 void Leds::blink(const rgb_color &color, int leds)
 {
-    for (int idx = 0; idx < 3; idx++)
+    for (int idx = 0; idx < 2; idx++)
     {
         set_all_raw(LedColors::black, LED_COUNT);
         delay(50);
         set_all_raw(color, leds);
-        delay(250);
+        delay(200);
     }
     dirty = true;
     publish();
