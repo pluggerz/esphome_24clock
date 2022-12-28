@@ -11,15 +11,6 @@ OneCommand OneCommand::online()
     return cmd;
 }
 
-OneCommand OneCommand::Accept::create(uint32_t baudrate_)
-{
-    OneCommand cmd;
-    cmd.msg.src = SRC_MASTER;
-    cmd.msg.cmd = CmdEnum::DIRECTOR_ACCEPT;
-    cmd.accept.baudrate = baudrate_;
-    return cmd;
-}
-
 OneCommand OneCommand::ping()
 {
     OneCommand cmd;

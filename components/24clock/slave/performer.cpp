@@ -64,6 +64,7 @@ void show_action(const OneCommand &cmd)
     }
     Leds::publish();
 }
+#if MODE >= MODE_ONEWIRE_INTERACT
 
 class DefaultAction : public DelayAction
 {
@@ -79,26 +80,14 @@ public:
         Leds::set(LED_COUNT - 2, rgb_color(0x00, 0xFF, 0x00));
     }
 
-    virtual void loop() override
-    {
-        if (rx.pending())
-        {
-            OneCommand cmd;
-            cmd.raw = rx.flush();
-            show_action(cmd);
-            transmit(cmd.next_source());
-        }
-        DelayAction::loop();
-    }
+    virtual void loop() override;
 } default_action;
 
-#if MODE >= MODE_ONEWIRE_INTERACT
 class ResetAction : public DelayAction
 {
 public:
     virtual void update() override
     {
-        Leds::blink(LedColors::blue, 1);
         transmit(OneCommand::online());
     }
 
@@ -108,47 +97,78 @@ public:
         Leds::set(LED_COUNT - 2, rgb_color(0xFF, 0x00, 0x00));
     }
 
-    virtual void loop() override
-    {
-        // Leds::set(7, rgb_color(0xFF, 0xFF, 0x00));
-
-        if (rx.pending())
-        {
-            OneCommand cmd;
-            cmd.raw = rx.flush();
-            show_action(cmd);
-            switch (cmd.msg.cmd)
-            {
-            case PERFORMER_ONLINE:
-                // we are already waiting, so ignore this one
-                break;
-
-            case DIRECTOR_ACCEPT:
-                Leds::blink(LedColors::blue, 2);
-
-                performer_id = cmd.msg.src;
-                set_action(&default_action);
-
-                // channel.baudrate(9600);
-                if (cmd.accept.baudrate == 9600)
-                {
-                    Leds::blink(LedColors::blue, 3);
-                }
-                channel.baudrate(cmd.accept.baudrate);
-                channel.start_receiving();
-
-                transmit(cmd.next_source());
-                break;
-
-            default:
-                // just forward
-                // tx.transmit(cmd.next_source().raw);
-                break;
-            }
-        }
-        DelayAction::loop();
-    }
+    virtual void loop() override;
 } reset_action;
+
+void DefaultAction::loop()
+{
+    DelayAction::loop();
+
+    Leds::set_ex(LED_MODE, LedColors::orange);
+
+    if (!rx.pending())
+        return;
+
+    OneCommand cmd;
+    cmd.raw = rx.flush();
+    show_action(cmd);
+    channel.loop();
+    switch (cmd.msg.cmd)
+    {
+    case DIRECTOR_ONLINE:
+        onewire::OnewireInterrupt::align();
+
+        set_action(&reset_action);
+        transmit(cmd.next_source());
+        break;
+
+    default:
+        transmit(cmd.next_source());
+        break;
+    }
+}
+
+void ResetAction::loop()
+{
+    DelayAction::loop();
+
+    Leds::set_ex(LED_MODE, LedColors::blue);
+
+    // Leds::set(7, rgb_color(0xFF, 0xFF, 0x00));
+
+    if (rx.pending())
+    {
+        OneCommand cmd;
+        cmd.raw = rx.flush();
+        show_action(cmd);
+        switch (cmd.msg.cmd)
+        {
+        case DIRECTOR_ONLINE:
+            onewire::OnewireInterrupt::align();
+            transmit(cmd.next_source());
+            break;
+
+        case PERFORMER_ONLINE:
+            // we are already waiting, so ignore this one
+            break;
+
+        case DIRECTOR_ACCEPT:
+            performer_id = cmd.msg.src;
+            set_action(&default_action);
+            channel.baudrate(cmd.baudrate.speed);
+            channel.start_receiving();
+
+            transmit(cmd.next_source());
+            break;
+
+        default:
+            // just forward
+            transmit(cmd.next_source());
+            break;
+        }
+    }
+}
+
 #endif
 
 Action *current_action = nullptr;
@@ -284,16 +304,13 @@ void PerformerChannel::process(const byte *bytes, const byte length)
     case ChannelMsgEnum::MSG_TICK:
         if (performer_id >= 0)
         {
-            Leds::set(LED_CHANNEL, rgb_color(0xff, 0x00, 0xFF));
-            Leds::publish();
-
             transmit(OneCommand::tock(performer_id));
         }
         break;
 
     default:
-        Leds::set(LED_CHANNEL, rgb_color(0xff, 0x00, 0x00));
-        Leds::publish();
+        // Leds::set_ex(LED_CHANNEL, rgb_color(0xff, 0x00, 0x00));
+        // Leds::publish();
         break;
     }
 }

@@ -53,8 +53,10 @@ const char *cmd2string(const CmdEnum &cmd)
 {
     switch (cmd)
     {
+    case DIRECTOR_ONLINE:
+        return "DIRECTOR_ONLINE";
     case PERFORMER_ONLINE:
-        return "ONLINE";
+        return "PERFORMER_ONLINE";
     case DIRECTOR_ACCEPT:
         return "ACCEPT";
     case PERFORMER_PREPPING:
@@ -97,8 +99,8 @@ void Director::dump_config()
     ESP_LOGCONFIG(TAG, "  performers: %d", _performers);
     ESP_LOGCONFIG(TAG, "  is_high_frequency: %s", esphome::HighFrequencyLoopRequester::is_high_frequency() ? "YES" : "NO!?");
     ESP_LOGCONFIG(TAG, "  message sizes (in bytes):");
-    ESP_LOGCONFIG(TAG, "     Msg:    %d", sizeof(OneCommand::Msg));
-    ESP_LOGCONFIG(TAG, "     Accept: %d", sizeof(OneCommand::Accept));
+    ESP_LOGCONFIG(TAG, "     Msg:      %d", sizeof(OneCommand::Msg));
+    ESP_LOGCONFIG(TAG, "     Baudrate: %d", sizeof(OneCommand::Baudrate));
     tx.dump_config();
     channel.dump_config();
     onewire::OnewireInterrupt::dump_config();
@@ -134,6 +136,32 @@ public:
     }
 } wire_controller;
 
+class DirectorOnlineAction : public DelayAction
+{
+public:
+    bool active = true;
+    int send_count = 0;
+
+    static constexpr int delay = 500;
+
+    DirectorOnlineAction() : DelayAction(delay)
+    {
+    }
+
+    virtual void update() override
+    {
+        if (!active)
+            return;
+
+        send_count++;
+        if (send_count > 10000 / delay)
+        {
+            ESP_LOGW(TAG, "Message DIRECTOR_ONLINE not returned to director!?");
+        }
+        transmit(OneCommand::director_online(channel.baudrate()));
+    }
+} director_online_action;
+
 class AcceptAction : public DelayAction
 {
     bool active = false;
@@ -154,9 +182,9 @@ public:
         if (!active)
             return;
 
-        auto msg = OneCommand::Accept::create(channel.baudrate());
+        auto msg = OneCommand::accept(channel.baudrate());
         transmit(msg);
-        ESP_LOGI(TAG, "transmit: Accept(%dbaud)", msg.accept.baudrate);
+        ESP_LOGI(TAG, "transmit: Accept(%dbaud)", msg.baudrate.speed);
     }
 } accept_action;
 
@@ -201,7 +229,7 @@ class TickChannelAction : public DelayAction
     Millis t0;
 
 public:
-    TickChannelAction() : DelayAction(1000)
+    TickChannelAction() : DelayAction(3000)
     {
     }
     virtual void update() override
@@ -223,7 +251,7 @@ public:
     {
         auto delay = millis() - t0;
         if (_performers > 0 && _performers != 24)
-            ESP_LOGI(TAG, "(via channel:) Performer TICK TOCK duration: %dmillis (projected delay: %d)", delay, delay * 24 / _performers);
+            ESP_LOGI(TAG, "(via channel:) Performer TICK TOCK duration: %dmillis", delay);
         else
             ESP_LOGI(TAG, "(via channel:) Performer TICK TOCK duration: %dmillis", delay);
         send = false;
@@ -266,8 +294,8 @@ void Director::setup()
     pinMode(GPIO_14, INPUT);
     pinMode(USB_POWER_PIN, INPUT);
 
-    // channel.setup();
-    // channel.start_transmitting();
+    channel.setup();
+    channel.start_transmitting();
 
     rx.setup();
     rx.begin();
@@ -280,7 +308,7 @@ void Director::setup()
     tx.begin();
 
 #if MODE >= MODE_ONEWIRE_INTERACT
-    accept_action.start();
+    // accept_action.start();
 #endif
 }
 
@@ -334,7 +362,7 @@ void Director::loop()
     if (tx.transmitted())
     {
         delay(50);
-        auto cmd = OneCommand::Accept::create(channel.baudrate());
+        auto cmd = OneCommand::accept(channel.baudrate());
         auto value = cmd.raw;
         if (onewire::BAUD < 200)
             ESP_LOGI(TAG, "TRANSMIT: {value=%d}", value);
@@ -354,10 +382,10 @@ void Director::loop()
         return;
 
 #if MODE == MODE_CHANNEL
-    channel.loop();
-    tick_action.loop();
+        // channel.loop();
+        // tick_action.loop();
 
-    // test_onewire_action.loop();
+        // test_onewire_action.loop();
 #endif
 
     Micros now = micros();
@@ -382,15 +410,14 @@ void Director::loop()
     if (_killed)
         return;
 
-    if (!dumped)
-        return;
+    // if (!dumped)
+    //     return;
 
+    director_online_action.loop();
     accept_action.loop();
+    // accept_action.loop();
     ping_onewire_action.loop();
     tick_action.loop();
-
-    Micros now = micros();
-    tx.loop();
     channel.loop();
 
     if (rx.pending())
@@ -414,19 +441,39 @@ void Director::loop()
             tick_action.received(cmd.msg.src);
             break;
 
+        case CmdEnum::DIRECTOR_ONLINE:
+            if (!director_online_action.active)
+            {
+                ESP_LOGW(TAG, "DIRECTOR_ONLINE: Ignored, most likely too slow onewire....");
+                return;
+            }
+
+            if (cmd.from_master())
+            {
+                _performers = 0;
+                ESP_LOGW(TAG, "DIRECTOR_ONLINE(%d): No performers ? Make sure, one is not MODE_ONEWIRE_PASSTROUGH!", cmd.baudrate.speed);
+            }
+            else
+            {
+                ESP_LOGW(TAG, "DIRECTOR_ONLINE: Sending ACCEPT message");
+                director_online_action.active = false;
+                accept_action.start();
+            }
+            break;
+
         case CmdEnum::DIRECTOR_ACCEPT:
         {
             if (cmd.from_master())
             {
                 _performers = 0;
-                ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): No performers ? Make sure, one is not MODE_ONEWIRE_PASSTROUGH!", cmd.accept.baudrate);
+                ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): No performers ? Make sure, one is not MODE_ONEWIRE_PASSTROUGH!", cmd.baudrate.speed);
             }
             else
             {
                 accept_action.stop();
 
                 _performers = cmd.msg.src + 1;
-                ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): Total performers: %d", cmd.accept.baudrate, _performers);
+                ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): Total performers: %d", cmd.baudrate.speed, _performers);
             }
         }
         break;

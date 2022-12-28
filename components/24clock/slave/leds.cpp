@@ -5,7 +5,7 @@ rgb_color leds[LED_COUNT];
 bool dirty = true;
 
 rgb_color LedColors::purple = rgb_color(0xFF, 0x00, 0xFF);
-rgb_color LedColors::orange = rgb_color(0xFF, 0xFF, 0x00);
+rgb_color LedColors::orange = rgb_color(0xcc, 0x84, 0x00);
 rgb_color LedColors::blue = rgb_color(0x00, 0x00, 0xFF);
 rgb_color LedColors::red = rgb_color(0xFF, 0x00, 0x00);
 rgb_color LedColors::green = rgb_color(0x00, 0xFF, 0x00);

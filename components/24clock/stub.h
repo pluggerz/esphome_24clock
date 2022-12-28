@@ -9,10 +9,10 @@
 // make sure all slaves+master use this one as well
 #define MODE_CHANNEL 6
 
-// MODE_ONEWIRE_INTERACT can work with PASSTHROUGH and MIRROR for saves
+// MODE_ONEWIRE_INTERACT can work with PASSTHROUGH and MIRROR for slaves
 #define MODE_ONEWIRE_INTERACT 7
 
-#define MODE MODE_ONEWIRE_CMD
+#define MODE MODE_ONEWIRE_INTERACT
 
 typedef unsigned long Micros;
 typedef unsigned long Millis;
@@ -38,12 +38,19 @@ constexpr int RESERVED_BITS = 30 - SRC_BITS - CMD_BITS;
 enum CmdEnum
 {
     FAULTY,
+    DIRECTOR_ONLINE, // All slaves should act if they came online
     PERFORMER_ONLINE,
     DIRECTOR_ACCEPT,
     PERFORMER_PREPPING,
     DIRECTOR_PING,
     TOCK,
 };
+
+#ifdef ESP8266
+#define DIRECTOR
+#else
+#define PERFORMER
+#endif
 
 // to be placed in proper .h file
 union OneCommand
@@ -58,15 +65,44 @@ union OneCommand
     {
         SOURCE_HEADER;
         uint32_t reserved : RESERVED_BITS;
+
+        static OneCommand by_director(CmdEnum cmd)
+        {
+            OneCommand ret;
+            ret.msg.src = SRC_MASTER;
+            ret.msg.cmd = cmd;
+            return ret;
+        };
     } __attribute__((packed, aligned(1))) msg;
 
-    struct Accept
+    struct Baudrate
     {
         SOURCE_HEADER;
-        uint32_t baudrate : RESERVED_BITS;
+        uint32_t speed : RESERVED_BITS;
 
-        static OneCommand create(uint32_t baudrate_);
-    } __attribute__((packed, aligned(1))) accept;
+#ifdef DIRECTOR
+        static OneCommand create(CmdEnum cmd, uint32_t baudrate_)
+        {
+            OneCommand ret;
+            ret.baudrate.src = SRC_MASTER;
+            ret.baudrate.cmd = cmd;
+            ret.baudrate.speed = baudrate_;
+            return ret;
+        }
+#endif
+    } __attribute__((packed, aligned(1))) baudrate;
+
+#ifdef DIRECTOR
+    static OneCommand director_online(uint32_t baudrate)
+    {
+        return Baudrate::create(DIRECTOR_ONLINE, baudrate);
+    }
+
+    static OneCommand accept(uint32_t baudrate)
+    {
+        return Baudrate::create(DIRECTOR_ACCEPT, baudrate);
+    }
+#endif
 
     static OneCommand online();
     static OneCommand ping();

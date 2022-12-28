@@ -112,7 +112,9 @@ public:
         inputPos_ = 0;
         startTime_ = 0;
 #ifdef DOLED
+        Leds::set_ex(LED_CHANNEL_DATA, LedColors::red);
         Leds::set_ex(LED_CHANNEL_STATE, LedColors::purple);
+        Leds::publish();
 #endif
     }
 
@@ -220,7 +222,7 @@ bool BasicProtocol::update()
     if (available == 0)
     {
 #ifdef DOLED
-        Leds::set(DATALED, rgb_color(0xFF, 0x00, 0x00));
+        Leds::set_ex(LED_CHANNEL_DATA, LedColors::red);
         // Leds::publish();
 #endif
         return false;
@@ -230,7 +232,8 @@ bool BasicProtocol::update()
 #endif
 
 #ifdef DOLED
-    Leds::set(LED_CHANNEL, rgb_color(0xFF, 0xFF, 0x00));
+    Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
+    // Leds::set(LED_CHANNEL, rgb_color(0xFF, 0xFF, 0x00));
 
     Leds::set(DATALED, rgb_color(0xFF, 0x00, 0xFF));
     // Leds::publish();
@@ -312,6 +315,9 @@ bool BasicProtocol::update()
                 }          // end of bad CRC
 
                 available_ = true;
+#ifdef DOLED
+                Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
+#endif
                 return true; // show data ready
             }                // end if have ETX already
 
@@ -362,7 +368,7 @@ void Gate::setup()
     pinMode(RS485_DE_PIN, OUTPUT);
     pinMode(RS485_RE_PIN, OUTPUT);
 #ifdef DOLED
-    Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
+    // Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
 #endif
 #ifdef DOLOG
     ESP_LOGI(TAG, "state: setup");
@@ -464,11 +470,12 @@ void Channel::loop()
     if (!((BasicProtocol *)_protocol)->update())
     {
 #ifdef DOLED
-        Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
+        Leds::set_ex(LED_CHANNEL_STATE, LedColors::orange);
 #endif
         return;
     }
 #ifdef DOLED
+    Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
 
     Leds::set(alternative, rgb_color(0x00, 0x4F, 0xFF));
     Leds::set(LED, rgb_color(0x00, 0xFF, 0x00));
