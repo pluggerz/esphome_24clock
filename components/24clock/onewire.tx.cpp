@@ -11,20 +11,20 @@ const char *const TAG = "1wireTX";
 #endif
 
 using onewire::OnewireInterrupt;
+using onewire::RawTxOnewire;
 using onewire::Tx;
 using onewire::TxOnewire;
 
 TxOnewire *OnewireInterrupt::tx = nullptr;
 
-void TxOnewire::setup()
+void RawTxOnewire::setup()
 {
     Tx::setup();
 
     OnewireInterrupt::attach();
-    OnewireInterrupt::tx = this;
 }
 
-void TxOnewire::dump_config()
+void RawTxOnewire::dump_config()
 {
 #ifdef DOLOG
     ESP_LOGCONFIG(TAG, "  TxOnewire");
@@ -34,7 +34,7 @@ void TxOnewire::dump_config()
 #endif
 }
 
-void TxOnewire::timer_interrupt()
+void RawTxOnewire::timer_interrupt()
 {
     if (_tx_bit == LAST_TX_BIT + 4)
     {
@@ -46,7 +46,7 @@ void TxOnewire::timer_interrupt()
     return;
 }
 
-void TxOnewire::write_to_sync()
+void RawTxOnewire::write_to_sync()
 {
     if (_tx_bit == -onewire::START_BITS - 1)
     {
@@ -75,10 +75,11 @@ void TxOnewire::write_to_sync()
         write(written);
         if (written)
         {
+            _tx_transmitted_value |= mask;
             _tx_remainder_value -= mask;
         }
 #ifdef DOLOG
-        ESP_LOGV(TAG, "transmit: DATA%s %s tx_value=%d, tx_bit=%d)", _tx_nibble ? "S" : "F", written ? "HIGH" : "LOW ", _tx_value, _tx_bit);
+        ESP_LOGV(TAG, "transmit: DATA%s %s tx_value=%d, _tx_transmitted=%d, tx_bit=%d)", _tx_nibble ? "S" : "F", written ? "HIGH" : "LOW ", _tx_value, _tx_transmitted_value, _tx_bit);
 #endif
         if (_tx_nibble)
         {
@@ -126,11 +127,19 @@ void TxOnewire::write_to_sync()
     }
 }
 
-void TxOnewire::transmit(onewire::Value value)
+void RawTxOnewire::transmit(onewire::Value value)
 {
+
     if (_tx_delay == 0)
     {
         return;
+    }
+    onewire::Value remainder = value >> MAX_DATA_BITS;
+    if (remainder)
+    {
+#ifdef DOLOG
+        ESP_LOGW(TAG, "Too many bits, data will be lost!? value=%d, max_bits=%d", value, MAX_DATA_BITS);
+#endif
     }
 
     // OnewireInterrupt::disableTimer();
@@ -145,6 +154,7 @@ void TxOnewire::transmit(onewire::Value value)
     _tx_nibble = false;
     _tx_value = value & onewire::DATA_MASK;
     _tx_remainder_value = _tx_value;
+    _tx_transmitted_value = 0;
 
     // this one should be done last
     _tx_bit = -onewire::START_BITS - 1;
@@ -161,7 +171,7 @@ void TxOnewire::transmit(onewire::Value value)
     // OnewireInterrupt::enableTimer();
 }
 
-void TxOnewire::kill()
+void RawTxOnewire::kill()
 {
 #ifdef DOLOG
     ESP_LOGW(TAG, "kill()");

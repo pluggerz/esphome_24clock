@@ -18,8 +18,6 @@
 #include "slave/leds.h"
 #endif
 
-constexpr int8_t MAX_DATA_BITS = 32;
-
 #ifdef ESP8266
 
 // #define USE_RX_INTERRUPT
@@ -41,15 +39,15 @@ constexpr int8_t MAX_DATA_BITS = 32;
 
 namespace onewire
 {
-    constexpr uint32_t BAUD = 800;
+    constexpr uint32_t BAUD = 6;
 
     class RxOnewire;
     class TxOnewire;
 
     constexpr int8_t START_BITS = 2;
 
-    typedef uint16_t Value;
-    const Value DATA_MASK = ~Value(0);
+    typedef uint32_t Value;
+    constexpr int8_t MAX_DATA_BITS = sizeof(Value) * 8;
 
 #ifdef ESP8266
     static volatile uint32_t *rx_basereg = PIN_TO_BASEREG(SYNC_IN_PIN);
@@ -70,6 +68,9 @@ namespace onewire
         static void attach();
         static void restart();
         static void kill();
+        static void align();
+
+        static void dump_config();
 
         // to be refactored
         static void disableTimer();
@@ -204,7 +205,7 @@ namespace onewire
         void begin();
     };
 
-    class TxOnewire : public Tx
+    class RawTxOnewire : public Tx
     {
     protected:
         bool started = false;
@@ -215,12 +216,12 @@ namespace onewire
         int8_t _tx_bit = LAST_TX_BIT;
         bool _tx_nibble = false;
 
-        onewire::Value _tx_value, _tx_remainder_value;
+        onewire::Value _tx_value, _tx_remainder_value, _tx_transmitted_value;
 
         void write_to_sync();
 
     public:
-        TxOnewire(int baud) : _tx_delay(1000000L / baud) {}
+        RawTxOnewire() : _tx_delay(1000000L / BAUD) {}
 
         void dump_config();
 
@@ -248,41 +249,43 @@ namespace onewire
         }
     };
 
-    template <uint16_t SIZE>
-    class BufferedTxOnewire
-    {
-        typedef RingBuffer<onewire::Value, SIZE> Buffer;
-        typedef TxOnewire *TxOnewirePntr;
+    constexpr int SIZE = 8;
 
-        const TxOnewirePntr _tx_onewire;
-        Buffer buffer;
+    class TxOnewire
+    {
+    private:
+        RawTxOnewire _raw_tx;
+        RingBuffer<onewire::Value, SIZE> buffer;
 
     public:
-        BufferedTxOnewire(TxOnewire *tx_onewire) : _tx_onewire(tx_onewire)
+        TxOnewire()
         {
         }
         void dump_config()
         {
-            _tx_onewire->dump_config();
+            _raw_tx.dump_config();
         }
 
         void kill()
         {
-            _tx_onewire->kill();
+            _raw_tx.kill();
         }
 
         bool transmitted() const
         {
-            return buffer.is_empty() && _tx_onewire->transmitted();
+            return buffer.is_empty() && _raw_tx.transmitted();
         }
 
-        void setup()
+        void setup(int _buffer_size = -1)
         {
+            buffer.setup(_buffer_size);
 #ifdef DOLOG
             ESP_LOGI(TAG, "receive: using buffered tx");
 #endif
-            _tx_onewire->setup();
+            _raw_tx.setup();
+            OnewireInterrupt::tx = this;
         }
+
         void transmit(Value value)
         {
             buffer.push(value);
@@ -290,21 +293,28 @@ namespace onewire
 
         void begin()
         {
-            _tx_onewire->begin();
+            _raw_tx.begin();
         }
 
-        MOVE2RAM void loop()
+        bool active() const __attribute__((always_inline))
         {
-            if (!buffer.is_empty() && _tx_onewire->transmitted())
+            return _raw_tx.active();
+        }
+
+        MOVE2RAM void timer_interrupt() __attribute__((always_inline))
+        {
+            if (!buffer.is_empty() && _raw_tx.transmitted())
             {
-                _tx_onewire->transmit(buffer.pop());
+                _raw_tx.transmit(buffer.pop());
                 if (!buffer.is_empty())
                 {
 #ifdef DOLOG
                     ESP_LOGW(TAG, "receive: buffer not empty, size: %d", buffer.size());
 #endif
                 }
+                return;
             }
+            _raw_tx.timer_interrupt();
         }
     };
 }
