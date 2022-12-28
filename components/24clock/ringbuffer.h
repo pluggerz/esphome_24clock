@@ -2,14 +2,23 @@
 
 #include "Arduino.h"
 
-template <class VALUE_TYPE, uint16_t SIZE>
+template <class VALUE_TYPE, int16_t MAX_SIZE>
 class RingBuffer
 {
     volatile uint16_t writeIndex, readIndex, bufferLength;
     volatile bool overflow_{false};
-    VALUE_TYPE buffer[SIZE];
+    VALUE_TYPE buffer[MAX_SIZE];
+    volatile uint16_t SIZE = MAX_SIZE;
 
 public:
+    void setup(int _buffer_size = -1)
+    {
+        if (_buffer_size < 0)
+            SIZE = MAX_SIZE;
+        else
+            SIZE = _buffer_size <= MAX_SIZE ? _buffer_size : MAX_SIZE;
+    }
+
     void reset()
     {
         writeIndex = readIndex = bufferLength = 0;
