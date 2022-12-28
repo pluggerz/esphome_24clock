@@ -52,7 +52,7 @@ void RxOnewire::timer_interrupt(bool last, bool current)
         else
         {
             if (current)
-                _rx_value |= 1 << _rx_bit;
+                _rx_value |= onewire::Value(1) << onewire::Value(_rx_bit);
 #ifdef DOLOG
             ESP_LOGV(TAG, "receive:  DATAF: %s @%d (%d)", current ? "HIGH" : "LOW", _rx_bit, _rx_value);
 #endif

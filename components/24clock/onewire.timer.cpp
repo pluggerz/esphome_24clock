@@ -138,9 +138,11 @@ void OnewireInterrupt::restart()
 #ifndef ESP8266
 void OnewireInterrupt::align()
 {
+    Leds::set_ex(LED_MODE, LedColors::purple);
+
     // wait for first change
     Leds::blink(LedColors::purple, 1);
-    for (int idx = 2; idx < 5; ++idx)
+    for (int idx = 2; idx < 4; ++idx)
     {
         bool last_state = false;
         while (true)
@@ -150,8 +152,9 @@ void OnewireInterrupt::align()
                 break;
             last_state = state;
         }
-        Leds::blink(LedColors::purple, idx);
     }
+    ITimer1.restartTimer();
+    Leds::blink(LedColors::black, 1);
 }
 #else
 void OnewireInterrupt::align()
@@ -171,11 +174,6 @@ void OnewireInterrupt::attach()
     // while arduino assumes millis
     float delay = float((1000000L / (BAUD * 2))) / 1000.0 / 1000.0; // in micros
 
-    OnewireInterrupt::timer_attach_state = ITimer1.attachInterrupt(1.0 / float(delay), TxTimerHandler);
-
-    OnewireInterrupt::align();
-    ITimer1.restartTimer();
-
     auto interupt = digitalPinToInterrupt(SYNC_IN_PIN);
     if (interupt < 0)
     {
@@ -187,6 +185,9 @@ void OnewireInterrupt::attach()
 #endif
     }
     attachInterrupt(interupt, follow_change, CHANGE);
+
+    OnewireInterrupt::timer_attach_state = ITimer1.attachInterrupt(1.0 / float(delay), TxTimerHandler);
+    OnewireInterrupt::align();
 }
 
 // to be refactored

@@ -39,7 +39,7 @@
 
 namespace onewire
 {
-    constexpr uint32_t BAUD = 6;
+    constexpr uint32_t BAUD = 500;
 
     class RxOnewire;
     class TxOnewire;
@@ -48,6 +48,7 @@ namespace onewire
 
     typedef uint32_t Value;
     constexpr int8_t MAX_DATA_BITS = sizeof(Value) * 8;
+    constexpr Value DATA_MASK = Value((uint64_t(1) << uint64_t(MAX_DATA_BITS)) - 1);
 
 #ifdef ESP8266
     static volatile uint32_t *rx_basereg = PIN_TO_BASEREG(SYNC_IN_PIN);

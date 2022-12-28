@@ -68,7 +68,7 @@ void RawTxOnewire::write_to_sync()
 
     if (_tx_bit < MAX_DATA_BITS)
     {
-        onewire::Value mask = 1 << _tx_bit;
+        onewire::Value mask = onewire::Value(1) << onewire::Value(_tx_bit);
         bool bit = _tx_remainder_value & mask;
         // if (bit && !_tx_nibble)
         bool written = bit && !_tx_nibble;
@@ -134,8 +134,8 @@ void RawTxOnewire::transmit(onewire::Value value)
     {
         return;
     }
-    onewire::Value remainder = value >> MAX_DATA_BITS;
-    if (remainder)
+    onewire::Value masked_value = value & DATA_MASK;
+    if (masked_value != value)
     {
 #ifdef DOLOG
         ESP_LOGW(TAG, "Too many bits, data will be lost!? value=%d, max_bits=%d", value, MAX_DATA_BITS);
@@ -152,7 +152,7 @@ void RawTxOnewire::transmit(onewire::Value value)
     _tx_bit = LAST_TX_BIT;
 
     _tx_nibble = false;
-    _tx_value = value & onewire::DATA_MASK;
+    _tx_value = masked_value;
     _tx_remainder_value = _tx_value;
     _tx_transmitted_value = 0;
 
