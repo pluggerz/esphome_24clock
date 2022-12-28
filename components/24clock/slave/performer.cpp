@@ -9,9 +9,8 @@
 
 // OneWireProtocol protocol;
 onewire::RxOnewire rx;
+onewire::TxOnewire tx;
 
-onewire::TxOnewire underlying_tx(onewire::BAUD);
-onewire::BufferedTxOnewire<5> tx(&underlying_tx);
 rs485::Gate gate;
 
 #define RECEIVER_BUFFER_SIZE 128
@@ -99,6 +98,7 @@ class ResetAction : public DelayAction
 public:
     virtual void update() override
     {
+        Leds::blink(LedColors::blue, 1);
         transmit(OneCommand::online());
     }
 
@@ -124,14 +124,20 @@ public:
                 break;
 
             case DIRECTOR_ACCEPT:
+                Leds::blink(LedColors::blue, 2);
+
                 performer_id = cmd.msg.src;
                 set_action(&default_action);
 
-                transmit(cmd.next_source());
-
                 // channel.baudrate(9600);
+                if (cmd.accept.baudrate == 9600)
+                {
+                    Leds::blink(LedColors::blue, 3);
+                }
                 channel.baudrate(cmd.accept.baudrate);
                 channel.start_receiving();
+
+                transmit(cmd.next_source());
                 break;
 
             default:
@@ -160,20 +166,6 @@ void set_action(Action *action)
     current_action = action;
     if (current_action != nullptr)
         current_action->setup();
-}
-
-void follow_change()
-{
-    bool state = PIN_READ(SYNC_IN_PIN);
-#if MODE == MODE_ONEWIRE_PASSTROUGH
-    PIN_WRITE(SYNC_OUT_PIN, state);
-    Leds::set_ex(LED_SYNC_OUT, state ? LedColors::red : LedColors::green);
-#endif
-    auto rx = onewire::OnewireInterrupt::rx;
-    if (!rx || !rx->reading())
-        Leds::set_ex(LED_SYNC_IN, state ? LedColors::blue : LedColors::black);
-    else
-        Leds::set_ex(LED_SYNC_IN, state ? LedColors::green : LedColors::black);
 }
 
 void setup()
@@ -217,12 +209,6 @@ void setup()
 #if MODE >= MODE_ONEWIRE_INTERACT
     set_action(&reset_action);
 #endif
-
-    auto interupt = digitalPinToInterrupt(SYNC_IN_PIN);
-    if (interupt < 0)
-        Leds::error(LEDS_ERROR_NO_INTERRUPT);
-    attachInterrupt(interupt, follow_change, CHANGE);
-    Leds::blink(LedColors::green, 6);
 }
 
 LoopFunction current = reset_mode;
@@ -270,7 +256,6 @@ void loop()
         Leds::publish();
     }
 
-    tx.loop();
     channel.loop();
 
     if (rx.pending())

@@ -32,9 +32,7 @@ Director::Director()
 }
 
 onewire::RxOnewire rx;
-
-onewire::TxOnewire underlying_tx(onewire::BAUD);
-onewire::BufferedTxOnewire<5> tx(&underlying_tx);
+onewire::TxOnewire tx;
 
 #define RECEIVER_BUFFER_SIZE 128
 
@@ -103,6 +101,7 @@ void Director::dump_config()
     ESP_LOGCONFIG(TAG, "     Accept: %d", sizeof(OneCommand::Accept));
     tx.dump_config();
     channel.dump_config();
+    onewire::OnewireInterrupt::dump_config();
 }
 
 class WireSender
@@ -267,13 +266,17 @@ void Director::setup()
     pinMode(GPIO_14, INPUT);
     pinMode(USB_POWER_PIN, INPUT);
 
-    channel.setup();
-    channel.start_transmitting();
+    // channel.setup();
+    // channel.start_transmitting();
 
     rx.setup();
     rx.begin();
 
+#if MODE == MODE_ONEWIRE_VALUE || MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_ONEWIRE_MIRROR
+    tx.setup(1);
+#else
     tx.setup();
+#endif
     tx.begin();
 
 #if MODE >= MODE_ONEWIRE_INTERACT
@@ -287,10 +290,6 @@ int received = 0;
 
 void Director::loop()
 {
-    if (!dumped)
-        return;
-
-    tx.loop();
     if (rx.pending())
     {
         auto value = rx.flush();
@@ -307,7 +306,9 @@ void Director::loop()
             ESP_LOGI(TAG, "TRANSMIT: {value=%d}", value);
         else
             ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
+
         tx.transmit(value++);
+
         if (value >= 48)
         {
             ESP_LOGI(TAG, "TRANSMIT: transmitted 48 values received %d values, uptime ", received);
@@ -319,7 +320,33 @@ void Director::loop()
 }
 #endif
 
-#if MODE == MODE_ONEWIRE_CMD || MODE == MODE_CHANNEL
+#if MODE == MODE_ONEWIRE_CMD
+void Director::loop()
+{
+    if (rx.pending())
+    {
+        auto value = rx.flush();
+        if (onewire::BAUD < 200)
+            ESP_LOGI(TAG, "RECEIVED: {%d}", value);
+        else
+            ESP_LOGD(TAG, "RECEIVED: {%d}", value);
+    }
+    if (tx.transmitted())
+    {
+        delay(50);
+        auto cmd = OneCommand::Accept::create(channel.baudrate());
+        auto value = cmd.raw;
+        if (onewire::BAUD < 200)
+            ESP_LOGI(TAG, "TRANSMIT: {value=%d}", value);
+        else
+            ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
+
+        tx.transmit(value);
+    }
+}
+#endif
+
+#if MODE == MODE_CHANNEL
 int test_count_value = 0;
 void Director::loop()
 {
@@ -334,8 +361,6 @@ void Director::loop()
 #endif
 
     Micros now = micros();
-    // rx.loop(now);
-    tx.loop();
     if (rx.pending())
     {
         OneCommand cmd;
@@ -365,8 +390,7 @@ void Director::loop()
     tick_action.loop();
 
     Micros now = micros();
-    rx.loop(now);
-    tx.loop(now);
+    tx.loop();
     channel.loop();
 
     if (rx.pending())
@@ -402,7 +426,7 @@ void Director::loop()
                 accept_action.stop();
 
                 _performers = cmd.msg.src + 1;
-                ESP_LOGI(TAG, "DIRECTOR_ACCEPT|(%d): Total performers: %d", cmd.accept.baudrate, _performers);
+                ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): Total performers: %d", cmd.accept.baudrate, _performers);
             }
         }
         break;
