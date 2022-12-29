@@ -16,6 +16,11 @@ using namespace esphome;
 #include "channel.h"
 #include "channel.interop.h"
 
+using channel::ChannelInterop;
+
+uint8_t ChannelInterop::id = ChannelInterop::DIRECTOR;
+int guid = rand();
+
 static const char *const TAG = "controller";
 
 using clock24::Director;
@@ -47,7 +52,7 @@ public:
     virtual void process(const byte *bytes, const byte length) override
     {
     }
-} channel;
+} my_channel;
 
 const char *cmd2string(const CmdEnum &cmd)
 {
@@ -72,17 +77,17 @@ const char *cmd2string(const CmdEnum &cmd)
 
 void logd_cmd(const char *what, const OneCommand &cmd)
 {
-    ESP_LOGD(TAG, "%s: {%d: %d - %s} %d", what, cmd.msg.src, cmd.msg.cmd, cmd2string(static_cast<CmdEnum>(cmd.msg.cmd)), cmd.raw);
+    ESP_LOGD(TAG, "%s: {%d: %d[%d] - %s} %d", what, cmd.msg.source_id, cmd.msg.cmd, cmd.msg.reserved, cmd2string(static_cast<CmdEnum>(cmd.msg.cmd)), cmd.raw);
 }
 
 void logw_cmd(const char *what, const OneCommand &cmd)
 {
-    ESP_LOGW(TAG, "%s: {%d: %d - %s} %d", what, cmd.msg.src, cmd.msg.cmd, cmd2string(static_cast<CmdEnum>(cmd.msg.cmd)), cmd.raw);
+    ESP_LOGW(TAG, "%s: {%d: %d[%d] - %s} %d", what, cmd.msg.source_id, cmd.msg.cmd, cmd.msg.reserved, cmd2string(static_cast<CmdEnum>(cmd.msg.cmd)), cmd.raw);
 }
 
 void logi_cmd(const char *what, const OneCommand &cmd)
 {
-    ESP_LOGI(TAG, "%s: {%d: %d - %s} %d", what, cmd.msg.src, cmd.msg.cmd, cmd2string(static_cast<CmdEnum>(cmd.msg.cmd)), cmd.raw);
+    ESP_LOGI(TAG, "%s: {%d: %d[%d] - %s} %d", what, cmd.msg.source_id, cmd.msg.cmd, cmd.msg.reserved, cmd2string(static_cast<CmdEnum>(cmd.msg.cmd)), cmd.raw);
 }
 
 void transmit(OneCommand command)
@@ -102,7 +107,7 @@ void Director::dump_config()
     ESP_LOGCONFIG(TAG, "     Msg:      %d", sizeof(OneCommand::Msg));
     ESP_LOGCONFIG(TAG, "     Baudrate: %d", sizeof(OneCommand::Baudrate));
     tx.dump_config();
-    channel.dump_config();
+    my_channel.dump_config();
     onewire::OnewireInterrupt::dump_config();
 }
 
@@ -158,7 +163,7 @@ public:
         {
             ESP_LOGW(TAG, "Message DIRECTOR_ONLINE not returned to director!?");
         }
-        transmit(OneCommand::director_online(channel.baudrate()));
+        transmit(OneCommand::director_online(guid));
     }
 } director_online_action;
 
@@ -182,9 +187,9 @@ public:
         if (!active)
             return;
 
-        auto msg = OneCommand::accept(channel.baudrate());
+        auto msg = OneCommand::Accept::create(my_channel.baudrate());
         transmit(msg);
-        ESP_LOGI(TAG, "transmit: Accept(%dbaud)", msg.baudrate.speed);
+        ESP_LOGI(TAG, "transmit: Accept(%dbaud)", msg.accept.baudrate);
     }
 } accept_action;
 
@@ -238,7 +243,7 @@ public:
         {
             send = true;
             t0 = millis();
-            channel.send(ChannelMessage::tick());
+            my_channel.send(channel::messages::tick());
         }
         else
         {
@@ -294,8 +299,8 @@ void Director::setup()
     pinMode(GPIO_14, INPUT);
     pinMode(USB_POWER_PIN, INPUT);
 
-    channel.setup();
-    channel.start_transmitting();
+    my_channel.setup();
+    my_channel.start_transmitting();
 
     rx.setup();
     rx.begin();
@@ -362,7 +367,7 @@ void Director::loop()
     if (tx.transmitted())
     {
         delay(50);
-        auto cmd = OneCommand::accept(channel.baudrate());
+        auto cmd = OneCommand::Accept::create(channel.baudrate());
         auto value = cmd.raw;
         if (onewire::BAUD < 200)
             ESP_LOGI(TAG, "TRANSMIT: {value=%d}", value);
@@ -418,7 +423,7 @@ void Director::loop()
     // accept_action.loop();
     ping_onewire_action.loop();
     tick_action.loop();
-    channel.loop();
+    my_channel.loop();
 
     if (rx.pending())
     {
@@ -438,7 +443,7 @@ void Director::loop()
             break;
 
         case CmdEnum::TOCK:
-            tick_action.received(cmd.msg.src);
+            tick_action.received(cmd.msg.source_id);
             break;
 
         case CmdEnum::DIRECTOR_ONLINE:
@@ -451,7 +456,7 @@ void Director::loop()
             if (cmd.from_master())
             {
                 _performers = 0;
-                ESP_LOGW(TAG, "DIRECTOR_ONLINE(%d): No performers ? Make sure, one is not MODE_ONEWIRE_PASSTROUGH!", cmd.baudrate.speed);
+                ESP_LOGW(TAG, "DIRECTOR_ONLINE: No performers ? Make sure, one is not MODE_ONEWIRE_PASSTROUGH!");
             }
             else
             {
@@ -466,14 +471,21 @@ void Director::loop()
             if (cmd.from_master())
             {
                 _performers = 0;
-                ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): No performers ? Make sure, one is not MODE_ONEWIRE_PASSTROUGH!", cmd.baudrate.speed);
+                ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): No performers ? Make sure, one is not MODE_ONEWIRE_PASSTROUGH!", cmd.accept.baudrate);
             }
             else
             {
                 accept_action.stop();
 
-                _performers = cmd.msg.src + 1;
-                ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): Total performers: %d", cmd.baudrate.speed, _performers);
+                _performers = cmd.msg.source_id + 1;
+                ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): Total performers: %d", cmd.accept.baudrate, _performers);
+
+                for (int performer_id = 0; performer_id < NMBR_OF_PERFORMERS; performer_id++)
+                {
+                    const auto &settings = performer(performer_id);
+                    auto message = channel::messages::StepperSettings(performer_id, settings.stepper0.offset, settings.stepper1.offset);
+                    my_channel.send(message);
+                }
             }
         }
         break;
@@ -486,6 +498,12 @@ void Director::loop()
 }
 
 #endif
+
+void Director::request_positions()
+{
+    auto message = channel::messages::request_positions();
+    my_channel.send(my_channel);
+}
 
 void Director::kill()
 {

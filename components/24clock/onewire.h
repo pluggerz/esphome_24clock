@@ -39,7 +39,7 @@
 
 namespace onewire
 {
-    constexpr uint32_t BAUD = 500;
+    constexpr uint32_t BAUD = 1000;
 
     class RxOnewire;
     class TxOnewire;

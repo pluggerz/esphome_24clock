@@ -5,7 +5,19 @@
 #include "onewire.h"
 #include "channel.h"
 #include "channel.interop.h"
+
 #include "leds.h"
+#include "stepper.h"
+
+using channel::ChannelInterop;
+
+uint8_t ChannelInterop::id = ChannelInterop::UNDEFINED;
+
+// steppers
+int guid_of_director = -1;
+
+Stepper0 stepper0(NUMBER_OF_STEPS);
+Stepper1 stepper1(NUMBER_OF_STEPS);
 
 // OneWireProtocol protocol;
 onewire::RxOnewire rx;
@@ -19,10 +31,9 @@ class PerformerChannel : public rs485::BufferChannel<RECEIVER_BUFFER_SIZE>
 {
 public:
     void process(const byte *bytes, const byte length) override;
-} channel;
+} my_channel;
 
 Micros t0 = 0;
-int performer_id = -1;
 
 void reset_mode()
 {
@@ -88,7 +99,7 @@ class ResetAction : public DelayAction
 public:
     virtual void update() override
     {
-        transmit(OneCommand::online());
+        transmit(OneCommand::performer_online());
     }
 
     virtual void setup() override
@@ -99,6 +110,30 @@ public:
 
     virtual void loop() override;
 } reset_action;
+
+void execute_director_online(const OneCommand &cmd)
+{
+    // make sure, we only deal once with this id
+    int new_guid_of_director = cmd.msg.reserved;
+    if (guid_of_director == new_guid_of_director)
+    {
+        // ignore message, we are already dealt with it.
+        // maybe next one failed to use it ? Lets forward...
+        transmit(cmd.forward());
+        return;
+    }
+    ChannelInterop::id = ChannelInterop::UNDEFINED;
+    guid_of_director = new_guid_of_director;
+
+    // align onewire channel
+    onewire::OnewireInterrupt::align();
+
+    // go to reset mode
+    set_action(&reset_action);
+
+    // inform next
+    transmit(cmd.forward());
+}
 
 void DefaultAction::loop()
 {
@@ -112,18 +147,15 @@ void DefaultAction::loop()
     OneCommand cmd;
     cmd.raw = rx.flush();
     show_action(cmd);
-    channel.loop();
+    my_channel.loop();
     switch (cmd.msg.cmd)
     {
     case DIRECTOR_ONLINE:
-        onewire::OnewireInterrupt::align();
-
-        set_action(&reset_action);
-        transmit(cmd.next_source());
+        execute_director_online(cmd);
         break;
 
     default:
-        transmit(cmd.next_source());
+        transmit(cmd.forward());
         break;
     }
 }
@@ -144,8 +176,7 @@ void ResetAction::loop()
         switch (cmd.msg.cmd)
         {
         case DIRECTOR_ONLINE:
-            onewire::OnewireInterrupt::align();
-            transmit(cmd.next_source());
+            execute_director_online(cmd);
             break;
 
         case PERFORMER_ONLINE:
@@ -153,17 +184,19 @@ void ResetAction::loop()
             break;
 
         case DIRECTOR_ACCEPT:
-            performer_id = cmd.msg.src;
+            ChannelInterop::id = cmd.derive_next_source_id();
             set_action(&default_action);
-            channel.baudrate(cmd.baudrate.speed);
-            channel.start_receiving();
-
-            transmit(cmd.next_source());
+            if (my_channel.baudrate() != cmd.accept.baudrate)
+            {
+                my_channel.baudrate(cmd.accept.baudrate);
+                my_channel.start_receiving();
+            }
+            transmit(cmd.forward());
             break;
 
         default:
             // just forward
-            transmit(cmd.next_source());
+            transmit(cmd.forward());
             break;
         }
     }
@@ -188,8 +221,37 @@ void set_action(Action *action)
         current_action->setup();
 }
 
+void setup_steppers()
+{
+    // set mode
+    pinMode(MOTOR_SLEEP_PIN, OUTPUT);
+    pinMode(MOTOR_ENABLE, OUTPUT);
+    pinMode(MOTOR_RESET, OUTPUT);
+
+    stepper0.setup();
+    stepper1.setup();
+
+    delay(10);
+
+    // set state
+    digitalWrite(MOTOR_SLEEP_PIN, LOW);
+    digitalWrite(MOTOR_ENABLE, HIGH);
+    digitalWrite(MOTOR_RESET, LOW);
+
+    // wait at least 1ms
+    delay(10);
+    digitalWrite(MOTOR_SLEEP_PIN, HIGH);
+    digitalWrite(MOTOR_ENABLE, LOW);
+    digitalWrite(MOTOR_RESET, HIGH);
+
+    // wait at least 200ns
+    delay(10);
+}
+
 void setup()
 {
+    setup_steppers();
+
     pinMode(SLAVE_RS485_TXD_DPIN, OUTPUT);
     pinMode(SLAVE_RS485_RXD_DPIN, INPUT);
 
@@ -210,7 +272,7 @@ void setup()
     tx.begin();
 #endif
     Leds::blink(LedColors::green, 3);
-    channel.setup();
+    my_channel.setup();
 
 #if MODE == MODE_CHANNEL || MODE == MODE_ONEWIRE_CMD || MODE == MODE_ONEWIRE_PASSTROUGH
     channel.baudrate(9600);
@@ -228,6 +290,34 @@ void setup()
 
 #if MODE >= MODE_ONEWIRE_INTERACT
     set_action(&reset_action);
+
+    int speed = 10;
+    stepper0.set_speed_in_revs_per_minute(speed);
+    stepper1.set_speed_in_revs_per_minute(speed);
+
+    while (stepper0.get_magnet_pin() || stepper1.get_magnet_pin())
+    {
+        if (stepper0.get_magnet_pin())
+            stepper0.step(1);
+        if (stepper1.get_magnet_pin())
+            stepper1.step(1);
+    }
+    for (int idx = 0; idx < 240; ++idx)
+    {
+        stepper0.step(-1);
+        stepper1.step(-1);
+    }
+
+    stepper0.set_speed_in_revs_per_minute(speed);
+    stepper1.set_speed_in_revs_per_minute(speed);
+    while (stepper0.get_magnet_pin() || stepper1.get_magnet_pin())
+    {
+        auto now = micros();
+        if (stepper0.get_magnet_pin())
+            stepper0.tryToStep(now);
+        if (stepper1.get_magnet_pin())
+            stepper1.tryToStep(now);
+    }
 #endif
 }
 
@@ -253,7 +343,7 @@ void loop()
         Leds::publish();
     }
 
-    channel.loop();
+    my_channel.loop();
 }
 #endif
 
@@ -276,7 +366,7 @@ void loop()
         Leds::publish();
     }
 
-    channel.loop();
+    my_channel.loop();
 
     if (rx.pending())
     {
@@ -287,7 +377,7 @@ void loop()
 #if MODE == MODE_ONEWIRE_CMD
         OneCommand cmd;
         cmd.raw = rx.flush();
-        tx.transmit(cmd.next_source().raw);
+        tx.transmit(cmd.forward().raw);
 #endif
     }
     if (current_action != nullptr)
@@ -295,16 +385,27 @@ void loop()
 }
 #endif
 
+void execute_settings(const channel::messages::StepperSettings *settings)
+{
+    if (settings->getDstId() != ChannelInterop::id)
+        return;
+    Leds::blink(LedColors::purple, 1 + ChannelInterop::id);
+}
+
 void PerformerChannel::process(const byte *bytes, const byte length)
 {
 
-    ChannelMessage *msg = (ChannelMessage *)bytes;
+    channel::Message *msg = (channel::Message *)bytes;
     switch (msg->getMsgEnum())
     {
-    case ChannelMsgEnum::MSG_TICK:
-        if (performer_id >= 0)
+    case channel::MsgEnum::MSG_PERFORMER_SETTINGS:
+        execute_settings(static_cast<channel::messages::StepperSettings *>(msg));
+        break;
+
+    case channel::MsgEnum::MSG_TICK:
+        if (ChannelInterop::id != ChannelInterop::UNDEFINED)
         {
-            transmit(OneCommand::tock(performer_id));
+            transmit(OneCommand::tock(ChannelInterop::get_my_id()));
         }
         break;
 
