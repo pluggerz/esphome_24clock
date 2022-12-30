@@ -75,24 +75,66 @@ const char *cmd2string(const CmdEnum &cmd)
     }
 }
 
-void logd_cmd(const char *what, const OneCommand &cmd)
-{
-    ESP_LOGD(TAG, "%s: {%d: %d[%d] - %s} %d", what, cmd.msg.source_id, cmd.msg.cmd, cmd.msg.reserved, cmd2string(static_cast<CmdEnum>(cmd.msg.cmd)), cmd.raw);
-}
+constexpr int MAX_SCRATCH_LENGTH = 200;
+char scratch_buffer[MAX_SCRATCH_LENGTH];
 
-void logw_cmd(const char *what, const OneCommand &cmd)
+const char *format(const OneCommand &cmd)
 {
-    ESP_LOGW(TAG, "%s: {%d: %d[%d] - %s} %d", what, cmd.msg.source_id, cmd.msg.cmd, cmd.msg.reserved, cmd2string(static_cast<CmdEnum>(cmd.msg.cmd)), cmd.raw);
-}
+    char const *from;
+    int id = 0;
+    if (cmd.from_master())
+    {
+        from = "D";
+        id = 0;
+    }
+    else if (cmd.from_performer())
+    {
+        from = "p";
+        id = cmd.msg.source_id;
+    }
+    else
+    {
+        from = "U";
+        id = cmd.msg.source_id;
+    }
 
-void logi_cmd(const char *what, const OneCommand &cmd)
-{
-    ESP_LOGI(TAG, "%s: {%d: %d[%d] - %s} %d", what, cmd.msg.source_id, cmd.msg.cmd, cmd.msg.reserved, cmd2string(static_cast<CmdEnum>(cmd.msg.cmd)), cmd.raw);
+    char const *what;
+    switch (cmd.msg.cmd)
+    {
+    case DIRECTOR_ONLINE:
+        what = "DIRECTOR_ONLINE";
+        break;
+    case TOCK:
+        what = "TOCK";
+        break;
+    case DIRECTOR_PING:
+        what = "DIRECTOR_PING";
+        break;
+    default:
+        what = "UNKNOWN";
+        break;
+    }
+    switch (cmd.msg.cmd)
+    {
+    case DIRECTOR_ONLINE:
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s guid=%d", from, id, cmd.msg.cmd, what, cmd.msg.reserved);
+        break;
+
+    case DIRECTOR_PING:
+    case TOCK:
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s reserved=%d", from, id, cmd.msg.cmd, what, cmd.msg.reserved);
+        break;
+
+    default:
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s reserved=%d", from, id, cmd.msg.cmd, what, cmd.msg.reserved);
+        break;
+    }
+    return scratch_buffer;
 }
 
 void transmit(OneCommand command)
 {
-    logi_cmd("Send", command);
+    ESP_LOGI(TAG, "(via onewire:) %s", format(command));
     tx.transmit(command.raw);
 }
 
@@ -169,22 +211,22 @@ public:
 
 class AcceptAction : public DelayAction
 {
-    bool active = false;
 
 public:
+    bool active = false;
     void start()
     {
-        active = true;
+        this->active = true;
     }
 
     void stop()
     {
-        active = false;
+        this->active = false;
     }
 
     virtual void update() override
     {
-        if (!active)
+        if (!this->active)
             return;
 
         auto msg = OneCommand::Accept::create(my_channel.baudrate());
@@ -234,7 +276,7 @@ class TickChannelAction : public DelayAction
     Millis t0;
 
 public:
-    TickChannelAction() : DelayAction(3000)
+    TickChannelAction() : DelayAction(5000)
     {
     }
     virtual void update() override
@@ -429,14 +471,21 @@ void Director::loop()
     {
         OneCommand cmd;
         cmd.raw = rx.flush();
-        logi_cmd("Received", cmd);
+        ESP_LOGW(TAG, "Received: %s", format(cmd));
         switch (cmd.msg.cmd)
         {
-        case CmdEnum::DIRECTOR_PING:
+        case CmdEnum::PERFORMER_POSITION:
         {
+            ESP_LOGW(TAG, "PERFORMER_POSITION: performer_id = %d (%d, %d)", cmd.position.source_id, cmd.position.handle0, cmd.position.handle1);
+            auto &p = performer(cmd.position.source_id);
+            p.stepper0.tick = cmd.position.handle0;
+            p.stepper1.tick = cmd.position.handle1;
+        }
+        break;
+
+        case CmdEnum::DIRECTOR_PING:
             ping_onewire_action.received(_performers);
             break;
-        }
 
         case CmdEnum::PERFORMER_ONLINE:
             accept_action.start();
@@ -449,7 +498,7 @@ void Director::loop()
         case CmdEnum::DIRECTOR_ONLINE:
             if (!director_online_action.active)
             {
-                ESP_LOGW(TAG, "DIRECTOR_ONLINE: Ignored, most likely too slow onewire....");
+                ESP_LOGW(TAG, "Ingore DIRECTOR_ONLINE: Ignored, most likely too slow onewire....");
                 return;
             }
 
@@ -468,7 +517,12 @@ void Director::loop()
 
         case CmdEnum::DIRECTOR_ACCEPT:
         {
-            if (cmd.from_master())
+            if (!accept_action.active)
+            {
+                // lets ignore, thos pne
+                ESP_LOGW(TAG, "IGNORED!");
+            }
+            else if (cmd.from_master())
             {
                 _performers = 0;
                 ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): No performers ? Make sure, one is not MODE_ONEWIRE_PASSTROUGH!", cmd.accept.baudrate);
@@ -492,7 +546,7 @@ void Director::loop()
 
         default:
             // ignore
-            logw_cmd("IGNORED", cmd);
+            ESP_LOGW(TAG, "IGNORED: %s", format(cmd));
         }
     }
 }
@@ -502,7 +556,7 @@ void Director::loop()
 void Director::request_positions()
 {
     auto message = channel::messages::request_positions();
-    my_channel.send(my_channel);
+    my_channel.send(message);
 }
 
 void Director::kill()

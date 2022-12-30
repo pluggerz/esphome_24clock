@@ -109,15 +109,15 @@ union OneCommand
         SOURCE_HEADER;
         constexpr static int POS_BITS = 10;
 
-        uint32_t pos0 : POS_BITS;
-        uint32_t pos1 : POS_BITS;
+        uint32_t handle0 : POS_BITS;
+        uint32_t handle1 : POS_BITS;
         uint32_t remainder : RESERVED_BITS - POS_BITS - POS_BITS;
 
-        static OneCommand create(int pos0, int pos1)
+        static OneCommand create(int performer_id, int handle0, int handle1)
         {
-            OneCommand ret = Msg::by_performer(CmdEnum::PERFORMER_POSITION, -1);
-            ret.position.pos0 = pos0;
-            ret.position.pos1 = pos1;
+            OneCommand ret = Msg::by_performer(CmdEnum::PERFORMER_POSITION, performer_id);
+            ret.position.handle0 = handle0;
+            ret.position.handle1 = handle1;
             return ret;
         }
     } __attribute__((packed, aligned(1))) position;

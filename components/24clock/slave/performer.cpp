@@ -5,6 +5,7 @@
 #include "onewire.h"
 #include "channel.h"
 #include "channel.interop.h"
+#include "ticks.h"
 
 #include "leds.h"
 #include "stepper.h"
@@ -150,12 +151,25 @@ void DefaultAction::loop()
     my_channel.loop();
     switch (cmd.msg.cmd)
     {
+        // these will be forwarded, without any changes:
+    case TOCK:
+    case DIRECTOR_PING:
+    case PERFORMER_POSITION:
+    case PERFORMER_ONLINE:
+        transmit(cmd);
+        break;
+
+    // these are special, we need to adapt the source
+    case DIRECTOR_ACCEPT:
+        transmit(cmd.forward());
+        break;
+
     case DIRECTOR_ONLINE:
         execute_director_online(cmd);
         break;
 
     default:
-        transmit(cmd.forward());
+        // transmit(cmd.forward());
         break;
     }
 }
@@ -196,7 +210,7 @@ void ResetAction::loop()
 
         default:
             // just forward
-            transmit(cmd.forward());
+            // transmit(cmd.forward());
             break;
         }
     }
@@ -294,13 +308,8 @@ void setup()
     int speed = 10;
     stepper0.set_speed_in_revs_per_minute(speed);
     stepper1.set_speed_in_revs_per_minute(speed);
-
-    while (stepper0.get_magnet_pin() || stepper1.get_magnet_pin())
+    while (!stepper0.find_magnet_tick() || !stepper1.find_magnet_tick())
     {
-        if (stepper0.get_magnet_pin())
-            stepper0.step(1);
-        if (stepper1.get_magnet_pin())
-            stepper1.step(1);
     }
     for (int idx = 0; idx < 240; ++idx)
     {
@@ -310,13 +319,8 @@ void setup()
 
     stepper0.set_speed_in_revs_per_minute(speed);
     stepper1.set_speed_in_revs_per_minute(speed);
-    while (stepper0.get_magnet_pin() || stepper1.get_magnet_pin())
+    while (!stepper0.find_magnet_tick() || !stepper1.find_magnet_tick())
     {
-        auto now = micros();
-        if (stepper0.get_magnet_pin())
-            stepper0.tryToStep(now);
-        if (stepper1.get_magnet_pin())
-            stepper1.tryToStep(now);
     }
 #endif
 }
@@ -389,6 +393,8 @@ void execute_settings(const channel::messages::StepperSettings *settings)
 {
     if (settings->getDstId() != ChannelInterop::id)
         return;
+    stepper0.set_offset_steps(settings->magnet_offet0);
+    stepper1.set_offset_steps(settings->magnet_offet1);
     Leds::blink(LedColors::purple, 1 + ChannelInterop::id);
 }
 
@@ -398,15 +404,23 @@ void PerformerChannel::process(const byte *bytes, const byte length)
     channel::Message *msg = (channel::Message *)bytes;
     switch (msg->getMsgEnum())
     {
+    case channel::MsgEnum::MSG_POSITION_REQUEST:
+        if (ChannelInterop::id != ChannelInterop::UNDEFINED)
+        {
+            auto ticks0 = Ticks::normalize(stepper0.ticks()) / STEP_MULTIPLIER;
+            auto ticks1 = Ticks::normalize(stepper1.ticks()) / STEP_MULTIPLIER;
+
+            transmit(OneCommand::Position::create(ChannelInterop::get_my_id(), ticks0, ticks1));
+        }
+        break;
+
     case channel::MsgEnum::MSG_PERFORMER_SETTINGS:
         execute_settings(static_cast<channel::messages::StepperSettings *>(msg));
         break;
 
     case channel::MsgEnum::MSG_TICK:
         if (ChannelInterop::id != ChannelInterop::UNDEFINED)
-        {
             transmit(OneCommand::tock(ChannelInterop::get_my_id()));
-        }
         break;
 
     default:
