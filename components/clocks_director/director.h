@@ -55,5 +55,7 @@ class Director : public esphome::Component {
   void request_positions();
   void request_time_change(int hours, int minutes);
 };
+
+class Animator : public esphome::Component {};
 }  // namespace clock24
 #endif
