@@ -367,7 +367,7 @@ void Channel::baudrate(Baudrate baud_rate) {
 
 void Channel::_send(const byte *bytes, const byte length) {
 #ifdef DOLOG
-  ESP_LOGI(TAG, "_send(%d bytes)", length);
+  ESP_LOGD(TAG, "Channel::_send(%d bytes)", length);
 #endif
   gate.start_transmitting();
   _protocol->sendMsg(bytes, length);

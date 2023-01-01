@@ -53,14 +53,14 @@ class Action {
   virtual void final(){};
 };
 
-class DelayAction : public Action {
+class IntervalAction : public Action {
   Micros _last = 0, _delay;
 
  protected:
   virtual void first_update() { update(); }
 
   virtual void update() = 0;
-  DelayAction(Micros delay = 2000) { _delay = delay; }
+  IntervalAction(Micros delay = 2000) { _delay = delay; }
 
  public:
   void setup() { _last = 0; }

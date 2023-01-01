@@ -3,7 +3,7 @@
 #include "Arduino.h"
 
 constexpr int SRC_BITS = 6;  // 24 handles, so 2^5 = 32 should fit
-constexpr int CMD_BITS = 3;
+constexpr int CMD_BITS = 4;
 
 constexpr int RESERVED_BITS = 32 - SRC_BITS - CMD_BITS;
 
@@ -11,6 +11,8 @@ constexpr int SRC_MASTER = (1 << SRC_BITS) - 1;
 constexpr int SRC_UNKNOWN = (1 << SRC_BITS) - 2;
 
 namespace onewire {
+int my_performer_id();
+
 // to be placed in proper .h file
 enum CmdEnum {
   FAULTY,
@@ -22,6 +24,7 @@ enum CmdEnum {
   TOCK,
   PERFORMER_POSITION,
   PERFORMER_PREPPING,
+  PERFORMER_CHECK_POINT,
 };
 
 union OneCommand {
@@ -77,6 +80,33 @@ union OneCommand {
       return ret;
     }
   } __attribute__((packed, aligned(1))) position;
+
+  struct CheckPoint {
+    SOURCE_HEADER;
+    constexpr static int CHECK_POINT_BITS = 8;
+
+    uint32_t id : CHECK_POINT_BITS;
+    uint32_t value : CHECK_POINT_BITS;
+    uint32_t debug : 1;
+    uint32_t remainder : RESERVED_BITS - 2 * CHECK_POINT_BITS - 1;
+
+    static OneCommand create(bool debug, uint8_t id, uint8_t value) {
+      OneCommand ret =
+          Msg::by_performer(CmdEnum::PERFORMER_CHECK_POINT, my_performer_id());
+      ret.check_point.debug = debug ? 1 : 0;
+      ret.check_point.id = id;
+      ret.check_point.value = value;
+      return ret;
+    }
+
+    static OneCommand for_info(uint8_t id, uint8_t value) {
+      return create(false, id, value);
+    }
+
+    static OneCommand for_debug(uint8_t id, uint8_t value) {
+      return create(true, id, value);
+    }
+  } __attribute__((packed, aligned(1))) check_point;
 
   static OneCommand director_online(int guid) {
     OneCommand ret = Msg::by_director(CmdEnum::DIRECTOR_ONLINE);

@@ -42,3 +42,5 @@ namespace Leds
 
 #define LED_CHANNEL_STATE 11
 #define LED_CHANNEL_DATA 10
+
+#define LED_EXECUTOR_STATE 9

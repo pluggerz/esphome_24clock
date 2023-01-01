@@ -78,6 +78,9 @@ const char *format(const onewire::OneCommand &cmd) {
     case CmdEnum::DIRECTOR_PING:
       what = "DIRECTOR_PING";
       break;
+    case CmdEnum::PERFORMER_CHECK_POINT:
+      what = "PERFORMER_CHECK_POINT";
+      break;
     default:
       what = "UNKNOWN";
       break;
@@ -86,6 +89,12 @@ const char *format(const onewire::OneCommand &cmd) {
     case CmdEnum::DIRECTOR_ONLINE:
       snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s guid=%d", from,
                id, cmd.msg.cmd, what, cmd.msg.reserved);
+      break;
+
+    case CmdEnum::PERFORMER_CHECK_POINT:
+      snprintf(scratch_buffer, MAX_SCRATCH_LENGTH,
+               "%s%d->[%d]%s check=%c value=%d", from, id, cmd.msg.cmd, what,
+               cmd.check_point.id, cmd.check_point.value);
       break;
 
     case CmdEnum::PERFORMER_POSITION:
@@ -114,7 +123,7 @@ const char *format(const onewire::OneCommand &cmd) {
 }
 
 void transmit(onewire::OneCommand command) {
-  ESP_LOGI(TAG, "(via onewire:) %s", format(command));
+  ESP_LOGD(TAG, "(via onewire:) %s", format(command));
   tx.transmit(command.raw);
 }
 
@@ -127,8 +136,10 @@ void Director::dump_config() {
            esphome::HighFrequencyLoopRequester::is_high_frequency() ? "YES"
                                                                     : "NO!?");
   ESP_LOGI(TAG, "  message sizes (in bytes):");
-  ESP_LOGI(TAG, "     Msg:      %d", sizeof(onewire::OneCommand::Msg));
-  ESP_LOGI(TAG, "     Accept: %d", sizeof(onewire::OneCommand::Accept));
+  ESP_LOGI(TAG, "     Msg:        %d", sizeof(onewire::OneCommand::Msg));
+  ESP_LOGI(TAG, "     Accept:     %d", sizeof(onewire::OneCommand::Accept));
+  ESP_LOGI(TAG, "     CheckPoint: %d", sizeof(onewire::OneCommand::CheckPoint));
+
   tx.dump_config();
   my_channel.dump_config();
   onewire::OnewireInterrupt::dump_config();
@@ -159,14 +170,14 @@ class WireSender {
   }
 } wire_controller;
 
-class DirectorOnlineAction : public DelayAction {
+class DirectorOnlineAction : public IntervalAction {
  public:
   bool active = true;
   int send_count = 0;
 
   static constexpr int delay = 500;
 
-  DirectorOnlineAction() : DelayAction(delay) {}
+  DirectorOnlineAction() : IntervalAction(delay) {}
 
   virtual void update() override {
     if (!active) return;
@@ -179,7 +190,7 @@ class DirectorOnlineAction : public DelayAction {
   }
 } director_online_action;
 
-class AcceptAction : public DelayAction {
+class AcceptAction : public IntervalAction {
  public:
   bool active = false;
   void start() { this->active = true; }
@@ -195,12 +206,12 @@ class AcceptAction : public DelayAction {
   }
 } accept_action;
 
-class PingOneWireAction : public DelayAction {
+class PingOneWireAction : public IntervalAction {
   bool send = false;
   Millis t0;
 
  public:
-  PingOneWireAction() : DelayAction(5000) {}
+  PingOneWireAction() : IntervalAction(5000) {}
   virtual void update() override {
     if (!send) {
       send = true;
@@ -214,8 +225,8 @@ class PingOneWireAction : public DelayAction {
 
   void received(int _performers) {
     auto delay = millis() - t0;
-    if (_performers > 0 && _performers != 24)
-      ESP_LOGI(TAG,
+    if (_performers > 0)
+      ESP_LOGD(TAG,
                "(via onewire:) Performer PING duration: %dmillis (projected "
                "delay: %d)",
                delay, delay * 24 / _performers);
@@ -225,13 +236,13 @@ class PingOneWireAction : public DelayAction {
   }
 } ping_onewire_action;
 
-class TickChannelAction : public DelayAction {
+class TickChannelAction : public IntervalAction {
   bool send = false;
   Millis t0;
   uint8_t tick_id = 0;
 
  public:
-  TickChannelAction() : DelayAction(5000) {}
+  TickChannelAction() : IntervalAction(5000) {}
   virtual void update() override {
     if (!send) {
       send = true;
@@ -243,24 +254,20 @@ class TickChannelAction : public DelayAction {
     }
   }
 
-  void received(int _performers) {
+  void received(int performer_id) {
     auto delay = millis() - t0;
-    if (_performers > 0 && _performers != 24)
-      ESP_LOGI(TAG, "(via channel:) Performer TICK TOCK duration: %dmillis",
-               delay);
-    else
-      ESP_LOGI(TAG, "(via channel:) Performer TICK TOCK duration: %dmillis",
-               delay);
+    ESP_LOGD(TAG, "(via channel:) Performer%d  TICK TOCK duration: %dmillis",
+             performer_id, delay);
     send = false;
   }
 } tick_action;
 
-class TestOnewireAction : public DelayAction {
+class TestOnewireAction : public IntervalAction {
   bool send = false;
   Millis t0;
 
  public:
-  TestOnewireAction() : DelayAction(1000) {}
+  TestOnewireAction() : IntervalAction(1000) {}
   virtual void update() override {
     if (tx.transmitted()) {
       tx.transmit(3);
@@ -413,8 +420,15 @@ void Director::loop() {
   if (rx.pending()) {
     onewire::OneCommand cmd;
     cmd.raw = rx.flush();
-    ESP_LOGW(TAG, "Received: %s", format(cmd));
+    ESP_LOGD(TAG, "Received: %s", format(cmd));
     switch (cmd.msg.cmd) {
+      case CmdEnum::PERFORMER_CHECK_POINT:
+        if (cmd.check_point.debug)
+          ESP_LOGD(TAG, "%s", format(cmd));
+        else
+          ESP_LOGI(TAG, "%s", format(cmd));
+        break;
+
       case CmdEnum::PERFORMER_POSITION: {
         ESP_LOGW(TAG, "PERFORMER_POSITION: performer_id = %d (%d, %d)",
                  cmd.position.source_id, cmd.position.ticks0,

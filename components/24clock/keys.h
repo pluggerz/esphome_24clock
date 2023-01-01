@@ -95,8 +95,16 @@ class CmdSpeedUtil {
   const Speeds &get_speeds() const;
   void set_speeds(const Speeds &speeds);
 
+#if defined(IS_DIRECTOR)
   uint8_t inflate_speed(const uint8_t value) const;
-  inline uint8_t deflate_speed(const uint8_t value) const;
+#endif
+  inline uint8_t deflate_speed(const uint8_t value) const {
+    if ((value & SPEED_MASK) != value) {
+      // invalid !?
+      return speeds[0];
+    }
+    return speeds[value];
+  }
 }
 // TODO: do static :S
 extern cmdSpeedUtil;
@@ -165,5 +173,5 @@ union DeflatedCmdKey {
            static_cast<double>(NUMBER_OF_STEPS);
   }
 };
-}
 #endif
+}  // namespace keys

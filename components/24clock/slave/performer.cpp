@@ -1,6 +1,7 @@
 #include "channel.h"
 #include "channel.interop.h"
 // #include "keys.h"
+#include "keys.executor.h"
 #include "leds.h"
 #include "onewire.h"
 #include "onewire.interop.h"
@@ -11,9 +12,15 @@
 #include "ticks.h"
 
 using channel::ChannelInterop;
+using channel::Message;
+using channel::messages::UartEndKeysMessage;
+using channel::messages::UartKeysMessage;
 using onewire::CmdEnum;
+using onewire::OneCommand;
 
 uint8_t ChannelInterop::id = ChannelInterop::UNDEFINED;
+
+int onewire::my_performer_id() { return ChannelInterop::id; }
 
 // steppers
 int guid_of_director = -1;
@@ -69,35 +76,33 @@ void show_action(const onewire::OneCommand &cmd) {
 }
 #if MODE >= MODE_ONEWIRE_INTERACT
 
-class DefaultAction : public DelayAction {
+class DefaultAction : public IntervalAction {
  public:
   virtual void update() override {
     // transmit(OneCommand::busy());
   }
 
   virtual void setup() override {
-    DelayAction::setup();
+    IntervalAction::setup();
     Leds::set(LED_COUNT - 2, rgb_color(0x00, 0xFF, 0x00));
   }
 
   virtual void loop() override;
 } default_action;
 
-class ResetAction : public DelayAction {
+class ResetAction : public IntervalAction {
  public:
-  virtual void update() override {
-    transmit(onewire::OneCommand::performer_online());
-  }
+  virtual void update() override { transmit(OneCommand::performer_online()); }
 
   virtual void setup() override {
-    DelayAction::setup();
+    IntervalAction::setup();
     Leds::set(LED_COUNT - 2, rgb_color(0xFF, 0x00, 0x00));
   }
 
   virtual void loop() override;
 } reset_action;
 
-void execute_director_online(const onewire::OneCommand &cmd) {
+void execute_director_online(const OneCommand &cmd) {
   // make sure, we only deal once with this id
   int new_guid_of_director = cmd.msg.reserved;
   if (guid_of_director == new_guid_of_director) {
@@ -120,25 +125,17 @@ void execute_director_online(const onewire::OneCommand &cmd) {
 }
 
 void DefaultAction::loop() {
-  DelayAction::loop();
+  IntervalAction::loop();
 
   Leds::set_ex(LED_MODE, LedColors::orange);
 
   if (!rx.pending()) return;
 
-  onewire::OneCommand cmd;
+  OneCommand cmd;
   cmd.raw = rx.flush();
   show_action(cmd);
   my_channel.loop();
   switch (cmd.msg.cmd) {
-      // these will be forwarded, without any changes:
-    case CmdEnum::TOCK:
-    case CmdEnum::DIRECTOR_PING:
-    case CmdEnum::PERFORMER_POSITION:
-    case CmdEnum::PERFORMER_ONLINE:
-      transmit(cmd);
-      break;
-
     // these are special, we need to adapt the source
     case CmdEnum::DIRECTOR_ACCEPT:
       transmit(cmd.forward());
@@ -148,8 +145,13 @@ void DefaultAction::loop() {
       execute_director_online(cmd);
       break;
 
+      // these will be forwarded, without any changes (also default action):
+    case CmdEnum::TOCK:
+    case CmdEnum::DIRECTOR_PING:
+    case CmdEnum::PERFORMER_POSITION:
+    case CmdEnum::PERFORMER_ONLINE:
     default:
-      // transmit(cmd.forward());
+      transmit(cmd);
       break;
   }
 }
@@ -158,12 +160,12 @@ void transmit_ticks() {
   auto ticks0 = Ticks::normalize(stepper0.ticks()) / STEP_MULTIPLIER;
   auto ticks1 = Ticks::normalize(stepper1.ticks()) / STEP_MULTIPLIER;
 
-  transmit(onewire::OneCommand::Position::create(ChannelInterop::get_my_id(),
-                                                 ticks0, ticks1));
+  transmit(OneCommand::Position::create(ChannelInterop::get_my_id(), ticks0,
+                                        ticks1));
 }
 
 void ResetAction::loop() {
-  DelayAction::loop();
+  IntervalAction::loop();
 
   Leds::set_ex(LED_MODE, LedColors::blue);
 
@@ -297,6 +299,11 @@ void setup() {
   stepper1.set_speed_in_revs_per_minute(speed);
   while (!stepper0.find_magnet_tick() || !stepper1.find_magnet_tick()) {
   }
+  for (int idx = 0; idx < 240; ++idx) {
+    stepper0.step(-1);
+    stepper1.step(-1);
+  }
+  StepExecutors::setup(stepper0, stepper1);
 #endif
 }
 
@@ -317,6 +324,7 @@ void loop() {
   }
 
   my_channel.loop();
+  StepExecutors.loop(now);
 }
 #endif
 
@@ -335,6 +343,9 @@ void loop() {
   }
 
   my_channel.loop();
+#if MODE == MODE_ONEWIRE_INTERACT
+  StepExecutors::loop(micros());
+#endif
 
   if (rx.pending()) {
 #if MODE == MODE_ONEWIRE_MIRROR
@@ -361,6 +372,26 @@ void execute_settings(const channel::messages::StepperSettings *settings) {
 void PerformerChannel::process(const byte *bytes, const byte length) {
   channel::Message *msg = (channel::Message *)bytes;
   switch (msg->getMsgEnum()) {
+    case channel::MsgEnum::MSG_BEGIN_KEYS:
+      StepExecutors::process_begin_keys(msg);
+      return;
+
+    case channel::MsgEnum::MSG_SEND_KEYS: {
+      auto performer_id = msg->getDstId() >> 1;
+      if (performer_id == ChannelInterop::id) {
+        StepExecutors::process_add_keys(
+            reinterpret_cast<const UartKeysMessage *>(msg));
+      }
+    }
+      return;
+
+    case channel::MsgEnum::MSG_END_KEYS:
+      StepExecutors::process_end_keys(
+          ChannelInterop::id << 1,
+          reinterpret_cast<const UartEndKeysMessage *>(msg));
+
+      return;
+
     case channel::MsgEnum::MSG_POSITION_REQUEST:
       if (ChannelInterop::id != ChannelInterop::UNDEFINED) {
         transmit_ticks();
