@@ -80,14 +80,15 @@ class Channel {
   virtual void process(const byte *bytes, const byte length) = 0;
 };
 
-template <uint16_t SIZE>
+constexpr int RECEIVER_BUFFER_SIZE = 128;
+
 class BufferChannel : public Channel {
  private:
-  Buffer<SIZE> buffer;
+  Buffer<RECEIVER_BUFFER_SIZE> buffer;
 
  public:
   void setup() {
-    _protocol->set_buffer(buffer.raw(), SIZE);
+    _protocol->set_buffer(buffer.raw(), RECEIVER_BUFFER_SIZE);
 
     Channel::setup();
   }
