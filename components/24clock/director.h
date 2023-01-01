@@ -30,7 +30,6 @@ class Performer {
 
 class Director : public esphome::Component {
  private:
-  esphome::time::RealTimeClock *time_;
   bool dumped = false;
   int _performers = -1;
   bool _killed = false;
@@ -51,7 +50,6 @@ class Director : public esphome::Component {
   void kill();
   virtual void dump_config() override;
 
-  void set_time(esphome::time::RealTimeClock *value) { time_ = value; }
   void set_baudrate(int value) { baudrate = value; }
 
   void request_positions();

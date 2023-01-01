@@ -5,10 +5,6 @@ from esphome.const import (
     CONF_ID,
  )
 
-# time
-from esphome.components import time as time_
-
-CONF_TIME_ID = "time_id"
 CONF_COUNT_START = "count_start"
 CONF_PERFORMERS = "performers"
 CONF_HANDLE0 = "H0"
@@ -17,7 +13,7 @@ CONF_ANIMATION_SLAVE_ID = "animation_slave_id"
 CONF_BAUDRATE='baud_rate'
 
 
-DEPENDENCIES = ["pcf8574", "time"]
+DEPENDENCIES = ["pcf8574"]
 
 AUTO_LOAD = [ ]
 
@@ -26,8 +22,6 @@ CODEOWNERS = ["@hvandenesker"]
 clock24_ns = cg.esphome_ns.namespace("clock24")
 
 Director24 = clock24_ns.class_("Director", cg.Component)
-
-CONF_TIME_ID = 'time_id'
 
 
 
@@ -68,7 +62,6 @@ def cv_performers_check(conf):
 CONFIG_SCHEMA = _Schema(
     {
         cv.Optional(CONF_ID, default='director'): cv.declare_id(Director24),
-        cv.Optional(CONF_TIME_ID, default='current_time'): cv.use_id(time_.RealTimeClock),
 #        cv.GenerateID(): cv.declare_id(OClockStubController),
 #        cv.Optional(CONF_COUNT_START, -1): cv.int_range(min=-1, max=64),
         cv.Optional(CONF_BAUDRATE, 9600): cv.int_range(min=1200),
@@ -94,11 +87,6 @@ async def to_code(config):
     # master
     master = cg.new_Pvariable(config[CONF_ID])
     
-    var = await cg.get_variable(config[CONF_TIME_ID])
-    print(f"Enitity for time: {var}")
-    cg.add(master.set_time(var))
-
-
     for slaveId, slaveConf in config[CONF_PERFORMERS].items():
         to_code_slave(master, slaveId, slaveConf)
 
