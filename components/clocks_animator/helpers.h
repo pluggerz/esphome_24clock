@@ -18,7 +18,6 @@ class DistanceCalculators {
   }
 };
 
-// TODO: move to helpers
 class HandlesAnimations {
  public:
   typedef std::function<void(Instructions &instructions, int speed,
@@ -43,7 +42,6 @@ class HandlesAnimations {
   }
 };
 
-// TODO: move to helpers
 class InBetweenAnimations {
  public:
   typedef std::function<void(Instructions &instructions, int speed)> Func;

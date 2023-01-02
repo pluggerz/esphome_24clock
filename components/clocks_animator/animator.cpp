@@ -2,14 +2,12 @@
 
 #include <set>
 
-#include "../clocks_director/channel.h"
-#include "../clocks_director/channel.interop.h"
 #include "../clocks_director/director.h"
-#include "esphome/core/log.h"
+#include "../clocks_shared/channel.h"
+#include "../clocks_shared/channel.interop.h"
 #include "handles.h"
 #include "helpers.h"
 #include "transmitter.h"
-using namespace esphome;
 
 const char *const TAG = "animator";
 

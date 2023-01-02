@@ -1,6 +1,6 @@
 #include "../clocks_director/animation.h"
-#include "../clocks_director/channel.h"
 #include "../clocks_director/keys.h"
+#include "../clocks_shared/channel.h"
 
 namespace transmitter {
 using keys::DeflatedCmdKey;

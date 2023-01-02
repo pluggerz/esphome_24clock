@@ -20,10 +20,6 @@ int OnewireInterrupt::timer_attach_state = -2;
 // Init ESP8266 only and only Timer 1
 ESP8266Timer ITimer1;
 
-#include "esphome/core/log.h"
-
-using namespace esphome;
-
 const char *const TAG = "1wireTimer";
 
 #define DOLOG
@@ -94,12 +90,10 @@ void MOVE2RAM TxTimerHandler() {
   tx_rx_cycle++;
 }
 
-#ifdef DOLOG
 void OnewireInterrupt::dump_config() {
   ESP_LOGI(TAG, "  OnewireInterrupt:");
   ESP_LOGI(TAG, "     no info");
 }
-#endif
 
 void OnewireInterrupt::kill() {
   if (OnewireInterrupt::timer_attach_state >= 0) {
@@ -151,9 +145,7 @@ void OnewireInterrupt::attach() {
 #ifdef DOLED
     Leds::error(LEDS_ERROR_NO_INTERRUPT);
 #endif
-#ifdef DOLOG
     ESP_LOGW(TAG, "Unable to attach interrupt");
-#endif
   }
   attachInterrupt(interupt, follow_change, CHANGE);
 

@@ -1,19 +1,11 @@
-#include "../clocks_shared/stub.h"
-
-#if defined(IS_DIRECTOR)
-
-#include "esphome/core/log.h"
-
-using namespace esphome;
-
-#endif
-
 #include "../clocks_director/keys.h"
+
+#include "../clocks_shared/stub.h"
 
 using keys::CmdSpeedUtil;
 using keys::InflatedCmdKey;
 
-const char *const TAG = "keyss";
+const char *const TAG = "keys";
 
 // TODO: static or object not like this !?
 keys::CmdSpeedUtil keys::cmdSpeedUtil;

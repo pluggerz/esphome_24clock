@@ -10,12 +10,12 @@ class AnimationController {
                                 -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
                                 -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 
-  int clockId2animatorId[MAX_SLAVES] = {-1, -1, -1, -1, -1, -1, -1, -1,
-                                        -1, -1, -1, -1, -1, -1, -1, -1,
-                                        -1, -1, -1, -1, -1, -1, -1, -1};
-  int animatorId2clockId[MAX_SLAVES] = {-1, -1, -1, -1, -1, -1, -1, -1,
-                                        -1, -1, -1, -1, -1, -1, -1, -1,
-                                        -1, -1, -1, -1, -1, -1, -1, -1};
+  int clockId2animatorId[NMBR_OF_PERFORMERS] = {-1, -1, -1, -1, -1, -1, -1, -1,
+                                                -1, -1, -1, -1, -1, -1, -1, -1,
+                                                -1, -1, -1, -1, -1, -1, -1, -1};
+  int animatorId2clockId[NMBR_OF_PERFORMERS] = {-1, -1, -1, -1, -1, -1, -1, -1,
+                                                -1, -1, -1, -1, -1, -1, -1, -1,
+                                                -1, -1, -1, -1, -1, -1, -1, -1};
 
  public:
   void reset_handles() {
@@ -94,7 +94,7 @@ class HandlesState {
 
   void setIds() {
     int m = NUMBER_OF_STEPS / 12;
-    for (int idx = 0; idx < MAX_SLAVES; ++idx) {
+    for (int idx = 0; idx < NMBR_OF_PERFORMERS; ++idx) {
       int handle1 = idx / 2;
       int handle2 = idx - handle1;
       tickz[idx * 2] = handle1 * m;

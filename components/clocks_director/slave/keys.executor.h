@@ -1,11 +1,11 @@
 #pragma once
 
-#include "channel.interop.h"
+#include "../clocks_shared/channel.interop.h"
 #include "stepper.h"
 
 class StepExecutors {
  public:
-   static void setup(Stepper0 &stepper0, Stepper1 &stepper1);
+  static void setup(Stepper0 &stepper0, Stepper1 &stepper1);
   static void reset();
   /**
    * @brief Active or not

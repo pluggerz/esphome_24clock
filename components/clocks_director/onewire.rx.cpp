@@ -5,10 +5,6 @@ using onewire::RxOnewire;
 
 #ifdef ESP8266
 
-#include "esphome/core/log.h"
-
-using namespace esphome;
-
 const char *const TAG = "1wireRX";
 
 #define DOLOG
@@ -30,23 +26,17 @@ void RxOnewire::timer_interrupt(bool last, bool current) {
         _rx_bit++;
       else if (current && !last) {  // actual end symbol
         _rx_bit = MAX_DATA_BITS + 2;
-#ifdef DOLOG
         ESP_LOGV(TAG, "receive:  Possible END");
-#endif
       } else {
-// invalid state!
-#ifdef DOLOG
+        // invalid state!
         ESP_LOGW(TAG, "receive:  INVALID !?");
-#endif
         reset_interrupt();
       }
       return;
     } else {
       if (current) _rx_value |= onewire::Value(1) << onewire::Value(_rx_bit);
-#ifdef DOLOG
       ESP_LOGV(TAG, "receive:  DATAF: %s @%d (%d)", current ? "HIGH" : "LOW",
                _rx_bit, _rx_value);
-#endif
       _rx_nibble = true;
       return;
     }
@@ -55,11 +45,8 @@ void RxOnewire::timer_interrupt(bool last, bool current) {
   switch (_rx_bit) {
     case MAX_DATA_BITS + 2:
       if (current) {
-#ifdef DOLOG
         ESP_LOGW(TAG, "receive:  INVALID END !?");
-#endif
       } else {
-#ifdef DOLOG
         ESP_LOGD(TAG, "receive:  END -> %d", _rx_value);
         if (_rx_available) {
           ESP_LOGW(TAG,
@@ -67,7 +54,6 @@ void RxOnewire::timer_interrupt(bool last, bool current) {
                    "be overwritten by %d",
                    _rx_last_value, _rx_value);
         }
-#endif
         _rx_last_value = _rx_value;
         _rx_available = true;
 #ifdef DOLED
@@ -80,9 +66,7 @@ void RxOnewire::timer_interrupt(bool last, bool current) {
     case MAX_DATA_BITS + 1:
     case MAX_DATA_BITS:
       if (current != (_rx_bit == MAX_DATA_BITS ? false : true)) {
-#ifdef DOLOG
         ESP_LOGI(TAG, "NOT EXPECTED !?");
-#endif
         reset_interrupt();
       } else
         _rx_bit++;
@@ -96,9 +80,7 @@ void RxOnewire::timer_interrupt(bool last, bool current) {
           reset_interrupt();
           return;
         }
-#ifdef DOLOG
         ESP_LOGV(TAG, "receive:  START DETECTED");
-#endif
         _rx_bit = 0;
         _rx_nibble = false;
         _rx_value = 0;
@@ -111,51 +93,17 @@ void RxOnewire::timer_interrupt(bool last, bool current) {
       return;
 
     default:
-#ifdef DOLOG
       ESP_LOGV(TAG, "receive:  UNKNOWN STATE!?");
-#endif
       reset_interrupt();
   }
 }
-
-#ifdef USE_RX_INTERRUPT
-RxOnewire *rx_owner = nullptr;
-
-#ifdef SLAVE
-#define IRAM_ATTR
-#endif  // SLAVE
-
-MOVE2RAM void rx_handle_change() {
-  if (rx_owner == nullptr) return;
-  rx_owner->handle_interrupt(PIN_READ(SYNC_IN_PIN));
-}
-
-int intr = 0;
-void RxOnewire::handle_interrupt(bool state) {
-#ifdef DOLOG
-  if (intr++ > 1000) {
-    ESP_LOGI(TAG, "handle_interrupt **");
-    intr = 0;
-  }
-
-#endif
-}
-
-#endif  // USE_RX_INTERRUPT
 
 void RxOnewire::begin() {
   OnewireInterrupt::attach();
   OnewireInterrupt::rx = this;
 
-#ifdef USE_RX_INTERRUPT
-  rx_owner = this;
-  attachInterrupt(digitalPinToInterrupt(SYNC_IN_PIN), rx_handle_change, CHANGE);
-#endif
-
   reset(false);
-#ifdef DOLOG
   ESP_LOGI(TAG, "OneWireProtocol: %dbaud", BAUD);
-#endif
 }
 
 void onewire::RxOnewire::reset(bool forced) {
@@ -163,10 +111,8 @@ void onewire::RxOnewire::reset(bool forced) {
 #ifdef DOLED
     Leds::set_ex(LED_ONEWIRE, LedColors::red);
 #endif
-#ifdef DOLOG
     ESP_LOGW(TAG, "receive: RESET rx_value=%d, rx_bit=%d) -> pre start bit",
              _rx_value, _rx_bit);
-#endif
   } else {
 #ifdef DOLED
     //    Leds::set_ex(LED_ONEWIRE, LedColors::blue);

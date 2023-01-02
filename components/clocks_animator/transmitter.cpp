@@ -2,10 +2,7 @@
 
 #include <set>
 
-#include "../clocks_director/channel.interop.h"
-#include "esphome/core/log.h"
-
-using namespace esphome;
+#include "../clocks_shared/channel.interop.h"
 
 const char *const TAG = "transmitter";
 

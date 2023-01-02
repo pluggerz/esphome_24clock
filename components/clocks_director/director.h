@@ -2,7 +2,7 @@
 #if defined(MASTER) && !defined(MASTER_H)
 #define MASTER_H
 
-#include "channel.h"
+#include "../clocks_shared/channel.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/core/component.h"
 #include "onewire.h"

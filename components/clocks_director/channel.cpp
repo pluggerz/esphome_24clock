@@ -1,11 +1,10 @@
-#include "channel.h"
+// TODO: performer / director shared code, should go to SHARED
+
+#include "../clocks_shared/channel.h"
 
 #include "../clocks_shared/stub.h"
 
 #ifdef ESP8266
-
-#include "esphome/core/log.h"
-using namespace esphome;
 
 const char *const TAG = "channel";
 
@@ -95,9 +94,7 @@ class BasicProtocol : public rs485::Protocol {
  public:
   // reset to no incoming data (eg. after a timeout)
   void reset(const char *reason) override {
-#ifdef DOLOG
     ESP_LOGI(TAG, "reset: %s", reason);
-#endif
     haveSTX_ = false;
     available_ = false;
     inputPos_ = 0;
@@ -191,9 +188,7 @@ bool BasicProtocol::update() {
 #endif
     return false;
   }
-#ifdef DOLOG
   ESP_LOGD(TAG, "RS485: available() = %d", available);
-#endif
 
 #ifdef DOLED
   Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
@@ -208,9 +203,7 @@ bool BasicProtocol::update() {
     byte inByte = Serial.read();
     switch (inByte) {
       case STX:  // start of text
-#ifdef DOLOG
         ESP_LOGD(TAG, "RS485: STX  (E=%ld)", errorCount_);
-#endif
         haveSTX_ = true;
         haveETX_ = false;
         inputPos_ = 0;
@@ -219,30 +212,22 @@ bool BasicProtocol::update() {
         break;
 
       case ETX:  // end of text (now expect the CRC check)
-#ifdef DOLOG
         ESP_LOGD(TAG, "RS485: ETX  (E=%ld)", errorCount_);
-#endif
         haveETX_ = true;
         break;
 
       default:
         // wait until packet officially starts
         if (!haveSTX_) {
-#ifdef DOLOG
           ESP_LOGD(TAG, "ignoring %d (E=%ld)", (int)inByte, errorCount_);
-#endif
           break;
         }
-#ifdef DOLOG
         ESP_LOGVV(TAG, "received nibble %d (E=%ld)", (int)inByte, errorCount_);
-#endif
         // check byte is in valid form (4 bits followed by 4 bits complemented)
         if ((inByte >> 4) != ((inByte & 0x0F) ^ 0x0F)) {
           reset("invlaid nibble");
           errorCount_++;
-#ifdef DOLOG
           ESP_LOGE(TAG, "invalid nibble !? (E=%ld)", errorCount_);
-#endif
           break;  // bad character
         }         // end if bad byte
 
@@ -266,9 +251,7 @@ bool BasicProtocol::update() {
           if (crc8(buffer, inputPos_) != currentByte_) {
             reset("crc!");
             errorCount_++;
-#ifdef DOLOG
             ESP_LOGE(TAG, "CRC!? (E=%ld)", errorCount_);
-#endif
             break;  // bad crc
           }         // end of bad CRC
 
@@ -281,17 +264,13 @@ bool BasicProtocol::update() {
 
         // keep adding if not full
         if (inputPos_ < buffer_size) {
-#ifdef DOLOG
           ESP_LOGVV(TAG, "received byte %d (E=%ld)", (int)currentByte_,
                     errorCount_);
-#endif
           buffer[inputPos_++] = currentByte_;
         } else {
           reset("overflow");  // overflow, start again
           errorCount_++;
-#ifdef DOLOG
           ESP_LOGE(TAG, "OVERFLOW !? (E=%ld)", errorCount_);
-#endif
         }
 
         break;
@@ -307,12 +286,10 @@ using rs485::Protocol;
 Protocol *Protocol::create_default() { return &basic_protocol; }
 
 void Gate::dump_config() {
-#ifdef DOLOG
   ESP_LOGI(TAG, "  rs485::Gate");
   ESP_LOGI(TAG, "     de_pin: %d", RS485_DE_PIN);
   ESP_LOGI(TAG, "     re_pin: %d", RS485_RE_PIN);
   ESP_LOGI(TAG, "     state: %d", state);
-#endif
 }
 
 void Gate::setup() {
@@ -321,9 +298,7 @@ void Gate::setup() {
 #ifdef DOLED
   // Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
 #endif
-#ifdef DOLOG
   ESP_LOGI(TAG, "state: setup");
-#endif
 }
 
 void Gate::start_receiving() {
@@ -339,9 +314,7 @@ void Gate::start_receiving() {
 #endif
 
   state = RECEIVING;
-#ifdef DOLOG
   ESP_LOGI(TAG, "state: RECEIVING");
-#endif
 }
 void Gate::start_transmitting() {
   if (state == TRANSMITTING) return;
@@ -350,9 +323,7 @@ void Gate::start_transmitting() {
   PIN_WRITE(RS485_RE_PIN, LOW);
 
   state = TRANSMITTING;
-#ifdef DOLOG
   ESP_LOGI(TAG, "state: TRANSMITTING");
-#endif
 }
 
 void Channel::baudrate(Baudrate baud_rate) {
@@ -360,15 +331,11 @@ void Channel::baudrate(Baudrate baud_rate) {
   _baudrate = baud_rate;
   Serial.begin(_baudrate);
 
-#ifdef DOLOG
   ESP_LOGI(TAG, "state: Serial.begin(%d)", baud_rate);
-#endif
 }
 
 void Channel::_send(const byte *bytes, const byte length) {
-#ifdef DOLOG
   ESP_LOGD(TAG, "Channel::_send(%d bytes)", length);
-#endif
   gate.start_transmitting();
   _protocol->sendMsg(bytes, length);
 }

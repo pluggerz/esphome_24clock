@@ -7,14 +7,10 @@
 
 esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 
-#include "esphome/core/log.h"
-
-using namespace esphome;
-
+#include "../clocks_shared/channel.h"
+#include "../clocks_shared/channel.interop.h"
 #include "../clocks_shared/pins.h"
 #include "animation.h"
-#include "channel.h"
-#include "channel.interop.h"
 #include "director.h"
 
 using channel::ChannelInterop;

@@ -19,8 +19,6 @@ typedef unsigned long Millis;
 
 constexpr int NMBR_OF_PERFORMERS = 24;
 
-// TODO: remove MAX_SLAVES
-constexpr int MAX_SLAVES = NMBR_OF_PERFORMERS;
 constexpr int MAX_HANDLES = 48;
 
 #ifdef ESP8266

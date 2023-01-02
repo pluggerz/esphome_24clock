@@ -1,16 +1,14 @@
 
 // #include "animation.h"
-#include "esphome/core/log.h"
-
-using namespace esphome;
 
 const char *const TAG = "animation.helper";
+
+#include "helpers.h"
 
 #include <cmath>
 
 #include "../clocks_director/keys.h"
 #include "../clocks_shared/ticks.h"
-#include "helpers.h"
 
 typedef std::function<int(int from, int to)> StepCalculator;
 
@@ -57,7 +55,7 @@ void instructUsingStepCalculatorForHandle(
 void HandlesAnimations::instructUsingStepCalculator(
     Instructions &instructions, int speed, const HandlesState &goal,
     const StepCalculator &calculator) {
-  for (int clock_id = 0; clock_id < MAX_SLAVES; ++clock_id) {
+  for (int clock_id = 0; clock_id < NMBR_OF_PERFORMERS; ++clock_id) {
     auto handle0 = clock_id << 1;
     auto handle1 = handle0 + 1;
 

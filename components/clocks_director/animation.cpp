@@ -2,9 +2,6 @@
 
 #if defined(IS_DIRECTOR)
 #include "animation.h"
-#include "esphome/core/log.h"
-
-using namespace esphome;
 
 const char *const TAG = "animation";
 

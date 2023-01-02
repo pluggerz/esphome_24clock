@@ -20,8 +20,6 @@
 
 #ifdef ESP8266
 
-// #define USE_RX_INTERRUPT
-
 #define MOVE2RAM IRAM_ATTR
 
 // credits to: https://github.com/PaulStoffregen/Encoder/
@@ -38,6 +36,7 @@
 #endif
 
 namespace onewire {
+const char *const TAG = "onewire";
 constexpr uint32_t BAUD = 1000;
 
 class RxOnewire;
@@ -236,9 +235,7 @@ class TxOnewire {
 
   void setup(int _buffer_size = -1) {
     buffer.setup(_buffer_size);
-#ifdef DOLOG
     ESP_LOGI(TAG, "receive: using buffered tx");
-#endif
     _raw_tx.setup();
     OnewireInterrupt::tx = this;
   }
@@ -263,9 +260,7 @@ class TxOnewire {
     if (!buffer.is_empty() && _raw_tx.transmitted()) {
       _raw_tx.transmit(buffer.pop());
       if (!buffer.is_empty()) {
-#ifdef DOLOG
         ESP_LOGW(TAG, "receive: buffer not empty, size: %d", buffer.size());
-#endif
       }
       locked = false;
       return;
