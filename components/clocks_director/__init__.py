@@ -20,7 +20,6 @@ AUTO_LOAD = [ ]
 CODEOWNERS = ["@hvandenesker"]
 
 clock24_ns = cg.esphome_ns.namespace("clock24")
-
 Director24 = clock24_ns.class_("Director", cg.Component)
 
 

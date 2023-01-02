@@ -2,6 +2,7 @@
 #if defined(MASTER) && !defined(MASTER_H)
 #define MASTER_H
 
+#include "channel.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/core/component.h"
 #include "onewire.h"
@@ -53,7 +54,11 @@ class Director : public esphome::Component {
   void set_baudrate(int value) { baudrate = value; }
 
   void request_positions();
-  void request_time_change(int hours, int minutes);
+
+  rs485::BufferChannel *get_channel();
+  AnimationController *get_animation_controller() {
+    return animation_controller_;
+  }
 };
 
 class Animator : public esphome::Component {};

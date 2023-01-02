@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stub.h"
+
 namespace keys {
 
 enum CmdEnum {
@@ -95,7 +97,7 @@ class CmdSpeedUtil {
   const Speeds &get_speeds() const;
   void set_speeds(const Speeds &speeds);
 
-#if defined(IS_DIRECTOR)
+#if defined(ESP8266)
   uint8_t inflate_speed(const uint8_t value) const;
 #endif
   inline uint8_t deflate_speed(const uint8_t value) const {
@@ -109,7 +111,7 @@ class CmdSpeedUtil {
 // TODO: do static :S
 extern cmdSpeedUtil;
 
-#if defined(IS_DIRECTOR)
+#if defined(ESP8266)
 union DeflatedCmdKey {
  private:
   // first 3 bits for mode

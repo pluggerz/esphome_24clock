@@ -8,7 +8,7 @@ using namespace esphome;
 
 #endif
 
-#include "keys.h"
+#include "../clocks_director/keys.h"
 
 using keys::CmdSpeedUtil;
 using keys::InflatedCmdKey;

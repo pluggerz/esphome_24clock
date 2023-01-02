@@ -1,6 +1,6 @@
 #include "keys.executor.h"
 
-#include "keys.h"
+#include "../clocks_director/keys.h"
 #include "leds.h"
 #include "ticks.h"
 

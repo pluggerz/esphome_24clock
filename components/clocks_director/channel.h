@@ -1,3 +1,5 @@
+#pragma once
+
 #include "pinio.h"
 #include "pins.h"
 #include "stub.h"

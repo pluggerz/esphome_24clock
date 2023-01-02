@@ -1,8 +1,5 @@
-#include "stub.h"
 
-#if defined(IS_DIRECTOR)
-
-#include "animation.h"
+// #include "animation.h"
 #include "esphome/core/log.h"
 
 using namespace esphome;
@@ -11,11 +8,15 @@ const char *const TAG = "animation.helper";
 
 #include <cmath>
 
-#include "animation.h"
-#include "ticks.h"
+#include "../clocks_director/keys.h"
+#include "../clocks_director/ticks.h"
+#include "helpers.h"
 
 typedef std::function<int(int from, int to)> StepCalculator;
 
+using animator24::DistanceCalculators;
+using animator24::HandlesAnimations;
+using animator24::InBetweenAnimations;
 using keys::ABSOLUTE;
 using keys::ANTI_CLOCKWISE;
 using keys::CLOCKWISE;
@@ -448,4 +449,3 @@ void HandlesAnimations::instruct_using_swipe(
   instructUsingSwipeWithBase(instructions, speed, goal, steps_calculator,
                              optimal_base_tick);
 }
-#endif

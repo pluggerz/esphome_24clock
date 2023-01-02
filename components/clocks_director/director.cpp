@@ -12,7 +12,6 @@ esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 using namespace esphome;
 
 #include "animation.h"
-#include "animation.time.h"
 #include "channel.h"
 #include "channel.interop.h"
 #include "director.h"
@@ -20,6 +19,7 @@ using namespace esphome;
 
 using channel::ChannelInterop;
 using onewire::CmdEnum;
+using rs485::BufferChannel;
 
 uint8_t ChannelInterop::id = ChannelInterop::DIRECTOR;
 int guid = rand();
@@ -37,7 +37,7 @@ Director::Director() {}
 onewire::RxOnewire rx;
 onewire::TxOnewire tx;
 
-class DirectorChannel : public rs485::BufferChannel {
+class DirectorChannel : public BufferChannel {
  public:
   DirectorChannel() { baudrate(9600); }
 
@@ -509,13 +509,6 @@ void Director::loop() {
 }
 
 #endif
-void Director::request_time_change(int hours, int minutes) {
-  ESP_LOGW(TAG, "request_positions %d:%d", hours, minutes);
-  animation::AnimationSettings settings;
-
-  send_text(&my_channel, animation_controller_, settings,
-            Text::from_time(hours, minutes));
-}
 
 void Director::request_positions() {
   auto message = channel::messages::request_positions();
@@ -529,5 +522,7 @@ void Director::kill() {
   rx.kill();
   _killed = true;
 }
+
+BufferChannel *Director::get_channel() { return &my_channel; }
 
 #endif
