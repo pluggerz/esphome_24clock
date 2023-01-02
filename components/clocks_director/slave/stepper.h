@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../clocks_shared/pinio.h"
-#include "Arduino.h"
 #include "../clocks_shared/stub.h"
 
 typedef unsigned long Micros;
@@ -281,22 +280,9 @@ class Stepper final {
       const SpeedInRevsPerMinuteInt value) {
     this->speed_in_revs_per_minute = calculate_step_delay(value);
   }
-
-  /*
-  void dump_config(const __FlashStringHelper *tag)
-  {
-      ESP_LOGI(tag, "  T0=%d revs=%d",
-               (int)get_offset_steps(), (int)speed_in_revs_per_minute);
-
-      ESP_LOGI(tag, "T  paper=%ldms vs/- real=%ldms = %dms",
-               long(next_step_time - first_step_time) / 1000,
-  long(last_step_time - first_step_time) / 1000, long(next_step_time -
-  last_step_time) / 1000); ESP_LOGI(tag, "   donf=%d<dc=%d<d=%d",
-               (int)step_on_fail_delay, (int)step_current, (int)step_delay);
-  }*/
 };
 
-#include "pins.h"
+#include "../clocks_shared/pins.h"
 
 typedef Stepper<MOTOR_A_STEP, MOTOR_A_DIR, SLAVE_POS_A> Stepper0;
 typedef Stepper<MOTOR_B_STEP, MOTOR_B_DIR, SLAVE_POS_B> Stepper1;

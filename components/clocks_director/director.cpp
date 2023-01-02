@@ -2,8 +2,8 @@
 
 #if defined(IS_DIRECTOR)
 
-#include "esphome/core/helpers.h"
 #include "../clocks_shared/pinio.h"
+#include "esphome/core/helpers.h"
 
 esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 
@@ -11,11 +11,11 @@ esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 
 using namespace esphome;
 
+#include "../clocks_shared/pins.h"
 #include "animation.h"
 #include "channel.h"
 #include "channel.interop.h"
 #include "director.h"
-#include "pins.h"
 
 using channel::ChannelInterop;
 using onewire::CmdEnum;

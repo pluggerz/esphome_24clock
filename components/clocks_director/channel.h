@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../clocks_shared/pinio.h"
-#include "pins.h"
+#include "../clocks_shared/pins.h"
 #include "../clocks_shared/stub.h"
 
 namespace Hal {

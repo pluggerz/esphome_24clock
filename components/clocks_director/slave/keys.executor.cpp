@@ -1,8 +1,8 @@
 #include "keys.executor.h"
 
 #include "../clocks_director/keys.h"
+#include "../clocks_shared/ticks.h"
 #include "leds.h"
-#include "ticks.h"
 
 using channel::Message;
 using channel::messages::UartEndKeysMessage;

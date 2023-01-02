@@ -2,7 +2,7 @@
 
 // #include "oclock.h"
 #include "../clocks_director/keys.h"
-#include "ticks.h"
+#include "../clocks_shared/ticks.h"
 
 class AnimationController {
   int16_t tickz[MAX_HANDLES] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,

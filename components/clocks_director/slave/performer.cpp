@@ -1,13 +1,13 @@
+#include "../clocks_shared/pins.h"
+#include "../clocks_shared/stub.h"
+#include "../clocks_shared/ticks.h"
 #include "channel.h"
 #include "channel.interop.h"
 #include "keys.executor.h"
 #include "leds.h"
 #include "onewire.h"
 #include "onewire.interop.h"
-#include "pins.h"
 #include "stepper.h"
-#include "../clocks_shared/stub.h"
-#include "ticks.h"
 
 using channel::ChannelInterop;
 using channel::Message;

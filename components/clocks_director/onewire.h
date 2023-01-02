@@ -7,8 +7,8 @@
 // LHL = END
 
 #include "../clocks_shared/pinio.h"
-#include "pins.h"
-#include "ringbuffer.h"
+#include "../clocks_shared/pins.h"
+#include "../clocks_shared/ringbuffer.h"
 
 #ifdef SLAVE
 #define DOLED
