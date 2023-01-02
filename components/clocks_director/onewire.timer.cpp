@@ -1,6 +1,12 @@
-#include "onewire.h"
+#include "../clocks_shared/onewire.rx.h"
+#include "../clocks_shared/onewire.tx.h"
 
 using onewire::OnewireInterrupt;
+using onewire::RxOnewire;
+using onewire::TxOnewire;
+
+TxOnewire *OnewireInterrupt::tx = nullptr;
+RxOnewire *OnewireInterrupt::rx = nullptr;
 
 int OnewireInterrupt::timer_attach_state = -2;
 

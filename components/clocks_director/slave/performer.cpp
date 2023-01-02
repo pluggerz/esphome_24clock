@@ -1,12 +1,13 @@
 #include "../clocks_shared/channel.h"
 #include "../clocks_shared/channel.interop.h"
+#include "../clocks_shared/onewire.interop.h"
+#include "../clocks_shared/onewire.rx.h"
+#include "../clocks_shared/onewire.tx.h"
 #include "../clocks_shared/pins.h"
 #include "../clocks_shared/stub.h"
 #include "../clocks_shared/ticks.h"
 #include "keys.executor.h"
 #include "leds.h"
-#include "onewire.h"
-#include "onewire.interop.h"
 #include "stepper.h"
 
 using channel::ChannelInterop;

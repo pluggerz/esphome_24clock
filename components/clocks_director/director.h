@@ -5,8 +5,7 @@
 #include "../clocks_shared/channel.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/core/component.h"
-#include "onewire.h"
-#include "onewire.interop.h"
+#include "../clocks_shared/onewire.interop.h"
 
 class AnimationController;
 

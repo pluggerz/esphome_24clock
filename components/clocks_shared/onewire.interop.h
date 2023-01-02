@@ -114,9 +114,27 @@ union OneCommand {
     return ret;
   }
 
-  static OneCommand performer_online();
-  static OneCommand ping();
-  static OneCommand tock(int performer_id, uint8_t tick_id);
+  static OneCommand performer_online() {
+    OneCommand cmd;
+    cmd.msg.source_id = SRC_UNKNOWN;
+    cmd.msg.cmd = CmdEnum::PERFORMER_ONLINE;
+    return cmd;
+  }
+
+  static OneCommand ping() {
+    OneCommand cmd;
+    cmd.msg.source_id = SRC_MASTER;
+    cmd.msg.cmd = CmdEnum::DIRECTOR_PING;
+    return cmd;
+  }
+
+  static OneCommand tock(int performer_id, uint8_t tick_id) {
+    OneCommand cmd;
+    cmd.msg.source_id = performer_id;
+    cmd.msg.cmd = CmdEnum::TOCK;
+    cmd.msg.reserved = tick_id;
+    return cmd;
+  }
 
   bool from_master() const { return msg.source_id == SRC_MASTER; }
 

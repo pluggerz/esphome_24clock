@@ -9,6 +9,8 @@ esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 
 #include "../clocks_shared/channel.h"
 #include "../clocks_shared/channel.interop.h"
+#include "../clocks_shared/onewire.rx.h"
+#include "../clocks_shared/onewire.tx.h"
 #include "../clocks_shared/pins.h"
 #include "animation.h"
 #include "director.h"
