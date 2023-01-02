@@ -1,6 +1,6 @@
 #include "channel.h"
 
-#include "stub.h"
+#include "../clocks_shared/stub.h"
 
 #ifdef ESP8266
 

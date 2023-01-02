@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../clocks_shared/pinio.h"
 #include "Arduino.h"
-#include "pinio.h"
-#include "stub.h"
+#include "../clocks_shared/stub.h"
 
 typedef unsigned long Micros;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 // #include "oclock.h"
+#include "../clocks_director/keys.h"
 #include "ticks.h"
 
 class AnimationController {
@@ -37,8 +38,6 @@ class AnimationController {
     return add_one + (animatorId2clockId[animator_id >> 1] << 1);
   }
 };
-
-#include "../clocks_director/keys.h"
 
 class HandleCmd {
  public:

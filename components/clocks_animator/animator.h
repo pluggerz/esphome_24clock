@@ -1,5 +1,4 @@
-#include "../clocks_director/animation.h"
-#include "../clocks_director/stub.h"
+#include "../clocks_shared/stub.h"
 #include "esphome/core/component.h"
 
 namespace clock24 {

@@ -6,7 +6,7 @@
 // LH = 0
 // LHL = END
 
-#include "pinio.h"
+#include "../clocks_shared/pinio.h"
 #include "pins.h"
 #include "ringbuffer.h"
 

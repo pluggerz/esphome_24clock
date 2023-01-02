@@ -1,9 +1,9 @@
-#include "stub.h"
+#include "../clocks_shared/stub.h"
 
 #if defined(IS_DIRECTOR)
 
 #include "esphome/core/helpers.h"
-#include "pinio.h"
+#include "../clocks_shared/pinio.h"
 
 esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "pinio.h"
+#include "../clocks_shared/pinio.h"
 #include "pins.h"
-#include "stub.h"
+#include "../clocks_shared/stub.h"
 
 namespace Hal {
 void yield();

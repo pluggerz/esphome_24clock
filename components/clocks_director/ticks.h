@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stub.h"
+#include "../clocks_shared/stub.h"
 
 struct Ticks {
   static int normalize(int value) {

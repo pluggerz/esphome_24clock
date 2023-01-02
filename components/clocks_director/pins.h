@@ -1,4 +1,4 @@
-#include "stub.h"
+#include "../clocks_shared/stub.h"
 
 #ifndef PINS_H
 #define PINS_H

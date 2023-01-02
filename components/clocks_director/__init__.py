@@ -13,8 +13,7 @@ CONF_ANIMATION_SLAVE_ID = "animation_slave_id"
 CONF_BAUDRATE='baud_rate'
 
 
-DEPENDENCIES = ["pcf8574"]
-
+DEPENDENCIES = ["pcf8574", "clocks_shared"]
 AUTO_LOAD = [ ]
 
 CODEOWNERS = ["@hvandenesker"]

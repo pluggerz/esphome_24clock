@@ -1,7 +1,6 @@
 #include <functional>
 
 #include "../clocks_director/animation.h"
-#include "../clocks_director/director.h"
 
 namespace animator24 {
 

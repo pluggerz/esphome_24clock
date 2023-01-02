@@ -1,4 +1,4 @@
-#include "stub.h"
+#include "../clocks_shared/stub.h"
 #if defined(MASTER) && !defined(MASTER_H)
 #define MASTER_H
 

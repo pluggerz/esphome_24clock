@@ -27,7 +27,7 @@ constexpr int MAX_HANDLES = 48;
 #define MASTER
 #define MASTER
 
-#include "stub.master.h"
+#include "../clocks_director/stub.master.h"
 
 #else
 #define SLAVE

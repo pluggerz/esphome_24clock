@@ -1,4 +1,4 @@
-#include "stub.h"
+#include "../clocks_shared/stub.h"
 
 #if defined(IS_DIRECTOR)
 
