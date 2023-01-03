@@ -97,8 +97,8 @@ void MOVE2RAM TxTimerHandler() {
 }
 
 void OnewireInterrupt::dump_config() {
-  ESP_LOGI(TAG, "  OnewireInterrupt:");
-  ESP_LOGI(TAG, "     no info");
+  LOGI(TAG, "  OnewireInterrupt:");
+  LOGI(TAG, "     no info");
 }
 
 void OnewireInterrupt::kill() {

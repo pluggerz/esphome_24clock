@@ -75,11 +75,11 @@ void HandlesAnimations::instructUsingStepCalculator(
     auto steps_swapped =
         abs(calculator(from0, to1)) + abs(calculator(from1, to0));
     auto do_swap = steps > steps_swapped;
-    ESP_LOGI(TAG,
-             "S%d: from=(%d, %d) to=(%d, %d) steps=%d steps_swapped=%d -> "
-             "do_swap=%s",
-             clock_id, from0, from1, to0, to1, steps, steps_swapped,
-             YESNO(do_swap));
+    LOGI(TAG,
+         "S%d: from=(%d, %d) to=(%d, %d) steps=%d steps_swapped=%d -> "
+         "do_swap=%s",
+         clock_id, from0, from1, to0, to1, steps, steps_swapped,
+         YESNO(do_swap));
 
     if (do_swap) {
       instructUsingStepCalculatorForHandle(instructions, speed, handle0, to1,
@@ -443,7 +443,7 @@ void HandlesAnimations::instruct_using_swipe(
       optimal_base_tick = base_tick;
     }
   }
-  ESP_LOGI(TAG, "For swipe: optimal_base_tick=%d", optimal_base_tick);
+  LOGI(TAG, "For swipe: optimal_base_tick=%d", optimal_base_tick);
   instructUsingSwipeWithBase(instructions, speed, goal, steps_calculator,
                              optimal_base_tick);
 }

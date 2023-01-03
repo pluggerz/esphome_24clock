@@ -17,6 +17,6 @@ void transmit(const onewire::OneCommand &value);
 #define ESP_LOGVV(...)
 #define ESP_LOGV(...)
 #define ESP_LOGD(...)
-#define ESP_LOGI(...)
+#define LOGI(...)
 #define ESP_LOGW(...)
 #define ESP_LOGE(...)

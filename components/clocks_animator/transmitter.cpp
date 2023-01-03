@@ -32,27 +32,27 @@ void Transmitter::sendCommandsForHandle(
   }
 
   if (true) {
-    ESP_LOGI(TAG, "send(S%02d, A%d->PA%d size: %d", animatorHandleId >> 1,
-             animatorHandleId, physicalHandleId, commands.size());
+    LOGI(TAG, "send(S%02d, A%d->PA%d size: %d", animatorHandleId >> 1,
+         animatorHandleId, physicalHandleId, commands.size());
 
     if (false) {
       for (std::size_t idx = 0; idx < nmbrOfCommands; ++idx) {
         const auto cmd = InflatedCmdKey(msg.get_key(idx));
         if (cmd.extended()) {
           const auto extended_cmd = cmd.steps();
-          ESP_LOGI(TAG, "Cmd: extended_cmd=%d", int(extended_cmd));
+          LOGI(TAG, "Cmd: extended_cmd=%d", int(extended_cmd));
         } else {
           const auto ghosting = cmd.ghost();
           const auto steps = cmd.steps();
           const auto speed = cmdSpeedUtil.deflate_speed(cmd.inflated_speed());
           const auto clockwise = cmd.clockwise();
           const auto relativePosition = true;
-          ESP_LOGI(TAG, "Cmd: %s=%3d sp=%d gh=%s cl=%s",
-                   ghosting || relativePosition ? "steps" : "   to", steps,
-                   speed, YESNO(ghosting), ghosting ? "N/A" : YESNO(clockwise));
+          LOGI(TAG, "Cmd: %s=%3d sp=%d gh=%s cl=%s",
+               ghosting || relativePosition ? "steps" : "   to", steps, speed,
+               YESNO(ghosting), ghosting ? "N/A" : YESNO(clockwise));
         }
       }
-      ESP_LOGI(TAG, "  done");
+      LOGI(TAG, "  done");
     }
   }
   channel->send(msg);
@@ -133,5 +133,5 @@ void Transmitter::sendInstructions(Instructions &instructions, u32 millisLeft) {
       UartEndKeysMessage(instructions.turn_speed, instructions.turn_steps,
                          cmdSpeedUtil.get_speeds(),
                          instructions.get_speed_detection(), millisLeft));
-  ESP_LOGI(TAG, "millisLeft=%ld", long(millisLeft));
+  LOGI(TAG, "millisLeft=%ld", long(millisLeft));
 }

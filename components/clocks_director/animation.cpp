@@ -6,9 +6,9 @@
 const char *const TAG = "animation";
 
 void HandlesState::dump() {
-  ESP_LOGI(TAG, "HandlesState:");
+  LOGI(TAG, "HandlesState:");
 #define DRAW_ROW(S)                                                            \
-  ESP_LOGI(                                                                    \
+  LOGI(                                                                        \
       TAG,                                                                     \
       "   A%02d(%3d %3d)    A%02d(%3d %3d)   A%02d(%3d %3d)   A%02d(%3d %3d) " \
       "  A%02d(%3d %3d)   A%02d(%3d %3d)   A%02d(%3d %3d)   A%02d(%3d %3d)",   \
@@ -21,7 +21,7 @@ void HandlesState::dump() {
       tickz[(S + 18) * 2 + 0], tickz[(S + 18) * 2 + 1], S + 19,                \
       tickz[(S + 19) * 2 + 0], tickz[(S + 19) * 2 + 1]);
 #define DRAW_ROW2(S)                                                           \
-  ESP_LOGI(                                                                    \
+  LOGI(                                                                        \
       TAG,                                                                     \
       "      %3.2f %3.2f       %3.2f %3.2f      %3.2f %3.2f      %3.2f %3.2f " \
       "     %3.2f %3.2f      %3.2f %3.2f      %3.2f %3.2f      %3.2f %3.2f",   \
@@ -60,20 +60,20 @@ void AnimationController::set_ticks_for_performer(int performer_id, int ticks0,
 }
 
 void AnimationController::dump_config() {
-  ESP_LOGI(TAG, "  animation_controller:");
+  LOGI(TAG, "  animation_controller:");
   for (int idx = 0; idx < NMBR_OF_PERFORMERS; idx++) {
     auto animator_id = clockId2animatorId[idx];
     if (animator_id == -1) continue;
     auto handleId = animator_id << 1;
-    ESP_LOGI(TAG, "   P%d -> A%d: ticks(%d, %d)", idx, clockId2animatorId[idx],
-             tickz[handleId], tickz[handleId + 1]);
+    LOGI(TAG, "   P%d -> A%d: ticks(%d, %d)", idx, clockId2animatorId[idx],
+         tickz[handleId], tickz[handleId + 1]);
   }
 }
 
 void AnimationController::remap(int animator_id, int clockId) {
   animatorId2clockId[animator_id] = clockId;
   clockId2animatorId[clockId] = animator_id;
-  ESP_LOGI(TAG, "added mapping: S%d <-> A%d", clockId, animator_id);
+  LOGI(TAG, "added mapping: S%d <-> A%d", clockId, animator_id);
 }
 
 void Instructions::set_detect_speed_change(int animation_handle_id,

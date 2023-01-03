@@ -128,7 +128,7 @@ class RxOnewire : public onewire::Rx {
       case MAX_DATA_BITS + 1:
       case MAX_DATA_BITS:
         if (current != (_rx_bit == MAX_DATA_BITS ? false : true)) {
-          ESP_LOGI(TAG, "NOT EXPECTED !?");
+          LOGI(TAG, "NOT EXPECTED !?");
           reset_interrupt();
         } else
           _rx_bit++;
@@ -184,7 +184,7 @@ class RxOnewire : public onewire::Rx {
     OnewireInterrupt::rx = this;
 
     reset(false);
-    ESP_LOGI(TAG, "OneWireProtocol: %dbaud", BAUD);
+    LOGI(TAG, "OneWireProtocol: %dbaud", BAUD);
   }
 };
 }  // namespace onewire

@@ -9,7 +9,7 @@
 #include "helpers.h"
 #include "transmitter.h"
 
-const char *const TAG = "animator";
+const char *const TAG = __FILE__;
 
 using animator24::ClocksAnimator;
 using animator24::DistanceCalculators;
@@ -147,8 +147,8 @@ struct AnimationSettings {
 void send_text(BufferChannel *channel, AnimationController *controller,
                const Text &text) {
   AnimationSettings settings;
-  ESP_LOGI(TAG, "do_track_time -> follow up: [%c %c %c %c]", text.ch0, text.ch1,
-           text.ch2, text.ch3);
+  LOGI(TAG, "do_track_time -> follow up: [%c %c %c %c]", text.ch0, text.ch1,
+       text.ch2, text.ch3);
 
   // get characters
   auto clockChars = ClockUtil::retrieveClockCharactersfromCharacters(
@@ -184,7 +184,7 @@ void send_text(BufferChannel *channel, AnimationController *controller,
   // lets wait for all...
   InBetweenAnimations::instructDelayUntilAllAreReady(instructions, 32);
   float millis_left = text.millis_left;
-  ESP_LOGI(TAG, "millis_left: %f", millis_left);
+  LOGI(TAG, "millis_left: %f", millis_left);
   if (act_as_second_handle)
     instructions.iterate_handle_ids([&](int handle_id) {
       if (!goal.visibilityFlags[handle_id])

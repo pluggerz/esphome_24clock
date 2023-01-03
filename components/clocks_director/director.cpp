@@ -127,16 +127,16 @@ void transmit(onewire::OneCommand command) {
 
 void Director::dump_config() {
   dumped = true;
-  ESP_LOGI(TAG, "Master:");
-  ESP_LOGI(TAG, "  pin_mode: %s", PIN_MODE);
-  ESP_LOGI(TAG, "  performers: %d", _performers);
-  ESP_LOGI(TAG, "  is_high_frequency: %s",
-           esphome::HighFrequencyLoopRequester::is_high_frequency() ? "YES"
-                                                                    : "NO!?");
-  ESP_LOGI(TAG, "  message sizes (in bytes):");
-  ESP_LOGI(TAG, "     Msg:        %d", sizeof(onewire::OneCommand::Msg));
-  ESP_LOGI(TAG, "     Accept:     %d", sizeof(onewire::OneCommand::Accept));
-  ESP_LOGI(TAG, "     CheckPoint: %d", sizeof(onewire::OneCommand::CheckPoint));
+  LOGI(TAG, "Master:");
+  LOGI(TAG, "  pin_mode: %s", PIN_MODE);
+  LOGI(TAG, "  performers: %d", _performers);
+  LOGI(TAG, "  is_high_frequency: %s",
+       esphome::HighFrequencyLoopRequester::is_high_frequency() ? "YES"
+                                                                : "NO!?");
+  LOGI(TAG, "  message sizes (in bytes):");
+  LOGI(TAG, "     Msg:        %d", sizeof(onewire::OneCommand::Msg));
+  LOGI(TAG, "     Accept:     %d", sizeof(onewire::OneCommand::Accept));
+  LOGI(TAG, "     CheckPoint: %d", sizeof(onewire::OneCommand::CheckPoint));
 
   tx.dump_config();
   my_channel.dump_config();
@@ -160,10 +160,10 @@ class WireSender {
     last = now;
     tx.transmit(value++);
     // blinking = !blinking;
-    // ESP_LOGI(TAG, "Wire out: %s", blinking ? "HIGH" : "LOW");
+    // LOGI(TAG, "Wire out: %s", blinking ? "HIGH" : "LOW");
     // wire.set(blinking);
     // int value = 'A';
-    // ESP_LOGI(TAG, "Wire out: %d", value);
+    // LOGI(TAG, "Wire out: %d", value);
     // OneWireProtocol::write(value);
   }
 } wire_controller;
@@ -200,7 +200,7 @@ class AcceptAction : public IntervalAction {
 
     auto msg = onewire::OneCommand::Accept::create(my_channel.baudrate());
     transmit(msg);
-    ESP_LOGI(TAG, "transmit: Accept(%dbaud)", msg.accept.baudrate);
+    LOGI(TAG, "transmit: Accept(%dbaud)", msg.accept.baudrate);
   }
 } accept_action;
 
@@ -229,7 +229,7 @@ class PingOneWireAction : public IntervalAction {
                "delay: %d)",
                delay, delay * 24 / _performers);
     else
-      ESP_LOGI(TAG, "(via onewire:) Performer PING duration: %dmillis", delay);
+      LOGI(TAG, "(via onewire:) Performer PING duration: %dmillis", delay);
     send = false;
   }
 } ping_onewire_action;
@@ -274,7 +274,7 @@ class TestOnewireAction : public IntervalAction {
 } test_onewire_action;
 
 void Director::setup() {
-  ESP_LOGI(TAG, "Master: setup!");
+  LOGI(TAG, "Master: setup!");
   this->animation_controller_ = new AnimationController();
   for (int performer_id = 0; performer_id < NMBR_OF_PERFORMERS;
        performer_id++) {
@@ -326,7 +326,7 @@ void Director::loop() {
   if (rx.pending()) {
     auto value = rx.flush();
     if (onewire::BAUD < 200)
-      ESP_LOGI(TAG, "RECEIVED: {%d}", value);
+      LOGI(TAG, "RECEIVED: {%d}", value);
     else
       ESP_LOGD(TAG, "RECEIVED: {%d}", value);
     received++;
@@ -334,16 +334,15 @@ void Director::loop() {
   if (tx.transmitted()) {
     delay(20);
     if (onewire::BAUD < 200)
-      ESP_LOGI(TAG, "TRANSMIT: {value=%d}", value);
+      LOGI(TAG, "TRANSMIT: {value=%d}", value);
     else
       ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
 
     tx.transmit(value++);
 
     if (value >= 48) {
-      ESP_LOGI(TAG,
-               "TRANSMIT: transmitted 48 values received %d values, uptime ",
-               received);
+      LOGI(TAG, "TRANSMIT: transmitted 48 values received %d values, uptime ",
+           received);
 
       value = 0;
       received = 0;
@@ -357,7 +356,7 @@ void Director::loop() {
   if (rx.pending()) {
     auto value = rx.flush();
     if (onewire::BAUD < 200)
-      ESP_LOGI(TAG, "RECEIVED: {%d}", value);
+      LOGI(TAG, "RECEIVED: {%d}", value);
     else
       ESP_LOGD(TAG, "RECEIVED: {%d}", value);
   }
@@ -366,7 +365,7 @@ void Director::loop() {
     auto cmd = onewire::OneCommand::Accept::create(channel.baudrate());
     auto value = cmd.raw;
     if (onewire::BAUD < 200)
-      ESP_LOGI(TAG, "TRANSMIT: {value=%d}", value);
+      LOGI(TAG, "TRANSMIT: {value=%d}", value);
     else
       ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
 
@@ -392,7 +391,7 @@ void Director::loop() {
     onewire::OneCommand cmd;
     cmd.raw = rx.flush();
     if (cmd.raw == 100) {
-      ESP_LOGI(TAG, "  GOT: %d", cmd.raw);
+      LOGI(TAG, "  GOT: %d", cmd.raw);
     }
   }
 }
@@ -424,7 +423,7 @@ void Director::loop() {
         if (cmd.check_point.debug)
           ESP_LOGD(TAG, "%s", format(cmd));
         else
-          ESP_LOGI(TAG, "%s", format(cmd));
+          LOGI(TAG, "%s", format(cmd));
         break;
 
       case CmdEnum::PERFORMER_POSITION: {
@@ -477,16 +476,16 @@ void Director::loop() {
           ESP_LOGW(TAG, "IGNORED!");
         } else if (cmd.from_master()) {
           _performers = 0;
-          ESP_LOGI(TAG,
-                   "DIRECTOR_ACCEPT(%d): No performers ? Make sure, one is not "
-                   "MODE_ONEWIRE_PASSTROUGH!",
-                   cmd.accept.baudrate);
+          LOGI(TAG,
+               "DIRECTOR_ACCEPT(%d): No performers ? Make sure, one is not "
+               "MODE_ONEWIRE_PASSTROUGH!",
+               cmd.accept.baudrate);
         } else {
           accept_action.stop();
 
           _performers = cmd.msg.source_id + 1;
-          ESP_LOGI(TAG, "DIRECTOR_ACCEPT(%d): Total performers: %d",
-                   cmd.accept.baudrate, _performers);
+          LOGI(TAG, "DIRECTOR_ACCEPT(%d): Total performers: %d",
+               cmd.accept.baudrate, _performers);
 
           for (int performer_id = 0; performer_id < NMBR_OF_PERFORMERS;
                performer_id++) {

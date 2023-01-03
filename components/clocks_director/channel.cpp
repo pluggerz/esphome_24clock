@@ -94,7 +94,7 @@ class BasicProtocol : public rs485::Protocol {
  public:
   // reset to no incoming data (eg. after a timeout)
   void reset(const char *reason) override {
-    ESP_LOGI(TAG, "reset: %s", reason);
+    LOGI(TAG, "reset: %s", reason);
     haveSTX_ = false;
     available_ = false;
     inputPos_ = 0;
@@ -286,10 +286,10 @@ using rs485::Protocol;
 Protocol *Protocol::create_default() { return &basic_protocol; }
 
 void Gate::dump_config() {
-  ESP_LOGI(TAG, "  rs485::Gate");
-  ESP_LOGI(TAG, "     de_pin: %d", RS485_DE_PIN);
-  ESP_LOGI(TAG, "     re_pin: %d", RS485_RE_PIN);
-  ESP_LOGI(TAG, "     state: %d", state);
+  LOGI(TAG, "  rs485::Gate");
+  LOGI(TAG, "     de_pin: %d", RS485_DE_PIN);
+  LOGI(TAG, "     re_pin: %d", RS485_RE_PIN);
+  LOGI(TAG, "     state: %d", state);
 }
 
 void Gate::setup() {
@@ -298,7 +298,7 @@ void Gate::setup() {
 #ifdef DOLED
   // Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
 #endif
-  ESP_LOGI(TAG, "state: setup");
+  LOGI(TAG, "state: setup");
 }
 
 void Gate::start_receiving() {
@@ -314,7 +314,7 @@ void Gate::start_receiving() {
 #endif
 
   state = RECEIVING;
-  ESP_LOGI(TAG, "state: RECEIVING");
+  LOGI(TAG, "state: RECEIVING");
 }
 void Gate::start_transmitting() {
   if (state == TRANSMITTING) return;
@@ -323,7 +323,7 @@ void Gate::start_transmitting() {
   PIN_WRITE(RS485_RE_PIN, LOW);
 
   state = TRANSMITTING;
-  ESP_LOGI(TAG, "state: TRANSMITTING");
+  LOGI(TAG, "state: TRANSMITTING");
 }
 
 void Channel::baudrate(Baudrate baud_rate) {
@@ -331,7 +331,7 @@ void Channel::baudrate(Baudrate baud_rate) {
   _baudrate = baud_rate;
   Serial.begin(_baudrate);
 
-  ESP_LOGI(TAG, "state: Serial.begin(%d)", baud_rate);
+  LOGI(TAG, "state: Serial.begin(%d)", baud_rate);
 }
 
 void Channel::_send(const byte *bytes, const byte length) {

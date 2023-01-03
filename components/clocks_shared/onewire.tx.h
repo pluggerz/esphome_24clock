@@ -106,10 +106,10 @@ class RawTxOnewire : public Tx {
   RawTxOnewire() : _tx_delay(1000000L / BAUD) {}
 
   void dump_config() {
-    ESP_LOGI(TAG, "  TxOnewire");
-    ESP_LOGI(TAG, "     re_pin: %d", RS485_RE_PIN);
-    ESP_LOGI(TAG, "     OnewireInterrupt::tx: 0x%d", OnewireInterrupt::tx);
-    // ESP_LOGI(TAG, "     state: %d", state);
+    LOGI(TAG, "  TxOnewire");
+    LOGI(TAG, "     re_pin: %d", RS485_RE_PIN);
+    LOGI(TAG, "     OnewireInterrupt::tx: 0x%d", OnewireInterrupt::tx);
+    // LOGI(TAG, "     state: %d", state);
   }
 
   void kill() {
@@ -197,7 +197,7 @@ class TxOnewire {
 
   void setup(int _buffer_size = -1) {
     buffer.setup(_buffer_size);
-    ESP_LOGI(TAG, "receive: using buffered tx");
+    LOGI(TAG, "receive: using buffered tx");
     _raw_tx.setup();
     OnewireInterrupt::tx = this;
   }
