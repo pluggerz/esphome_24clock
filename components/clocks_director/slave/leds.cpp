@@ -1,8 +1,18 @@
 #include "leds.h"
 
 #include "../clocks_shared/pins.h"
+#include "leds.background.h"
+#include "leds.foreground.h"
 
-rgb_color leds[LED_COUNT];
+using BackgroundLedAnimations::Debug;
+
+BackgroundLedAnimations::Xmas lighting::xmas;
+BackgroundLedAnimations::Rainbow lighting::rainbow;
+BackgroundLedAnimations::Solid lighting::solid;
+BackgroundLedAnimations::Debug lighting::debug;
+BackgroundLayer *lighting::current = &debug;
+
+rgb_color debug_leds[LED_COUNT];
 bool dirty = true;
 
 rgb_color LedColors::purple = rgb_color(0xFF, 0x00, 0xFF);
@@ -14,6 +24,28 @@ rgb_color LedColors::black = rgb_color(0x00, 0x00, 0x00);
 
 // Create an object for writing to the LED strip.
 extern APA102<LED_DATA_PIN, LED_CLOCK_PIN> ledStrip;
+
+rgb_color BackgroundLayer::colors[LED_COUNT];
+
+bool Debug::update(Millis now) { return dirty; }
+
+void Debug::combine(RgbLeds &result) const {
+  for (int idx = 0; idx < LED_COUNT; ++idx) {
+    result[idx] = debug_leds[idx];
+  }
+  dirty = false;
+}
+
+void BackgroundLayer::publish() {
+  combine(colors);
+
+  ledStrip.startFrame();
+  const auto brightness = 31;
+  for (uint8_t idx = 0; idx < LED_COUNT; idx++) {
+    ledStrip.sendColor(colors[idx], brightness);
+  }
+  ledStrip.endFrame(LED_COUNT);
+}
 
 void Leds::setup() {
   blink(rgb_color(0xFF, 0x00, 0x00));
@@ -28,33 +60,22 @@ void Leds::error(int leds) {
   while (true) blink(LedColors::red, leds);
 }
 
-void Leds::set_all(const rgb_color &color) {}
-
-void Leds::set(uint8_t led, const rgb_color &color) {}
-
 void Leds::set_all_ex(const rgb_color &color) {
   dirty = true;
   for (auto idx = 0; idx < LED_COUNT; ++idx) {
-    leds[idx] = color;
+    debug_leds[idx] = color;
   }
 }
 
 void Leds::set_ex(uint8_t led, const rgb_color &color) {
   led = (led - 1) % LED_COUNT;
   dirty = true;
-  leds[led] = color;
+  debug_leds[led] = color;
 }
 
 void Leds::publish() {
-  if (!dirty) return;
-
-  dirty = false;
-  ledStrip.startFrame();
-  const auto brightness = 31;
-  for (uint8_t idx = 0; idx < LED_COUNT; idx++) {
-    ledStrip.sendColor(leds[idx], brightness);
-  }
-  ledStrip.endFrame(LED_COUNT);
+  dirty = true;
+  lighting::current->publish();
 }
 
 void set_all_raw(const rgb_color &color, int leds) {

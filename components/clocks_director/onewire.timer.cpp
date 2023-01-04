@@ -1,12 +1,17 @@
+
 #include "../clocks_shared/onewire.rx.h"
 #include "../clocks_shared/onewire.tx.h"
 
 using onewire::OnewireInterrupt;
 using onewire::RxOnewire;
+using onewire::TimerLoop;
 using onewire::TxOnewire;
 
 TxOnewire *OnewireInterrupt::tx = nullptr;
 RxOnewire *OnewireInterrupt::rx = nullptr;
+TimerLoop OnewireInterrupt::timer_loop = nullptr;
+
+float OnewireInterrupt::delay = -1;
 
 int OnewireInterrupt::timer_attach_state = -2;
 
@@ -31,17 +36,7 @@ const char *const TAG = "1wireTimer";
 #define DOLOG
 
 #else
-// Select a Timer Clock
-// Select the timers you're using, here ITimer1
-#define USE_TIMER_1 true
-#define USE_TIMER_2 false
-#define USE_TIMER_3 false
-#define USE_TIMER_4 false
-#define USE_TIMER_5 false
 
-//  Credits go: https://github.com/khoih-prog/TimerInterrupt
-
-#include "TimerInterrupt.h"
 #endif
 
 MOVE2RAM void follow_change() {
@@ -53,7 +48,7 @@ MOVE2RAM void follow_change() {
 #endif
 #endif
 #ifdef DOLED
-  auto rx = onewire::OnewireInterrupt::rx;
+  auto rx = OnewireInterrupt::rx;
   if (!rx || !rx->reading())
     Leds::set_ex(LED_SYNC_IN, state ? LedColors::blue : LedColors::black);
   else
@@ -65,58 +60,113 @@ volatile uint8_t tx_rx_cycle = 1;
 volatile bool in_between_tick = false;
 volatile bool use_inbetween = false;
 
+#ifdef ESP8266
+constexpr bool aligning = false;
+#else
+volatile bool aligning = false;
+#endif
+
 void MOVE2RAM TxTimerHandler() {
-  if (tx_rx_cycle & 1) {
-    auto tx = OnewireInterrupt::tx;
-    if (!tx || !tx->active()) {
-      // ignore
-    } else if (in_between_tick) {
-      PIN_WRITE(SYNC_OUT_PIN, false);
-      in_between_tick = false;
+  if (!aligning) {
+    if (tx_rx_cycle & 1) {
+      auto tx = OnewireInterrupt::tx;
+      if (!tx || !tx->active()) {
+        // ignore
+      } else if (in_between_tick) {
+        PIN_WRITE(SYNC_OUT_PIN, false);
+        in_between_tick = false;
 #ifdef DOLED
-      Leds::set_ex(LED_SYNC_OUT, LedColors::black);
+        Leds::set_ex(LED_SYNC_OUT, LedColors::black);
 #endif
-    } else if (tx->transmitted()) {
-      if (use_inbetween) {
-        in_between_tick = !in_between_tick;
-        if (in_between_tick) PIN_WRITE(SYNC_OUT_PIN, true);
+      } else if (tx->transmitted()) {
+        if (use_inbetween) {
+          in_between_tick = !in_between_tick;
+          if (in_between_tick) PIN_WRITE(SYNC_OUT_PIN, true);
 #ifdef DOLED
-        Leds::set_ex(LED_SYNC_OUT,
-                     in_between_tick ? LedColors::blue : LedColors::black);
+          Leds::set_ex(LED_SYNC_OUT,
+                       in_between_tick ? LedColors::blue : LedColors::black);
 #endif
+        }
+      } else {
+        tx->timer_interrupt();
+        in_between_tick = false;
       }
     } else {
-      tx->timer_interrupt();
-      in_between_tick = false;
+      auto interrupt = OnewireInterrupt::rx;
+      if (interrupt != nullptr) interrupt->timer_interrupt();
     }
-  } else {
-    auto interrupt = OnewireInterrupt::rx;
-    if (interrupt != nullptr) interrupt->timer_interrupt();
+    tx_rx_cycle++;
   }
-  tx_rx_cycle++;
-}
 
-void OnewireInterrupt::dump_config() {
-  LOGI(TAG, "  OnewireInterrupt:");
-  LOGI(TAG, "     no info");
-}
-
-void OnewireInterrupt::kill() {
-  if (OnewireInterrupt::timer_attach_state >= 0) {
-    ITimer1.detachInterrupt();
-    OnewireInterrupt::timer_attach_state = -2;
-  }
-}
-
-void OnewireInterrupt::restart() {
-  if (OnewireInterrupt::timer_attach_state < 0) return;
-
-  ITimer1.restartTimer();
-  tx_rx_cycle = 1;
+  if (OnewireInterrupt::timer_loop) OnewireInterrupt::timer_loop(micros());
 }
 
 #ifndef ESP8266
+ISR(TIMER1_COMPA_vect) {
+  if (aligning) return;
+  TxTimerHandler();
+}
+#endif
+
+void OnewireInterrupt::dump_config() {
+  LOGI(TAG, "  OnewireInterrupt:");
+  LOGI(TAG, "     delay: %fsec", OnewireInterrupt::delay);
+  LOGI(TAG, "     delay: %fmillis", OnewireInterrupt::delay * 1000.0);
+  LOGI(TAG, "     delay: %fmicros", OnewireInterrupt::delay * 1000.0 * 1000.0);
+}
+
+void attach_sync_in_interupt() {
+  auto interupt = digitalPinToInterrupt(SYNC_IN_PIN);
+  if (interupt < 0) {
+#ifdef DOLED
+    Leds::error(LEDS_ERROR_NO_INTERRUPT);
+#endif
+    ESP_LOGW(TAG, "Unable to attach interrupt");
+  }
+  attachInterrupt(interupt, follow_change, CHANGE);
+}
+
+void OnewireInterrupt::attach() {
+  if (OnewireInterrupt::timer_attach_state >= 0) return;
+
+  attach_sync_in_interupt();
+
+#ifdef ESP8266
+  // note we use attachInterrupt, instead of attachInterruptInterval since ESP
+  // library assumes micros, while arduino assumes millis
+  OnewireInterrupt::delay =
+      float((1000000L / (BAUD * 2))) / 1000.0 / 1000.0;  // in micros
+
+  OnewireInterrupt::timer_attach_state = ITimer1.attachInterrupt(
+      1.0 / float(OnewireInterrupt::delay), TxTimerHandler);
+#else
+  // turn on CTC mode
+  TCCR1A = 0;  // set entire TCCR1A register to 0
+  TCCR1B = 0;  // same for TCCR1B
+  TCCR1B |= (1 << WGM12);
+
+  // Set CS11 bit for prescaler 1
+  TCCR1B |= (1 << CS10);
+
+  // initialize counter value to 0;
+  TCNT1 = 0;
+
+  // set timer count for 2000Hz increments
+  OCR1A = 16000000L / (2 * BAUD) - 1;  // = (16*10^6) / (1*2000) - 1
+
+  // enable timer compare interrupt
+  tx_rx_cycle = 1;
+  TIMSK1 |= (1 << OCIE1A);
+#endif
+  OnewireInterrupt::align();
+}
+
+#ifdef ESP8266
+void OnewireInterrupt::align() {}
+#else
 void OnewireInterrupt::align() {
+  aligning = true;
+
   Leds::set_ex(LED_MODE, LedColors::purple);
 
   // wait for first change
@@ -129,37 +179,37 @@ void OnewireInterrupt::align() {
       last_state = state;
     }
   }
-  ITimer1.restartTimer();
-  Leds::blink(LedColors::black, 1);
+
+  // initialize counter value to 0;
+  TCNT1 = 0;
+  aligning = false;
+
+  // submit
+  transmit(onewire::OneCommand::CheckPoint::for_info('B', OCR1A / 256));
+  transmit(onewire::OneCommand::CheckPoint::for_info('b', OCR1A % 256));
 }
-#else
-void OnewireInterrupt::align() {}
 #endif
 
-void OnewireInterrupt::attach() {
-  if (OnewireInterrupt::timer_attach_state >= 0) return;
-#ifndef ESP8266
-  ITimer1.init();
-#endif
-
-  // note we use attachInterrupt, instead of attachInterruptInterval since ESP
-  // library assumes micros, while arduino assumes millis
-  float delay = float((1000000L / (BAUD * 2))) / 1000.0 / 1000.0;  // in micros
-
-  auto interupt = digitalPinToInterrupt(SYNC_IN_PIN);
-  if (interupt < 0) {
-#ifdef DOLED
-    Leds::error(LEDS_ERROR_NO_INTERRUPT);
-#endif
-    ESP_LOGW(TAG, "Unable to attach interrupt");
+#ifdef ESP8266
+void OnewireInterrupt::kill() {
+  if (OnewireInterrupt::timer_attach_state >= 0) {
+    ITimer1.detachInterrupt();
+    OnewireInterrupt::timer_attach_state = -2;
   }
-  attachInterrupt(interupt, follow_change, CHANGE);
+}
+#endif
 
-  OnewireInterrupt::timer_attach_state =
-      ITimer1.attachInterrupt(1.0 / float(delay), TxTimerHandler);
-  OnewireInterrupt::align();
+#ifdef ESP8266EX
+
+void OnewireInterrupt::restart() {
+  if (OnewireInterrupt::timer_attach_state < 0) return;
+
+  ITimer1.restartTimer();
+  tx_rx_cycle = 1;
 }
 
 // to be refactored
 void OnewireInterrupt::disableTimer() { ITimer1.disableTimer(); }
 void OnewireInterrupt::enableTimer() { ITimer1.enableTimer(); }
+
+#endif

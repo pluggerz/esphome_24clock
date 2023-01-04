@@ -19,8 +19,6 @@ class Rx {
 #ifdef DOLED
     if ((_rx_state ? 1 : 0) != last_read) {
       last_read = _rx_state ? 1 : 0;
-      Leds::set(0,
-                _rx_state ? rgb_color(0xFF, 0, 0) : rgb_color(0x00, 0xFF, 0));
     }
 #endif
     return _rx_state;

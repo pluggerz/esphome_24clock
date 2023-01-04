@@ -9,7 +9,8 @@ enum MsgEnum {
   MSG_POSITION_REQUEST,
   MSG_BEGIN_KEYS,
   MSG_SEND_KEYS,
-  MSG_END_KEYS
+  MSG_END_KEYS,
+  MSG_LIGTHING_MODE
 };
 
 constexpr int MAX_UART_MESSAGE_SIZE = 32;
@@ -127,5 +128,15 @@ struct UartEndKeysMessage : public Message {
     }
   }
 } __attribute__((packed, aligned(1)));
+
+struct LightingMode : public Message {
+ public:
+  const uint8_t mode;
+  uint8_t r = 0, g = 0, b = 0xFF;
+  LightingMode(uint8_t mode)
+      : Message(-1, MsgEnum::MSG_LIGTHING_MODE, ChannelInterop::ALL_PERFORMERS),
+        mode(mode) {}
+} __attribute__((packed, aligned(1)));
+
 }  // namespace messages
 }  // namespace channel

@@ -37,7 +37,7 @@
 
 namespace onewire {
 const char *const TAG = "onewire";
-constexpr uint32_t BAUD = 1000;
+constexpr uint32_t BAUD = 2000 / 2;
 
 class RxOnewire;
 class TxOnewire;
@@ -56,11 +56,16 @@ static volatile uint32_t *tx_basereg = PIN_TO_BASEREG(SYNC_OUT_PIN);
 static IO_REG_TYPE tx_bitmask = PIN_TO_BITMASK(SYNC_OUT_PIN);
 #endif
 
+typedef void (*TimerLoop)(Micros now);
+
 class OnewireInterrupt {
  public:
   static int timer_attach_state;
   static RxOnewire *rx;
   static TxOnewire *tx;
+  static TimerLoop timer_loop;
+
+  static float delay;
 
   static void attach();
   static void restart();

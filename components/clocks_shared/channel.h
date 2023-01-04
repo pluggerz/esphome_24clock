@@ -4,24 +4,74 @@
 #include "../clocks_shared/pins.h"
 #include "../clocks_shared/stub.h"
 
-namespace Hal {
-void yield();
-}
-
 namespace rs485 {
+const char *const TAG = "channel";
+
+// Helper class to calucalte CRC8
+class CRC8 {
+ public:
+  static byte calc(const byte *addr, byte len) {
+    byte crc = 0;
+    while (len--) {
+      byte inbyte = *addr++;
+      for (byte i = 8; i; i--) {
+        byte mix = (crc ^ inbyte) & 0x01;
+        crc >>= 1;
+        if (mix) crc ^= 0x8C;
+        inbyte >>= 1;
+      }  // end of for
+    }    // end of while
+    return crc;
+  }
+};
 
 class Gate  // : public Gate
 {
   enum State { RECEIVING = 1, TRANSMITTING = 2, NONE = 0 } state = NONE;
 
  public:
-  void dump_config();
+  void dump_config() {
+    LOGI(TAG, "  rs485::Gate");
+    LOGI(TAG, "     de_pin: %d", RS485_DE_PIN);
+    LOGI(TAG, "     re_pin: %d", RS485_RE_PIN);
+    LOGI(TAG, "     state: %d", state);
+  }
 
   bool is_receiving() const { return state == RECEIVING; }
 
-  void setup();
-  void start_receiving();
-  void start_transmitting();
+  void setup() {
+    pinMode(RS485_DE_PIN, OUTPUT);
+    pinMode(RS485_RE_PIN, OUTPUT);
+#ifdef DOLED
+    // Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
+#endif
+    LOGI(TAG, "state: setup");
+  }
+
+  void start_receiving() {
+    if (state == RECEIVING) return;
+
+    // make sure we are done with sending
+    Serial.flush();
+
+    PIN_WRITE(RS485_DE_PIN, false);
+    PIN_WRITE(RS485_RE_PIN, false);
+#ifdef DOLED
+    Leds::set_ex(LED_CHANNEL_STATE, LedColors::blue);
+#endif
+
+    state = RECEIVING;
+    LOGI(TAG, "state: RECEIVING");
+  }
+  void start_transmitting() {
+    if (state == TRANSMITTING) return;
+
+    PIN_WRITE(RS485_DE_PIN, HIGH);
+    PIN_WRITE(RS485_RE_PIN, LOW);
+
+    state = TRANSMITTING;
+    LOGI(TAG, "state: TRANSMITTING");
+  }
 };
 
 template <uint16_t SIZE>
@@ -74,7 +124,13 @@ class Channel {
 
   Baudrate baudrate() { return _baudrate; }
 
-  void baudrate(Baudrate baud_rate);
+  void baudrate(Baudrate baud_rate) {
+    if (_baudrate) Serial.end();
+    _baudrate = baud_rate;
+    Serial.begin(_baudrate);
+
+    LOGI(TAG, "state: Serial.begin(%d)", baud_rate);
+  }
 
   void setup() { gate.setup(); }
   void loop();

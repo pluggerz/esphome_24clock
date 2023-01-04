@@ -1,6 +1,7 @@
 #include "keys.executor.h"
 
 #include "../clocks_director/keys.h"
+#include "../clocks_shared/onewire.h"  //TODO: get red of this one and move into Hal
 #include "../clocks_shared/ticks.h"
 #include "leds.h"
 
@@ -320,6 +321,8 @@ void StepExecutors::setup(Stepper0 &stepper0, Stepper1 &stepper1) {
 
   Leds::set_ex(LED_EXECUTOR_STATE, LedColors::purple);
   Leds::publish();
+
+  onewire::OnewireInterrupt::timer_loop = StepExecutors::loop;
 }
 
 void StepExecutors::reset() {

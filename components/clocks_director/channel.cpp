@@ -6,8 +6,6 @@
 
 #ifdef ESP8266
 
-const char *const TAG = "channel";
-
 #define DOLOG
 #endif
 
@@ -22,25 +20,9 @@ const char *const TAG = "channel";
 #endif
 
 using rs485::Channel;
+using rs485::CRC8;
 using rs485::Gate;
-
-// Helper class to calucalte CRC8
-class CRC8 {
- public:
-  static byte calc(const byte *addr, byte len) {
-    byte crc = 0;
-    while (len--) {
-      byte inbyte = *addr++;
-      for (byte i = 8; i; i--) {
-        byte mix = (crc ^ inbyte) & 0x01;
-        crc >>= 1;
-        if (mix) crc ^= 0x8C;
-        inbyte >>= 1;
-      }  // end of for
-    }    // end of while
-    return crc;
-  }
-};
+using rs485::TAG;
 
 // based on: http://www.gammon.com.au/forum/?id=11428
 
@@ -83,12 +65,10 @@ class BasicProtocol : public rs485::Protocol {
     // first nibble
     c = what >> 4;
     Serial.write((c << 4) | (c ^ 0x0F));
-    Hal::yield();
 
     // second nibble
     c = what & 0x0F;
     Serial.write((c << 4) | (c ^ 0x0F));
-    Hal::yield();
   }  // end of RS485::sendComplemented
 
  public:
@@ -142,13 +122,11 @@ class BasicProtocol : public rs485::Protocol {
   inline void sendMsg(const byte *data, const byte length) override {
     wait_for_room();
     Serial.write(STX);  // STX
-    Hal::yield();
     for (byte i = 0; i < length; i++) {
       wait_for_room();
       sendComplemented(data[i]);
     }
     Serial.write(ETX);  // ETX
-    Hal::yield();
     sendComplemented(crc8(data, length));
   }  // end of RS485::sendMsg
 
@@ -192,10 +170,6 @@ bool BasicProtocol::update() {
 
 #ifdef DOLED
   Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
-  // Leds::set(LED_CHANNEL, rgb_color(0xFF, 0xFF, 0x00));
-
-  Leds::set(DATALED, rgb_color(0xFF, 0x00, 0xFF));
-  // Leds::publish();
 #endif
 
   // while (Serial.available() > 0)
@@ -285,55 +259,6 @@ using rs485::Protocol;
 
 Protocol *Protocol::create_default() { return &basic_protocol; }
 
-void Gate::dump_config() {
-  LOGI(TAG, "  rs485::Gate");
-  LOGI(TAG, "     de_pin: %d", RS485_DE_PIN);
-  LOGI(TAG, "     re_pin: %d", RS485_RE_PIN);
-  LOGI(TAG, "     state: %d", state);
-}
-
-void Gate::setup() {
-  pinMode(RS485_DE_PIN, OUTPUT);
-  pinMode(RS485_RE_PIN, OUTPUT);
-#ifdef DOLED
-  // Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
-#endif
-  LOGI(TAG, "state: setup");
-}
-
-void Gate::start_receiving() {
-  if (state == RECEIVING) return;
-
-  // make sure we are done with sending
-  Serial.flush();
-
-  PIN_WRITE(RS485_DE_PIN, false);
-  PIN_WRITE(RS485_RE_PIN, false);
-#ifdef DOLED
-  Leds::set_ex(LED_CHANNEL_STATE, LedColors::blue);
-#endif
-
-  state = RECEIVING;
-  LOGI(TAG, "state: RECEIVING");
-}
-void Gate::start_transmitting() {
-  if (state == TRANSMITTING) return;
-
-  PIN_WRITE(RS485_DE_PIN, HIGH);
-  PIN_WRITE(RS485_RE_PIN, LOW);
-
-  state = TRANSMITTING;
-  LOGI(TAG, "state: TRANSMITTING");
-}
-
-void Channel::baudrate(Baudrate baud_rate) {
-  if (_baudrate) Serial.end();
-  _baudrate = baud_rate;
-  Serial.begin(_baudrate);
-
-  LOGI(TAG, "state: Serial.begin(%d)", baud_rate);
-}
-
 void Channel::_send(const byte *bytes, const byte length) {
   ESP_LOGD(TAG, "Channel::_send(%d bytes)", length);
   gate.start_transmitting();
@@ -363,12 +288,9 @@ void Channel::loop() {
     Leds::set_ex(LED_CHANNEL_STATE, LedColors::blue);
     Leds::publish();
 
-    Leds::set(alternative, rgb_color(0x00, 0x00, 0xFF));
     last_channel_process_ = 0;
   } else {
     Leds::set_ex(LED_CHANNEL_STATE, LedColors::purple);
-
-    Leds::set(alternative, rgb_color(0xFF, 0xFF, 0x00));
   }
 #endif
 
@@ -380,9 +302,6 @@ void Channel::loop() {
   }
 #ifdef DOLED
   Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
-
-  Leds::set(alternative, rgb_color(0x00, 0x4F, 0xFF));
-  Leds::set(LED, rgb_color(0x00, 0xFF, 0x00));
   Leds::publish();
 
   last_channel_process_ = millis();

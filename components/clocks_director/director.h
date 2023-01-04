@@ -3,11 +3,15 @@
 #define MASTER_H
 
 #include "../clocks_shared/channel.h"
+#include "../clocks_shared/onewire.interop.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/core/component.h"
-#include "../clocks_shared/onewire.interop.h"
 
 class AnimationController;
+
+namespace lighting {
+class Controller;
+};
 
 namespace clock24 {
 class Stepper {
@@ -38,6 +42,7 @@ class Director : public esphome::Component {
 
  protected:
   AnimationController *animation_controller_ = nullptr;
+  lighting::Controller *lighting_controller = nullptr;
 
   virtual void setup() override;
   virtual void loop() override;
@@ -57,6 +62,10 @@ class Director : public esphome::Component {
   rs485::BufferChannel *get_channel();
   AnimationController *get_animation_controller() {
     return animation_controller_;
+  }
+
+  lighting::Controller *get_lighting_controller() {
+    return lighting_controller;
   }
 };
 

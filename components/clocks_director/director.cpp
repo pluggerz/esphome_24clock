@@ -14,6 +14,7 @@ esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 #include "../clocks_shared/pins.h"
 #include "animation.h"
 #include "director.h"
+#include "lighting.h"
 
 using channel::ChannelInterop;
 using onewire::CmdEnum;
@@ -25,10 +26,6 @@ int guid = rand();
 static const char *const TAG = "controller";
 
 using clock24::Director;
-
-namespace Hal {
-void yield() {}
-}  // namespace Hal
 
 Director::Director() {}
 
@@ -274,6 +271,9 @@ class TestOnewireAction : public IntervalAction {
 } test_onewire_action;
 
 void Director::setup() {
+  lighting_controller = new lighting::Controller();
+  lighting_controller->set_director(this);
+
   LOGI(TAG, "Master: setup!");
   this->animation_controller_ = new AnimationController();
   for (int performer_id = 0; performer_id < NMBR_OF_PERFORMERS;

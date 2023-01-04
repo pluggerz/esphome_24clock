@@ -7,7 +7,9 @@
 #include "../clocks_shared/stub.h"
 #include "../clocks_shared/ticks.h"
 #include "keys.executor.h"
+#include "leds.background.h"
 #include "leds.h"
+#include "lighting.h"
 #include "stepper.h"
 
 using channel::ChannelInterop;
@@ -49,26 +51,22 @@ void transmit(const onewire::OneCommand &value) { tx.transmit(value.raw); }
 
 void set_action(Action *action);
 
+// TODO: Remove ?
 void show_action(const onewire::OneCommand &cmd) {
   switch (cmd.msg.cmd) {
     case CmdEnum::PERFORMER_ONLINE:
-      Leds::set(LED_COUNT - 5, rgb_color(0x00, 0x00, 0xFF));
       break;
 
     case CmdEnum::DIRECTOR_ACCEPT:
-      Leds::set(LED_COUNT - 5, rgb_color(0x00, 0xFF, 0x00));
       break;
 
     case CmdEnum::PERFORMER_PREPPING:
-      Leds::set(LED_COUNT - 5, rgb_color(0x00, 0xFF, 0xFF));
       break;
 
     case CmdEnum::DIRECTOR_PING:
-      Leds::set(LED_COUNT - 5, rgb_color(0xFF, 0xFF, 0x00));
       break;
 
     default:
-      Leds::set(LED_COUNT - 5, rgb_color(0xFF, 0x00, 0x00));
       break;
   }
   Leds::publish();
@@ -81,22 +79,12 @@ class DefaultAction : public IntervalAction {
     // transmit(OneCommand::busy());
   }
 
-  virtual void setup() override {
-    IntervalAction::setup();
-    Leds::set(LED_COUNT - 2, rgb_color(0x00, 0xFF, 0x00));
-  }
-
   virtual void loop() override;
 } default_action;
 
 class ResetAction : public IntervalAction {
  public:
   virtual void update() override { transmit(OneCommand::performer_online()); }
-
-  virtual void setup() override {
-    IntervalAction::setup();
-    Leds::set(LED_COUNT - 2, rgb_color(0xFF, 0x00, 0x00));
-  }
 
   virtual void loop() override;
 } reset_action;
@@ -167,8 +155,6 @@ void ResetAction::loop() {
   IntervalAction::loop();
 
   Leds::set_ex(LED_MODE, LedColors::blue);
-
-  // Leds::set(7, rgb_color(0xFF, 0xFF, 0x00));
 
   if (rx.pending()) {
     onewire::OneCommand cmd;
@@ -303,6 +289,8 @@ void setup() {
     stepper1.step(-1);
   }
   StepExecutors::setup(stepper0, stepper1);
+
+  lighting::current->start();
 #endif
 }
 
@@ -310,10 +298,6 @@ LoopFunction current = reset_mode;
 
 #if MODE == MODE_ONEWIRE_PASSTROUGH
 
-namespace Hal {
-void yield() {}
-}  // namespace Hal
-
 void loop() {
   // for debugging
   Millis now = millis();
@@ -323,28 +307,27 @@ void loop() {
   }
 
   my_channel.loop();
-  StepExecutors.loop(now);
+  // StepExecutors.loop(now);
 }
 #endif
 
 #if MODE >= MODE_ONEWIRE_MIRROR
 
-namespace Hal {
-void yield() {}
-}  // namespace Hal
-
 void loop() {
+#if MODE == MODE_ONEWIRE_INTERACT
+  // StepExecutors::loop(micros());
+#endif
   // for debugging
   Millis now = millis();
-  if (now - t0 > 25) {
+  if (now - t0 > 50) {
     t0 = now;
     Leds::publish();
+    if (lighting::current->update(millis())) {
+      lighting::current->publish();
+    }
   }
 
   my_channel.loop();
-#if MODE == MODE_ONEWIRE_INTERACT
-  StepExecutors::loop(micros());
-#endif
 
   if (rx.pending()) {
 #if MODE == MODE_ONEWIRE_MIRROR
@@ -357,6 +340,7 @@ void loop() {
     tx.transmit(cmd.forward().raw);
 #endif
   }
+
   if (current_action != nullptr) current_action->loop();
 }
 #endif
@@ -366,6 +350,51 @@ void execute_settings(const channel::messages::StepperSettings *settings) {
   stepper0.set_offset_steps(settings->magnet_offet0);
   stepper1.set_offset_steps(settings->magnet_offet1);
   Leds::blink(LedColors::purple, 1 + ChannelInterop::id);
+}
+
+void process_lighting(channel::messages::LightingMode *msg) {
+  auto mode = msg->mode;
+  switch (mode) {
+    case lighting::WarmWhiteShimmer:
+    case lighting::RandomColorWalk:
+    case lighting::TraditionalColors:
+    case lighting::ColorExplosion:
+    case lighting::Gradient:
+    case lighting::BrightTwinkle:
+    case lighting::Collision:
+      lighting::current = &lighting::xmas;
+      lighting::xmas.setPattern(mode);
+      transmit(onewire::OneCommand::CheckPoint::for_info('l', 1));
+      break;
+    case lighting::Rainbow:
+      lighting::current = &lighting::rainbow;
+      transmit(onewire::OneCommand::CheckPoint::for_info('l', 2));
+      break;
+
+    case lighting::Off:
+      lighting::solid.color = rgb_color(0, 0, 0);
+      lighting::current = &lighting::solid;
+      transmit(onewire::OneCommand::CheckPoint::for_info('l', 3));
+      break;
+
+    case lighting::Solid:
+      lighting::solid.color = rgb_color(msg->r, msg->g, msg->b);
+      lighting::current = &lighting::solid;
+      transmit(onewire::OneCommand::CheckPoint::for_info('l', 4));
+      break;
+
+    case lighting::Debug:
+      lighting::current = &lighting::debug;
+      transmit(onewire::OneCommand::CheckPoint::for_info('l', 5));
+      break;
+
+    default:
+      transmit(onewire::OneCommand::CheckPoint::for_info('l', 6));
+      break;
+  };
+  lighting::current->start();
+  lighting::current->update(millis());
+  lighting::current->publish();
 }
 
 void PerformerChannel::process(const byte *bytes, const byte length) {
@@ -409,9 +438,8 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
                                            tick->value));
     } break;
 
-    default:
-      // Leds::set_ex(LED_CHANNEL, rgb_color(0xff, 0x00, 0x00));
-      // Leds::publish();
+    case channel::MsgEnum::MSG_LIGTHING_MODE:
+      process_lighting(static_cast<channel::messages::LightingMode *>(msg));
       break;
   }
 }
