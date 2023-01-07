@@ -1,0 +1,18 @@
+switch:
+  - platform: template
+    name: "Handles Animation: Swipe"
+    restore_state: true
+    lambda: return id(animator).state(animator24::handles_animation::Swipe);
+    turn_on_action:
+      - lambda: id(animator).turn_on(animator24::handles_animation::Swipe);
+    turn_off_action:
+      - lambda: id(animator).turn_off(animator24::handles_animation::Swipe);
+  - platform: template
+    name: "Handles Animation: Distance"
+    restore_state: true
+    lambda: return id(animator).state(animator24::handles_animation::Distance);
+    turn_on_action:
+      - lambda: id(animator).turn_on(animator24::handles_animation::Distance);
+    turn_off_action:
+      - lambda: id(animator).turn_off(animator24::handles_animation::Distance);
+
