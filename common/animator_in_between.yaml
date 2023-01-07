@@ -29,7 +29,6 @@ switch:
   - platform: template
     name: "Between: Middle1"
     restore_state: true
-    restore_mode: RESTORE_DEFAULT_ON
     lambda: return id(animator).state(animator24::in_between::Middle1);
     turn_on_action:
       - lambda: id(animator).turn_on(animator24::in_between::Middle1);
@@ -38,7 +37,6 @@ switch:
   - platform: template
     name: "Between: Middle2"
     restore_state: true
-    restore_mode: RESTORE_DEFAULT_ON
     lambda: return id(animator).state(animator24::in_between::Middle2);
     turn_on_action:
       - lambda: id(animator).turn_on(animator24::in_between::Middle2);
@@ -47,7 +45,6 @@ switch:
   - platform: template
     name: "Between: PacMan"
     restore_state: true
-    restore_mode: RESTORE_DEFAULT_ON
     lambda: return id(animator).state(animator24::in_between::PacMan);
     turn_on_action:
       - lambda: id(animator).turn_on(animator24::in_between::PacMan);
