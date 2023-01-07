@@ -40,12 +40,12 @@ enum Enum {
 class ClocksAnimator : public esphome::Component {
  public:
   clock24::Director *director = nullptr;
-  handles_distance::Enum handles_distance_mode = handles_distance::RANDOM;
   handles_animation::Enum handles_animation_mode = handles_animation::Random;
+  handles_distance::Enum handles_distance_mode = handles_distance::RANDOM;
   in_between::Enum in_between_mode = in_between::Random;
-  uint32_t in_between_flags = 0xFFFFFFFF;
-  uint32_t distance_flags = 0xFFFFFFFF;
-  uint32_t handles_animation_flags = 0xFFFFFFFF;
+  uint32_t in_between_flags = 0xFFFFFFF;
+  uint32_t distance_flags = 0xFFFFFFF;
+  uint32_t handles_animation_flags = 0xFFFFFFF;
 
   virtual void dump_config() override {
     LOGI(TAG, "Animator:");
@@ -54,20 +54,25 @@ class ClocksAnimator : public esphome::Component {
     LOGI(TAG, " handles_flags:    %H", handles_animation_flags);
   }
 
-#define CODE(TYPE, flags)                                            \
+#define CODE(TYPE, flags, mode)                                      \
   bool state(const TYPE &mode) const { return flags & (1 << mode); } \
-  void turn_on(const TYPE mode) {                                    \
+  void turn_on(const TYPE &mode) {                                   \
     flags |= (1 << mode);                                            \
-    LOGI(TAG, #flags ": %d", flags);                                 \
+    LOGI(TAG, #flags "/turn_on: %d", flags);                         \
   }                                                                  \
-  void turn_off(const TYPE mode) {                                   \
+  void turn_off(const TYPE &mode) {                                  \
     flags &= ~(1 << mode);                                           \
-    LOGI(TAG, #flags ": %d", flags);                                 \
+    LOGI(TAG, #flags "/turn_off: %d", flags);                        \
+  }                                                                  \
+  void pick(const TYPE &mode) {                                      \
+    this->mode = mode;                                               \
+    LOGI(TAG, #flags #mode ": %d", mode);                            \
   }
 
-  CODE(in_between::Enum, in_between_flags);
-  CODE(handles_distance::Enum, distance_flags);
-  CODE(handles_animation::Enum, handles_animation_flags);
+  CODE(in_between::Enum, in_between_flags, in_between_mode);
+  CODE(handles_distance::Enum, distance_flags, handles_distance_mode);
+  CODE(handles_animation::Enum, handles_animation_flags,
+       handles_animation_mode);
 
   void set_handles_distance_mode(handles_distance::Enum mode) {
     handles_distance_mode = mode;

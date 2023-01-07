@@ -1,3 +1,19 @@
+select:
+  - platform: template
+    id: oclock_distance_calculator
+    name: "Handles Distance Calculator"
+    optimistic: true
+    restore_value: true
+    icon: mdi:map-marker-distance
+    # make sure the ordering is the same as in the C++ enum!
+    options:
+      - Random
+      - Left
+      - Right
+      - Shortest
+    initial_option: Random
+    on_value:
+      lambda:  id(animator).pick((animator24::handles_distance::Enum)i);
 switch:
   - platform: template
     name: "Distance: SHORTEST"
