@@ -2,7 +2,6 @@ switch:
   - platform: template
     name: "Between: None"
     restore_state: true
-    restore_mode: RESTORE_DEFAULT_ON
     lambda: return id(animator).state(animator24::in_between::None);
     turn_on_action:
       - lambda: id(animator).turn_on(animator24::in_between::None);
@@ -11,7 +10,6 @@ switch:
   - platform: template
     name: "Between: Star"
     restore_state: true
-    restore_mode: RESTORE_DEFAULT_ON
     lambda: return id(animator).state(animator24::in_between::Star);
     turn_on_action:
       - lambda: id(animator).turn_on(animator24::in_between::Star);
@@ -20,7 +18,6 @@ switch:
   - platform: template
     name: "Between: Dash"
     restore_state: true
-    restore_mode: RESTORE_DEFAULT_ON
     lambda: return id(animator).state(animator24::in_between::Dash);
     turn_on_action:
       - lambda: id(animator).turn_on(animator24::in_between::Dash);

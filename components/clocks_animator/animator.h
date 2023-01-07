@@ -43,15 +43,15 @@ class ClocksAnimator : public esphome::Component {
   handles_distance::Enum handles_distance_mode = handles_distance::RANDOM;
   handles_animation::Enum handles_animation_mode = handles_animation::Random;
   in_between::Enum in_between_mode = in_between::Random;
-  uint32_t in_between_flags = 0;
-  uint32_t distance_flags = 0;
-  uint32_t handles_animation_flags = 0;
+  uint32_t in_between_flags = 0xFFFFFFFF;
+  uint32_t distance_flags = 0xFFFFFFFF;
+  uint32_t handles_animation_flags = 0xFFFFFFFF;
 
   virtual void dump_config() override {
     LOGI(TAG, "Animator:");
-    LOGI(TAG, " in_between_flags: %d", in_between_flags);
-    LOGI(TAG, " distance_flags:   %d", distance_flags);
-    LOGI(TAG, " handles_flags:    %d", handles_animation_flags);
+    LOGI(TAG, " in_between_flags: %H", in_between_flags);
+    LOGI(TAG, " distance_flags:   %H", distance_flags);
+    LOGI(TAG, " handles_flags:    %H", handles_animation_flags);
   }
 
 #define CODE(TYPE, flags)                                            \
