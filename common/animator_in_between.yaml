@@ -1,6 +1,6 @@
 select:
   - platform: template
-    name: "Between: Animation"
+    name: "Between:"
     optimistic: true
     restore_value: true
     icon: mdi:movie-open-outline
