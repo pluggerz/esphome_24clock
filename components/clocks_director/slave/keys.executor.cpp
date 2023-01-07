@@ -323,6 +323,7 @@ void StepExecutors::setup(Stepper0 &stepper0, Stepper1 &stepper1) {
   Leds::publish();
 
   onewire::OnewireInterrupt::timer_loop = StepExecutors::loop;
+  // onewire::OnewireInterrupt::timer_loop = check;
 }
 
 void StepExecutors::reset() {

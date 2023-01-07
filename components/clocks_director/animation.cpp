@@ -61,11 +61,12 @@ void AnimationController::set_ticks_for_performer(int performer_id, int ticks0,
 
 void AnimationController::dump_config() {
   LOGI(TAG, "  animation_controller:");
+  LOGI(TAG, "    animation_controller:");
   for (int idx = 0; idx < NMBR_OF_PERFORMERS; idx++) {
     auto animator_id = clockId2animatorId[idx];
     if (animator_id == -1) continue;
     auto handleId = animator_id << 1;
-    LOGI(TAG, "   P%d -> A%d: ticks(%d, %d)", idx, clockId2animatorId[idx],
+    LOGI(TAG, "    P%d -> A%d: ticks(%d, %d)", idx, clockId2animatorId[idx],
          tickz[handleId], tickz[handleId + 1]);
   }
 }

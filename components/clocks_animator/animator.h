@@ -6,7 +6,10 @@ class Director;
 }
 
 namespace animator24 {
-enum class InBetweenAnimationEnum {
+const char *const TAG = "animator";
+
+namespace in_between {
+enum Enum {
   Random,
   None,
   Star,
@@ -15,33 +18,63 @@ enum class InBetweenAnimationEnum {
   Middle2,
   PacMan,
 };
+}
 
-enum class HandlesDistanceEnum {
+namespace handles_distance {
+enum Enum {
   RANDOM,
   SHORTEST,
   LEFT,
   RIGHT,
 };
+}
 
-enum class HandlesAnimationEnum {
+namespace handles_animation {
+enum Enum {
   Random,
   Swipe,
   Distance,
 };
+}
 
 class ClocksAnimator : public esphome::Component {
  public:
   clock24::Director *director = nullptr;
-  HandlesDistanceEnum handles_distance_mode = HandlesDistanceEnum::RANDOM;
-  HandlesAnimationEnum handles_animation = HandlesAnimationEnum::Random;
-  InBetweenAnimationEnum in_between_mode = InBetweenAnimationEnum::Random;
+  handles_distance::Enum handles_distance_mode = handles_distance::RANDOM;
+  handles_animation::Enum handles_animation_mode = handles_animation::Random;
+  in_between::Enum in_between_mode = in_between::Random;
+  uint32_t in_between_flags = 0;
+  uint32_t distance_flags = 0;
+  uint32_t handles_animation_flags = 0;
 
-  void set_handles_distance_mode(HandlesDistanceEnum mode) {
+  virtual void dump_config() override {
+    LOGI(TAG, "Animator:");
+    LOGI(TAG, " in_between_flags: %d", in_between_flags);
+    LOGI(TAG, " distance_flags:   %d", distance_flags);
+    LOGI(TAG, " handles_flags:    %d", handles_animation_flags);
+  }
+
+#define CODE(TYPE, flags)                                            \
+  bool state(const TYPE &mode) const { return flags & (1 << mode); } \
+  void turn_on(const TYPE mode) {                                    \
+    flags |= (1 << mode);                                            \
+    LOGI(TAG, #flags ": %d", flags);                                 \
+  }                                                                  \
+  void turn_off(const TYPE mode) {                                   \
+    flags &= ~(1 << mode);                                           \
+    LOGI(TAG, #flags ": %d", flags);                                 \
+  }
+
+  CODE(in_between::Enum, in_between_flags);
+  CODE(handles_distance::Enum, distance_flags);
+  CODE(handles_animation::Enum, handles_animation_flags);
+
+  void set_handles_distance_mode(handles_distance::Enum mode) {
     handles_distance_mode = mode;
   }
 
   void request_time_change(int hours, int minutes);
 
   void set_director(clock24::Director *director) { this->director = director; }
-};
+};  // namespace animator24
 }  // namespace animator24

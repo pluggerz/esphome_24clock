@@ -182,7 +182,7 @@ class RxOnewire : public onewire::Rx {
     OnewireInterrupt::rx = this;
 
     reset(false);
-    LOGI(TAG, "OneWireProtocol: %dbaud", BAUD);
+    LOGI(TAG, "OneWireProtocol: %fbaud", (float)USED_BAUD);
   }
 };
 }  // namespace onewire

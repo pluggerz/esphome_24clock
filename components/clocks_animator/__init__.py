@@ -21,7 +21,7 @@ CODEOWNERS = ["@hvandenesker"]
 animator24_ns = cg.esphome_ns.namespace("animator24")
 Animator = animator24_ns.class_("ClocksAnimator", cg.Component)
 
-HandlesDistanceMode = animator24_ns.enum("HandlesDistanceEnum", is_class=True)
+HandlesDistanceMode = animator24_ns.namespace("handles_distance").enum("Enum", is_class=False)
 DISTANCE_CALCULATOR_MODES = {
     "RANDOM": HandlesDistanceMode.RANDOM,
     "SHORTEST": HandlesDistanceMode.SHORTEST,

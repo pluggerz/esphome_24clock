@@ -83,14 +83,16 @@ union OneCommand {
 
   struct CheckPoint {
     SOURCE_HEADER;
-    constexpr static int CHECK_POINT_BITS = 8;
+    constexpr static int CHECK_POINT_ID_BITS = 8;
+    constexpr static int CHECK_POINT_BITS = 12;
 
-    uint32_t id : CHECK_POINT_BITS;
+    uint32_t id : CHECK_POINT_ID_BITS;
     uint32_t value : CHECK_POINT_BITS;
     uint32_t debug : 1;
-    uint32_t remainder : RESERVED_BITS - 2 * CHECK_POINT_BITS - 1;
+    uint32_t remainder : RESERVED_BITS - CHECK_POINT_ID_BITS -
+                         CHECK_POINT_BITS - 1;
 
-    static OneCommand create(bool debug, uint8_t id, uint8_t value) {
+    static OneCommand create(bool debug, uint8_t id, uint16_t value) {
       OneCommand ret =
           Msg::by_performer(CmdEnum::PERFORMER_CHECK_POINT, my_performer_id());
       ret.check_point.debug = debug ? 1 : 0;
@@ -99,11 +101,11 @@ union OneCommand {
       return ret;
     }
 
-    static OneCommand for_info(uint8_t id, uint8_t value) {
+    static OneCommand for_info(uint8_t id, uint16_t value) {
       return create(false, id, value);
     }
 
-    static OneCommand for_debug(uint8_t id, uint8_t value) {
+    static OneCommand for_debug(uint8_t id, uint16_t value) {
       return create(true, id, value);
     }
   } __attribute__((packed, aligned(1))) check_point;

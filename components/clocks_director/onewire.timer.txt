@@ -99,54 +99,18 @@ void MOVE2RAM TxTimerHandler() {
 }
 
 #ifndef ESP8266
-
-class FrequencyChecker {
- public:
-  Micros start = 0L;
-  const int wait_in_seconds = 5;
-  uint32_t ticks = 0;
-  const char ch;
-
-  FrequencyChecker(char ch) : ch(ch) {}
-  void loop() {
-    auto now = millis();
-    if (start == 0L) {
-      ticks = 0;
-      start = now;
-      return;
-    }
-    if (now - start < 1000 * wait_in_seconds) {
-      ticks++;
-      return;
-    }
-    transmit(
-        onewire::OneCommand::CheckPoint::for_info(ch, ticks / wait_in_seconds));
-    ticks = 0;
-    start = now;
-  }
-} frequencyChecker1('1'), frequencyChecker2('2');
-
 ISR(TIMER1_COMPA_vect) {
-  frequencyChecker1.loop();
   if (OnewireInterrupt::timer_loop) OnewireInterrupt::timer_loop(micros());
-#ifdef TIMER1_FALLBACK
-  if (aligning) return;
-  TxTimerHandler();
-#endif
 }
 
 ISR(TIMER2_COMPA_vect) {
-  frequencyChecker2.loop();
-#ifndef TIMER1_FALLBACK
   if (aligning) return;
   TxTimerHandler();
-#endif
 }
 #endif
 
 void OnewireInterrupt::dump_config() {
   LOGI(TAG, "  OnewireInterrupt:");
-  LOGI(TAG, "     speed: %fbaud", (float)onewire::USED_BAUD);
   LOGI(TAG, "     delay: %fsec", OnewireInterrupt::delay);
   LOGI(TAG, "     delay: %fmillis", OnewireInterrupt::delay * 1000.0);
   LOGI(TAG, "     delay: %fmicros", OnewireInterrupt::delay * 1000.0 * 1000.0);
@@ -179,24 +143,19 @@ void OnewireInterrupt::attach() {
       1.0 / float(OnewireInterrupt::delay), TxTimerHandler);
 #else
   // from: https://www.instructables.com/Arduino-Timer-Interrupts/
-  // or: https://playground2014.wordpress.com/arduino/basics-timer-interrupts/
   // TIMER1
   // turn on CTC mode
   TCCR1A = 0;  // set entire TCCR1A register to 0
   TCCR1B = 0;  // same for TCCR1B
   TCCR1B |= (1 << WGM12);
-  // Set CS11 bit for prescaler 8
-  TCCR1B |= (1 << CS11);
+  // Set CS11 bit for prescaler 1
+  TCCR1B |= (1 << CS10);
   // initialize counter value to 0;
   TCNT1 = 0;
-  // set timer count for 2000Hz increments
-  // = (16*10^6) / (1*2000) - 1
-#ifdef TIMER1_FALLBACK
-#define FREQ 2 * USED_BAUD
-#else
+// set timer count for 2000Hz increments
+// = (16*10^6) / (1*2000) - 1
 #define FREQ 4000
-#endif
-  OCR1A = double(16000000L) / double(FREQ) / 8 - 1;
+  OCR1A = double(16000000L) / double(FREQ) - 1;
 
   // TIMER2
   // turn on CTC mode
@@ -205,9 +164,9 @@ void OnewireInterrupt::attach() {
   TCCR2A |= (1 << WGM21);
   // Set all CS2x bits for prescaler 1024
   // TCCR2B |= (1 << CS20);
-
-  // 64 ?
-  TCCR2B = (0 << CS22) | (0 << CS21) | (1 << CS20);
+  // Mmm following the documentation this bit (CS21) should be 0 !?
+  // TCCR2B |= (1 << CS21);
+  TCCR2B |= (1 << CS22);
 
   // initialize counter value to 0;
   TCNT2 = 0;
@@ -215,28 +174,7 @@ void OnewireInterrupt::attach() {
   // if (UNO_TIMER2_OCR2A >= 255) {
   //  Leds::error(LEDS_ERROR_TIMER2_FAILED);
   //}
-  OCR2A = determine_ocr2a(TIMER2_PRESCALER);
-  if (TIMER2_PRESCALER == 1024) {
-    // officially
-    TCCR2B = (1 << CS22) | (0 << CS21) | (1 << CS20);
-    // but this one works ?!?
-    TCCR2B = (1 << CS22) | (1 << CS21) | (1 << CS20);
-  } else if (TIMER2_PRESCALER == 256) {
-    // officially
-    TCCR2B = (1 << CS22) | (0 << CS21) | (0 << CS20);
-    // but this one works ?!?
-    TCCR2B = (1 << CS22) | (1 << CS21) | (0 << CS20);
-  } else if (TIMER2_PRESCALER == 128) {
-    // but this one works ?!? 128 ??
-    TCCR2B = (0 << CS22) | (1 << CS21) | (1 << CS20);
-  } else if (TIMER2_PRESCALER == 64) {
-    // officially
-    TCCR2B = (0 << CS22) | (1 << CS21) | (1 << CS20);
-    // but this one works ?!? 128 ?
-    TCCR2B = (0 << CS22) | (1 << CS21) | (1 << CS20);
-  } else {
-    Leds::error(6);
-  }
+  OCR2A = UNO_TIMER2_256_OCR2A;
   // enable timers compare interrupt
   tx_rx_cycle = 1;
   TIMSK1 |= (1 << OCIE1A);

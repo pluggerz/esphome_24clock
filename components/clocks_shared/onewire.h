@@ -37,7 +37,36 @@
 
 namespace onewire {
 const char *const TAG = "onewire";
-constexpr uint32_t BAUD = 2000 / 2;
+
+constexpr int UNO_TIMER2_1024_OCR2A = 7;
+constexpr int UNO_TIMER2_256_OCR2A = 24;
+// not working ?
+constexpr int UNO_TIMER2_128_OCR2A = 63;
+constexpr int UNO_TIMER2_64_OCR2A = 124;
+
+#define TIMER2_PRESCALER 1024
+// #define TIMER1_FALLBACK
+
+constexpr int determine_ocr2a(int value) {
+  return value == 1024  ? UNO_TIMER2_1024_OCR2A
+         : value == 256 ? UNO_TIMER2_256_OCR2A
+         : value == 128 ? -1
+         : value == 64  ? -1
+                        : -1;
+}
+
+// timer2_comp: baud
+// 4  :  1562,5
+// 7  :   976,5625
+// 250:    31,12549801
+
+#ifdef TIMER1_FALLBACK
+constexpr double USED_BAUD = 1953.5 / 2;
+#else
+constexpr double USED_BAUD = double(16000000) /
+                             double(determine_ocr2a(TIMER2_PRESCALER) + 1) /
+                             double(2 * TIMER2_PRESCALER);
+#endif
 
 class RxOnewire;
 class TxOnewire;

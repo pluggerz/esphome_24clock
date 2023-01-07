@@ -1,4 +1,6 @@
 import esphome.codegen as cg
+from esphome.const import CONF_LIGHT,CONF_RED,CONF_GREEN,CONF_BLUE
+from esphome.components import output, light
 from esphome.voluptuous_schema import _Schema
 import esphome.config_validation as cv
 from esphome.const import (
@@ -81,7 +83,29 @@ def to_code_slave(master, physicalSlaveId, slaveConf):
     cg.add(master.performer(physicalSlaveId).set_magnet_offsets(slaveConf[CONF_HANDLE0],slaveConf[CONF_HANDLE1]))
 
 
+#LighFloatOutput = oclock_ns.class_("LighFloatOutput", output.FloatOutput)
+
+#LIGHT_SCHEMA = output.FLOAT_OUTPUT_SCHEMA.extend(
+#    {
+#        cv.GenerateID(): cv.declare_id(LighFloatOutput)
+#    }).extend(cv.COMPONENT_SCHEMA)
+
+#RGBLIGHT_SCHEMA = cv.All({
+#    cv.Required(CONF_RED): LIGHT_SCHEMA,
+#    cv.Required(CONF_GREEN): LIGHT_SCHEMA,
+#    cv.Required(CONF_BLUE): LIGHT_SCHEMA,
+#})
+
+async def to_code_light(conf):
+    var = cg.new_Pvariable(conf[CONF_ID])
+    await output.register_output(var, conf)
+
 async def to_code(config):
+#    ligthConf = config[CONF_LIGHT]
+#    await to_code_light(ligthConf[CONF_RED])
+#    await to_code_light(ligthConf[CONF_GREEN])
+#    await to_code_light(ligthConf[CONF_BLUE])
+
     # master
     master = cg.new_Pvariable(config[CONF_ID])
     

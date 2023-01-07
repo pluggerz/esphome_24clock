@@ -29,8 +29,6 @@ class RawTxOnewire : public Tx {
  protected:
   bool started = false;
 
-  uint32_t _tx_delay;
-
   const int8_t LAST_TX_BIT = MAX_DATA_BITS + 4;
   int8_t _tx_bit = LAST_TX_BIT;
   bool _tx_nibble = false;
@@ -103,7 +101,7 @@ class RawTxOnewire : public Tx {
   }
 
  public:
-  RawTxOnewire() : _tx_delay(1000000L / BAUD) {}
+  RawTxOnewire() {}
 
   void dump_config() {
     LOGI(TAG, "  TxOnewire");
@@ -114,7 +112,6 @@ class RawTxOnewire : public Tx {
 
   void kill() {
     ESP_LOGW(TAG, "kill()");
-    _tx_delay = 0;
     OnewireInterrupt::kill();
   }
 
@@ -129,9 +126,6 @@ class RawTxOnewire : public Tx {
   bool active() const { return started; }
 
   void transmit(onewire::Value value) {
-    if (_tx_delay == 0) {
-      return;
-    }
     onewire::Value masked_value = value & DATA_MASK;
     if (masked_value != value) {
       ESP_LOGW(TAG, "Too many bits, data will be lost!? value=%d, max_bits=%d",
@@ -173,7 +167,7 @@ class RawTxOnewire : public Tx {
   }
 
   MOVE2RAM bool transmitted() const {
-    return started && (_tx_delay == 0 || _tx_bit == LAST_TX_BIT);
+    return started && (_tx_bit == LAST_TX_BIT);
   }
 };
 

@@ -133,9 +133,12 @@ struct LightingMode : public Message {
  public:
   const uint8_t mode;
   uint8_t r = 0, g = 0, b = 0xFF;
-  LightingMode(uint8_t mode)
+  LightingMode(uint8_t mode, uint8_t r, uint8_t g, uint8_t b)
       : Message(-1, MsgEnum::MSG_LIGTHING_MODE, ChannelInterop::ALL_PERFORMERS),
-        mode(mode) {}
+        mode(mode),
+        r(r),
+        g(g),
+        b(b) {}
 } __attribute__((packed, aligned(1)));
 
 }  // namespace messages

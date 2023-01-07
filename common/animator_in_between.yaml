@@ -1,0 +1,49 @@
+switch:
+  - platform: template
+    name: "Between: None"
+    restore_state: true
+    lambda: return id(animator).state(animator24::in_between::None);
+    turn_on_action:
+      - lambda: id(animator).turn_on(animator24::in_between::None);
+    turn_off_action:
+      - lambda: id(animator).turn_off(animator24::in_between::None);
+  - platform: template
+    name: "Between: Star"
+    restore_state: true
+    lambda: return id(animator).state(animator24::in_between::Star);
+    turn_on_action:
+      - lambda: id(animator).turn_on(animator24::in_between::Star);
+    turn_off_action:
+      - lambda: id(animator).turn_off(animator24::in_between::Star);
+  - platform: template
+    name: "Between: Dash"
+    restore_state: true
+    lambda: return id(animator).state(animator24::in_between::Dash);
+    turn_on_action:
+      - lambda: id(animator).turn_on(animator24::in_between::Dash);
+    turn_off_action:
+      - lambda: id(animator).turn_off(animator24::in_between::Dash);
+  - platform: template
+    name: "Between: Middle1"
+    restore_state: true
+    lambda: return id(animator).state(animator24::in_between::Middle1);
+    turn_on_action:
+      - lambda: id(animator).turn_on(animator24::in_between::Middle1);
+    turn_off_action:
+      - lambda: id(animator).turn_off(animator24::in_between::Middle1);
+  - platform: template
+    name: "Between: Middle2"
+    restore_state: true
+    lambda: return id(animator).state(animator24::in_between::Middle2);
+    turn_on_action:
+      - lambda: id(animator).turn_on(animator24::in_between::Middle2);
+    turn_off_action:
+      - lambda: id(animator).turn_off(animator24::in_between::Middle2);
+  - platform: template
+    name: "Between: PacMan"
+    restore_state: true
+    lambda: return id(animator).state(animator24::in_between::PacMan);
+    turn_on_action:
+      - lambda: id(animator).turn_on(animator24::in_between::PacMan);
+    turn_off_action:
+      - lambda: id(animator).turn_off(animator24::in_between::PacMan);

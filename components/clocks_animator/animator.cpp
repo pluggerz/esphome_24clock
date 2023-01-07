@@ -9,15 +9,6 @@
 #include "helpers.h"
 #include "transmitter.h"
 
-const char *const TAG = __FILE__;
-
-using animator24::ClocksAnimator;
-using animator24::DistanceCalculators;
-using animator24::HandlesAnimationEnum;
-using animator24::HandlesAnimations;
-using animator24::HandlesDistanceEnum;
-using animator24::InBetweenAnimationEnum;
-using animator24::InBetweenAnimations;
 using channel::Message;
 using channel::MsgEnum;
 using channel::messages::UartEndKeysMessage;
@@ -29,6 +20,8 @@ using keys::CmdSpeedUtil;
 using keys::DeflatedCmdKey;
 using keys::InflatedCmdKey;
 using rs485::BufferChannel;
+
+using namespace animator24;
 
 struct Text {
   char ch0 = '*', ch1 = '*', ch2 = '*', ch3 = '*';
@@ -49,10 +42,10 @@ struct Text {
 };
 
 DistanceCalculators::Func selectDistanceCalculator(
-    const HandlesDistanceEnum &value) {
+    const handles_distance::Enum &value) {
   switch (value) {
-#define CASE(WHAT, FUNC)          \
-  case HandlesDistanceEnum::WHAT: \
+#define CASE(WHAT, FUNC)       \
+  case handles_distance::WHAT: \
     return DistanceCalculators::FUNC;
 
     CASE(SHORTEST, shortest)
@@ -65,10 +58,10 @@ DistanceCalculators::Func selectDistanceCalculator(
 }
 
 InBetweenAnimations::Func selectInBetweenAnimation(
-    const InBetweenAnimationEnum &value) {
+    const in_between::Enum &value) {
   switch (value) {
-#define CASE(WHAT, FUNC)             \
-  case InBetweenAnimationEnum::WHAT: \
+#define CASE(WHAT, FUNC) \
+  case in_between::WHAT: \
     return InBetweenAnimations::FUNC;
 
     CASE(Random, instructRandom)
@@ -83,10 +76,11 @@ InBetweenAnimations::Func selectInBetweenAnimation(
   }
 }
 
-HandlesAnimations::Func selectFinalAnimator(const HandlesAnimationEnum &value) {
+HandlesAnimations::Func selectFinalAnimator(
+    const handles_animation::Enum &value) {
   switch (value) {
-#define CASE(WHAT, FUNC)           \
-  case HandlesAnimationEnum::WHAT: \
+#define CASE(WHAT, FUNC)        \
+  case handles_animation::WHAT: \
     return HandlesAnimations::FUNC;
 
     CASE(Swipe, instruct_using_swipe)
@@ -116,32 +110,30 @@ void copyTo(const ClockCharacters &chars, HandlesState &state) {
 }
 
 struct AnimationSettings {
-  InBetweenAnimationEnum in_between_mode = InBetweenAnimationEnum::Random;
-  HandlesAnimationEnum handles_mode = HandlesAnimationEnum::Random;
-  HandlesDistanceEnum distance_mode = HandlesDistanceEnum::RANDOM;
+  in_between::Enum in_between_mode = in_between::Random;
+  handles_animation::Enum handles_mode = handles_animation::Random;
+  handles_distance::Enum distance_mode = handles_distance::RANDOM;
 
   int get_speed() const { return 12; }
 
-  void set_handles_distance_mode(HandlesDistanceEnum value) {
+  void set_handles_distance_mode(handles_distance::Enum value) {
     distance_mode = value;
   }
-  HandlesDistanceEnum get_handles_distance_mode() const {
+  handles_distance::Enum get_handles_distance_mode() const {
     return distance_mode;
   }
 
-  void set_handles_animation_mode(HandlesAnimationEnum value) {
+  void set_handles_animation_mode(handles_animation::Enum value) {
     handles_mode = value;
   }
-  HandlesAnimationEnum get_handles_animation_mode() const {
+  handles_animation::Enum get_handles_animation_mode() const {
     return handles_mode;
   }
 
-  void set_in_between_animation_mode(InBetweenAnimationEnum value) {
+  void set_in_between_animation_mode(in_between::Enum value) {
     in_between_mode = value;
   }
-  InBetweenAnimationEnum get_in_between_animation() const {
-    return in_between_mode;
-  }
+  in_between::Enum get_in_between_animation() const { return in_between_mode; }
 };
 
 void send_text(BufferChannel *channel, AnimationController *controller,
