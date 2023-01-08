@@ -12,6 +12,13 @@ BackgroundLedAnimations::Solid lighting::solid;
 BackgroundLedAnimations::Debug lighting::debug;
 BackgroundLayer *lighting::current = &debug;
 
+EmptyForegroundLayer empty_foreground_led_layer;
+FollowHandlesLedLayer follow_led_layer;
+ForegroundLayer *current_foreground_layer = &empty_foreground_led_layer;
+RgbLeds ForegroundLayer::colors;
+BrightnessLeds ForegroundLayer::brightness;
+uint8_t FollowHandlesLedLayer::ledAlphas[LED_COUNT];
+
 rgb_color debug_leds[LED_COUNT];
 bool dirty = true;
 
@@ -39,11 +46,19 @@ void Debug::combine(RgbLeds &result) const {
 void BackgroundLayer::publish() {
   combine(colors);
 
-  ledStrip.startFrame();
-  const auto brightness = 31;
+  // TODO: move to better place
+  current_foreground_layer->update(millis());
+  BrightnessLeds brightness = {31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31};
   for (uint8_t idx = 0; idx < LED_COUNT; idx++) {
-    ledStrip.sendColor(colors[idx], brightness);
+    ForegroundLayer::colors[idx] = BackgroundLayer::colors[idx];
   }
+  current_foreground_layer->combine(ForegroundLayer::colors, brightness);
+
+  ledStrip.startFrame();
+  for (uint8_t idx = 1; idx < LED_COUNT; idx++) {
+    ledStrip.sendColor(ForegroundLayer::colors[idx], brightness[idx]);
+  }
+  ledStrip.sendColor(ForegroundLayer::colors[0], brightness[0]);
   ledStrip.endFrame(LED_COUNT);
 }
 

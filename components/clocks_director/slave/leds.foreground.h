@@ -7,6 +7,9 @@
 class ForegroundLayer {
  protected:
  public:
+  static RgbLeds colors;
+  static BrightnessLeds brightness;
+
   // virtual void start(){};
   virtual bool update(Millis now) = 0;
   virtual void combine(RgbLeds &result, BrightnessLeds &brightness) const = 0;
@@ -16,12 +19,17 @@ class ForegroundLayer {
 
 typedef int Offset;
 
+class EmptyForegroundLayer : public ForegroundLayer {
+ public:
+  bool update(Millis now) override { return false; }
+  void combine(RgbLeds &result, BrightnessLeds &brightness) const override{};
+};
+
 class HighlightLedLayer : public ForegroundLayer {
  protected:
   // to be able to keep up with the updates MAX_STAPS should not be too great
   const Offset MAX_STEPS = 12 * 4;
 
-  const int MAX_BRIGHTNESS = 31;
   Millis lastTime{0};
 
   static uint8_t ledAlphas[LED_COUNT];
@@ -34,22 +42,10 @@ class HighlightLedLayer : public ForegroundLayer {
 
   virtual void combine(RgbLeds &result,
                        BrightnessLeds &brightness_leds) const override {
-    double brightness = 0;
-    if (forced) {
-      brightness = 31.0;
-    } else {
-      for (int idx = 0; idx < LED_COUNT; ++idx) {
-        brightness += brightness_leds[idx];
-      }
-      brightness /= LED_COUNT;
-    }
+    update_layer(millis());
 
     for (int idx = 0; idx < LED_COUNT; ++idx) {
-      auto &r = brightness_leds[idx];
-      auto relativeBrightness = static_cast<double>(ledAlphas[idx]) /
-                                static_cast<double>(MAX_BRIGHTNESS) *
-                                brightness;
-      r = relativeBrightness;
+      brightness_leds[idx] = ledAlphas[idx];
     }
   }
 
@@ -71,26 +67,34 @@ class HighlightLedLayer : public ForegroundLayer {
     if (firstLed == LED_COUNT) firstLed = 0;
     int secondLed = (firstLed + 1) % LED_COUNT;
 
+    /*    int firstLed = position - 1;
+        if (firstLed == LED_COUNT) firstLed = 0;
+        if (firstLed == -1) firstLed = LED_COUNT - 1;
+        int secondLed = (firstLed) % LED_COUNT;*/
+
+    auto MAX_BRIGHTNESS = 31;
     int alpha = MAX_BRIGHTNESS * weight;
     ledAlphas[firstLed] |= sparkle(alpha);
     ledAlphas[secondLed] |= sparkle(MAX_BRIGHTNESS - alpha);
+
+    // ledAlphas[secondLed] = ledAlphas[firstLed] = 31;
   }
 
  public:
-  bool forced{false};
+  bool forced{true};
 };
 
 class FollowHandlesLedLayer : public HighlightLedLayer {
   /**
    * Convert to range [0..MAX_STEPS)
    */
-  inline Offset toHandleOffset(Millis now, int poshandlePos) {
+  inline Offset toHandleOffset(int32_t poshandlePos) {
     return MAX_STEPS * poshandlePos / NUMBER_OF_STEPS;
   }
 
   virtual bool update_layer(Millis now) override {
-    auto longHandlePos = toHandleOffset(now, stepper0.ticks());
-    auto shortHandlePos = toHandleOffset(now, stepper1.ticks());
+    auto longHandlePos = toHandleOffset(stepper0.ticks());
+    auto shortHandlePos = toHandleOffset(stepper1.ticks());
 
     // clear all
     clear_all_leds();

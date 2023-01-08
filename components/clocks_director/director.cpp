@@ -138,7 +138,9 @@ void Director::dump_config() {
   tx.dump_config();
   my_channel.dump_config();
   onewire::OnewireInterrupt::dump_config();
-  if (animation_controller_) animation_controller_->dump_config();
+  if (this->animation_controller_) this->animation_controller_->dump_config();
+  if (this->get_lighting_controller())
+    this->get_lighting_controller()->dump_config();
 }
 
 class WireSender {
@@ -494,6 +496,8 @@ void Director::loop() {
                 performer_id, settings.stepper0.offset,
                 settings.stepper1.offset);
             my_channel.send(message);
+
+            this->get_lighting_controller()->on_performer_online();
           }
         }
       } break;
