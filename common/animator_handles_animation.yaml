@@ -1,17 +1,17 @@
 select: 
   - platform: template
-    id: oclock_handles_animation
+    id: handles_animation_select
     name: "Handles Animation:"
     optimistic: true
     restore_value: true
     # make sure the ordering is the same as in the C++ enum!
     options:
-      - Random
       - Swipe
       - Distance
+      - Random
     initial_option: Random
-    on_value:
-      lambda:  id(animator).pick((animator24::handles_animation::Enum)i);
+    set_action:
+      lambda:  id(animator).pick(static_cast<animator24::handles_animation::Enum>(id(handles_animation_select).index_of(x).value_or(0)));
 switch:
   - platform: template
     name: "Handles Animation: Swipe"

@@ -1,21 +1,22 @@
 select:
   - platform: template
+    id: in_between_select
     name: "Between:"
     optimistic: true
     restore_value: true
     icon: mdi:movie-open-outline
     # make sure the ordering is the same as in the C++ enum!
     options:
-      - Random
       - None
       - Star
       - Dash
       - Middle Point 1
       - Middle Point 2
       - Pac Man
+      - Random
     initial_option: Random 
-    on_value:
-      lambda:  id(animator).pick((animator24::in_between::Enum)i);
+    set_action:
+      lambda:  id(animator).pick(static_cast<animator24::in_between::Enum>(id(in_between_select).index_of(x).value_or(0)));
 
 switch:
   - platform: template

@@ -64,7 +64,7 @@ InBetweenAnimations::Func selectInBetweenAnimation(
   case in_between::WHAT: \
     return InBetweenAnimations::FUNC;
 
-    CASE(Random, instructRandom)
+    CASE(RANDOM, instructRandom)
     CASE(Star, instructStarAnimation)
     CASE(Dash, instructDashAnimation)
     CASE(Middle1, instructMiddlePointAnimation)
@@ -86,7 +86,7 @@ HandlesAnimations::Func selectFinalAnimator(
     CASE(Swipe, instruct_using_swipe)
     CASE(Distance, instructUsingStepCalculator)
     default:
-      CASE(Random, instruct_using_random)
+      CASE(RANDOM, instruct_using_random)
 #undef CASE
   }
 }
@@ -109,6 +109,7 @@ void copyTo(const ClockCharacters &chars, HandlesState &state) {
   // state.debug();
 }
 
+/*
 struct AnimationSettings {
   in_between::Enum in_between_mode = in_between::Random;
   handles_animation::Enum handles_mode = handles_animation::Random;
@@ -134,11 +135,10 @@ struct AnimationSettings {
     in_between_mode = value;
   }
   in_between::Enum get_in_between_animation() const { return in_between_mode; }
-};
+};*/
 
-void send_text(BufferChannel *channel, AnimationController *controller,
-               const Text &text) {
-  AnimationSettings settings;
+void send_text(const AnimationSettings &settings, BufferChannel *channel,
+               AnimationController *controller, const Text &text) {
   LOGI(TAG, "do_track_time -> follow up: [%c %c %c %c]", text.ch0, text.ch1,
        text.ch2, text.ch3);
 
@@ -162,11 +162,10 @@ void send_text(BufferChannel *channel, AnimationController *controller,
 
   // inbetween
   auto inBetweenAnimation =
-      selectInBetweenAnimation(settings.get_in_between_animation());
+      selectInBetweenAnimation(settings.pick_in_between());
   auto distanceCalculator =
-      selectDistanceCalculator(settings.get_handles_distance_mode());
-  auto finalAnimator =
-      selectFinalAnimator(settings.get_handles_animation_mode());
+      selectDistanceCalculator(settings.pick_handles_distance());
+  auto finalAnimator = selectFinalAnimator(settings.pick_handles_animation());
 
   auto speed = settings.get_speed();
 
@@ -189,8 +188,8 @@ void send_text(BufferChannel *channel, AnimationController *controller,
 
 void ClocksAnimator::request_time_change(int hours, int minutes) {
   ESP_LOGW(TAG, "request_positions %d:%d", hours, minutes);
-  AnimationSettings settings;
 
-  send_text(director->get_channel(), director->get_animation_controller(),
+  send_text(*this, director->get_channel(),
+            director->get_animation_controller(),
             Text::from_time(hours, minutes));
 }
