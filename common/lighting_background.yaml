@@ -4,7 +4,7 @@ select:
     name: "Background:"
     optimistic: true
     restore_value: true
-    # icon: mdi:map-marker-distance
+    icon: mdi:lightbulb-group
     # make sure the ordering is the same as in the C++ enum!
     options:
       - Warm White Shimmer 
