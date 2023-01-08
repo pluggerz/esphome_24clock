@@ -2,7 +2,7 @@ select:
   - platform: template
     id: lighting_background_select
     name: "Background:"
-    optimistic: true
+    # optimistic: true
     restore_value: true
     icon: mdi:lightbulb-group
     # make sure the ordering is the same as in the C++ enum!

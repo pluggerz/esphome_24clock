@@ -2,7 +2,7 @@ select:
   - platform: template
     id: in_between_select
     name: "Between:"
-    optimistic: true
+    # optimistic: true
     restore_value: true
     icon: mdi:movie-open-outline
     # make sure the ordering is the same as in the C++ enum!
