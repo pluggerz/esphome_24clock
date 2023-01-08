@@ -7,9 +7,9 @@ select:
     icon: mdi:map-marker-distance
     # make sure the ordering is the same as in the C++ enum!
     options:
+      - Shortest    
       - Left
       - Right
-      - Shortest
       - Random
     initial_option: Random
     set_action:
