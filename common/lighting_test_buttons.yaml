@@ -1,0 +1,56 @@
+button:
+ - platform: template
+   name: 'Lighting: Solid'
+   on_press:
+    - then:
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::Solid);
+ - platform: template
+   name: 'Lighting: Debug'
+   on_press:
+    - then:
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::Debug);
+ - platform: template
+   name: 'Lighting: WarmWhiteShimmer'
+   on_press:
+    - then: 
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::WarmWhiteShimmer);
+ - platform: template
+   name: 'Lighting: RandomColorWalk'
+   on_press:
+    - then: 
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::RandomColorWalk);
+ - platform: template
+   name: 'Lighting: TraditionalColors'
+   on_press:
+    - then: 
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::TraditionalColors);
+ - platform: template
+   name: 'Lighting: ColorExplosion'
+   on_press:
+    - then: 
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::ColorExplosion);
+ - platform: template
+   name: 'Lighting: Gradient'
+   on_press:
+    - then: 
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::Gradient);
+ - platform: template
+   name: 'Lighting: BrightTwinkle'
+   on_press:
+    - then: 
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::BrightTwinkle);
+ - platform: template
+   name: 'Lighting: Collision'
+   on_press:
+    - then: 
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::Collision);
+ - platform: template
+   name: 'Lighting: Rainbow'
+   on_press:
+    - then: 
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::Rainbow);
+ - platform: template
+   name: 'Lighting: Off'
+   on_press:
+    - then: 
+        - lambda:  id(director).get_lighting_controller()->use_mode(lighting::Off);
