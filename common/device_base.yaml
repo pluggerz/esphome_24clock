@@ -1,6 +1,8 @@
 esphome:
   name: ${node_name}
   platform: ESP8266
+  framework:
+    version: 2.7.4
   board: nodemcuv2
 #  platformio_options:
 #    board_build.f_cpu: 80000000L
