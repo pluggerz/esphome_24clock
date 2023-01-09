@@ -3,14 +3,10 @@ esphome:
   board: nodemcuv2
 #  platformio_options:
 #    board_build.f_cpu: 80000000L
-  esp8266_restore_from_flash: true
   libraries:
     - ESP8266TimerInterrupt
 #    - "EspSoftwareSerial"
 
-esp8266:      
-  framework:
-    version: 2.7.4
 
 i2c:  
 
