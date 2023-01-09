@@ -1,6 +1,5 @@
 esphome:
   name: ${node_name}
-  board: nodemcuv2
 #  platformio_options:
 #    board_build.f_cpu: 80000000L
   libraries:
