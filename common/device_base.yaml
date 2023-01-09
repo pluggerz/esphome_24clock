@@ -6,6 +6,11 @@ esphome:
     - ESP8266TimerInterrupt
 #    - "EspSoftwareSerial"
 
+esp8266:      
+  board: nodemcuv2
+  framework:
+    version: 2.7.4
+  restore_from_flash: true
 
 i2c:  
 
