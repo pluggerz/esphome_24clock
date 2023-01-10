@@ -68,7 +68,7 @@ button:
         - delay: 3s             
         - lambda: id(animator).request_time_change(0, 9);
  - platform: template
-   name: 'Dump condfig'
+   name: 'Dump config'
    on_press:
     - then:
         - lambda: id(director).dump_config();
