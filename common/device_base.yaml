@@ -6,6 +6,10 @@ esphome:
     - ESP8266TimerInterrupt
 #    - "EspSoftwareSerial"
 
+esp8266:      
+  framework:
+    version: recommended
+
 i2c:  
 
 pcf8574: # depends on i2c
