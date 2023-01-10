@@ -2,7 +2,7 @@ select:
   - platform: template
     id: handles_distance_select
     name: "Distance:"
-    # optimistic: true
+    optimistic: true
     restore_value: true
     icon: mdi:map-marker-distance
     # make sure the ordering is the same as in the C++ enum!
