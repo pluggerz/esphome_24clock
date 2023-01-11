@@ -21,7 +21,10 @@ select:
     initial_option: Debug
     set_action:
       lambda:  id(lighting_controller)->pick(static_cast<lighting::LightingMode>(id(lighting_background_select).index_of(x).value_or(0)));
-
+esphome:
+  on_boot:
+    then:
+      - lambda: id(lighting_controller)->pick(static_cast<lighting::LightingMode>(id(lighting_background_select).active_index().value_or(0)));
 output:
   - platform: template
     id: red_id
