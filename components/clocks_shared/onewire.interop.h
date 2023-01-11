@@ -25,6 +25,7 @@ enum CmdEnum {
   PERFORMER_POSITION,
   PERFORMER_PREPPING,
   PERFORMER_CHECK_POINT,
+  DIRECTOR_POSITION_ACK
 };
 
 union OneCommand {
@@ -112,6 +113,11 @@ union OneCommand {
 
   static OneCommand director_online(int guid) {
     OneCommand ret = Msg::by_director(CmdEnum::DIRECTOR_ONLINE);
+    ret.msg.reserved = guid;
+    return ret;
+  }
+  static OneCommand director_position_ack(int guid) {
+    OneCommand ret = Msg::by_director(CmdEnum::DIRECTOR_POSITION_ACK);
     ret.msg.reserved = guid;
     return ret;
   }

@@ -7,6 +7,7 @@
 
 esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 
+#include "../clocks_shared/async.h"
 #include "../clocks_shared/channel.h"
 #include "../clocks_shared/channel.interop.h"
 #include "../clocks_shared/onewire.rx.h"
@@ -15,14 +16,20 @@ esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 #include "animation.h"
 #include "director.h"
 
+using async::Async;
+using async::AsyncExecutor;
+using async::DelayAsync;
 using channel::ChannelInterop;
 using onewire::CmdEnum;
 using rs485::BufferChannel;
 
+std::deque<Async *> AsyncExecutor::deque;
 uint8_t ChannelInterop::id = ChannelInterop::DIRECTOR;
 int guid = rand();
 
 static const char *const TAG = "controller";
+
+int guid_position_ack = 0;
 
 using clock24::Director;
 
@@ -75,6 +82,10 @@ const char *format(const onewire::OneCommand &cmd) {
     case CmdEnum::PERFORMER_CHECK_POINT:
       what = "PERFORMER_CHECK_POINT";
       break;
+    case CmdEnum::DIRECTOR_POSITION_ACK:
+      what = "DIRECTOR_POSITION_ACK";
+      break;
+
     default:
       what = "UNKNOWN";
       break;
@@ -102,6 +113,7 @@ const char *format(const onewire::OneCommand &cmd) {
                id, cmd.msg.cmd, what, cmd.accept.baudrate);
       break;
 
+    case CmdEnum::DIRECTOR_POSITION_ACK:
     case CmdEnum::DIRECTOR_PING:
     case CmdEnum::TOCK:
       snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s reserved=%d",
@@ -409,6 +421,7 @@ void Director::loop() {
   ping_onewire_action.loop();
   tick_action.loop();
   my_channel.loop();
+  AsyncExecutor::loop();
 
   if (rx.pending()) {
     onewire::OneCommand cmd;
@@ -433,6 +446,10 @@ void Director::loop() {
           animation_controller_->set_ticks_for_performer(
               cmd.position.source_id, cmd.position.ticks0, cmd.position.ticks1);
       } break;
+
+      case CmdEnum::DIRECTOR_POSITION_ACK:
+        guid_position_ack++;
+        break;
 
       case CmdEnum::DIRECTOR_PING:
         ping_onewire_action.received(_performers);
@@ -505,10 +522,52 @@ void Director::loop() {
 }
 
 #endif
+class RequestPositionsAsync : public DelayAsync {
+  int current_position_ack;
+  Director *director;
+
+ public:
+  RequestPositionsAsync(Director *director)
+      : DelayAsync(1500),
+        current_position_ack(guid_position_ack),
+        director(director) {}
+
+  void request() {
+    LOGI(TAG, "RequestPositionsAsync: REQUEST");
+
+    auto message = channel::messages::request_positions();
+    my_channel.send(message);
+    delay(10);
+    transmit(onewire::OneCommand::director_position_ack(guid));
+  }
+
+  Async *first() override {
+    LOGI(TAG, "RequestPositionsAsync: FIRST");
+    request();
+    return this;
+  }
+
+  Async *update() override {
+    LOGI(TAG, "RequestPositionsAsync: UPDATE");
+    if (age_in_millis() > 10000) {
+      LOGI(TAG, "Took too long to obtain positions... killing async.");
+      return nullptr;
+    } else {
+      request();
+      return this;
+    }
+  }
+
+  Async *loop() override {
+    if (guid_position_ack == current_position_ack) {
+      return DelayAsync::loop();
+    }
+    return nullptr;
+  }
+};
 
 void Director::request_positions() {
-  auto message = channel::messages::request_positions();
-  my_channel.send(message);
+  AsyncExecutor::queue(new RequestPositionsAsync(this));
 }
 
 void Director::kill() {

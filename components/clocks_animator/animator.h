@@ -7,6 +7,7 @@ class Director;
 
 namespace animator24 {
 const char *const TAG = "animator";
+using clock24::Director;
 
 // NOTE: Random should be the last one
 namespace in_between {

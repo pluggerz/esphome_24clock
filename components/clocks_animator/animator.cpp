@@ -3,12 +3,15 @@
 #include <set>
 
 #include "../clocks_director/director.h"
+#include "../clocks_shared/async.h"
 #include "../clocks_shared/channel.h"
 #include "../clocks_shared/channel.interop.h"
 #include "handles.h"
 #include "helpers.h"
 #include "transmitter.h"
 
+using async::Async;
+using async::AsyncExecutor;
 using channel::Message;
 using channel::MsgEnum;
 using channel::messages::UartEndKeysMessage;
@@ -109,34 +112,6 @@ void copyTo(const ClockCharacters &chars, HandlesState &state) {
   // state.debug();
 }
 
-/*
-struct AnimationSettings {
-  in_between::Enum in_between_mode = in_between::Random;
-  handles_animation::Enum handles_mode = handles_animation::Random;
-  handles_distance::Enum distance_mode = handles_distance::RANDOM;
-
-  int get_speed() const { return 12; }
-
-  void set_handles_distance_mode(handles_distance::Enum value) {
-    distance_mode = value;
-  }
-  handles_distance::Enum get_handles_distance_mode() const {
-    return distance_mode;
-  }
-
-  void set_handles_animation_mode(handles_animation::Enum value) {
-    handles_mode = value;
-  }
-  handles_animation::Enum get_handles_animation_mode() const {
-    return handles_mode;
-  }
-
-  void set_in_between_animation_mode(in_between::Enum value) {
-    in_between_mode = value;
-  }
-  in_between::Enum get_in_between_animation() const { return in_between_mode; }
-};*/
-
 void send_text(const AnimationSettings &settings, BufferChannel *channel,
                AnimationController *controller, const Text &text) {
   LOGI(TAG, "do_track_time -> follow up: [%c %c %c %c]", text.ch0, text.ch1,
@@ -186,10 +161,28 @@ void send_text(const AnimationSettings &settings, BufferChannel *channel,
       .sendInstructions(instructions, millis_left);
 }
 
-void ClocksAnimator::request_time_change(int hours, int minutes) {
-  ESP_LOGW(TAG, "request_positions %d:%d", hours, minutes);
+class TimeChangeAsyncRequest : public Async {
+  const int minutes;
+  const int hours;
+  ClocksAnimator *animator;
 
-  send_text(*this, director->get_channel(),
-            director->get_animation_controller(),
-            Text::from_time(hours, minutes));
+ public:
+  TimeChangeAsyncRequest(ClocksAnimator *animator, int hours, int minutes)
+      : hours(hours), minutes(minutes), animator(animator) {}
+
+  Async *loop() override {
+    ESP_LOGW(TAG, "request_time_change %d:%d", hours, minutes);
+
+    auto director = animator->director;
+    send_text(*animator, director->get_channel(),
+              director->get_animation_controller(),
+              Text::from_time(hours, minutes));
+    return nullptr;
+  }
+};
+
+void ClocksAnimator::request_time_change(int hours, int minutes) {
+  ESP_LOGW(TAG, "request_time_change %d:%d", hours, minutes);
+  director->request_positions();
+  AsyncExecutor::queue(new TimeChangeAsyncRequest(this, hours, minutes));
 }

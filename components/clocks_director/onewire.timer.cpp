@@ -120,8 +120,8 @@ class FrequencyChecker {
       ticks++;
       return;
     }
-    transmit(
-        onewire::OneCommand::CheckPoint::for_info(ch, ticks / wait_in_seconds));
+    transmit(onewire::OneCommand::CheckPoint::for_debug(
+        ch, ticks / wait_in_seconds));
     ticks = 0;
     start = now;
   }

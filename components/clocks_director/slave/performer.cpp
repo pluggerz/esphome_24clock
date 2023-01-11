@@ -227,8 +227,31 @@ void setup_steppers() {
   delay(10);
 }
 
+void calibrate_steppers() {
+  int speed = 10;
+  stepper0.set_speed_in_revs_per_minute(speed);
+  stepper1.set_speed_in_revs_per_minute(speed);
+  while (!stepper0.find_magnet_tick() || !stepper1.find_magnet_tick()) {
+  }
+  for (int idx = 0; idx < 240; ++idx) {
+    stepper0.step(-1);
+    stepper1.step(-1);
+  }
+
+  stepper0.set_speed_in_revs_per_minute(speed);
+  stepper1.set_speed_in_revs_per_minute(speed);
+  while (!stepper0.find_magnet_tick() || !stepper1.find_magnet_tick()) {
+  }
+  for (int idx = 0; idx < 240; ++idx) {
+    stepper0.step(-1);
+    stepper1.step(-1);
+  }
+  StepExecutors::setup(stepper0, stepper1);
+}
+
 void setup() {
   setup_steppers();
+  calibrate_steppers();
 
   pinMode(SLAVE_RS485_TXD_DPIN, OUTPUT);
   pinMode(SLAVE_RS485_RXD_DPIN, INPUT);
@@ -269,26 +292,6 @@ void setup() {
 
 #if MODE >= MODE_ONEWIRE_INTERACT
   set_action(&reset_action);
-
-  int speed = 10;
-  stepper0.set_speed_in_revs_per_minute(speed);
-  stepper1.set_speed_in_revs_per_minute(speed);
-  while (!stepper0.find_magnet_tick() || !stepper1.find_magnet_tick()) {
-  }
-  for (int idx = 0; idx < 240; ++idx) {
-    stepper0.step(-1);
-    stepper1.step(-1);
-  }
-
-  stepper0.set_speed_in_revs_per_minute(speed);
-  stepper1.set_speed_in_revs_per_minute(speed);
-  while (!stepper0.find_magnet_tick() || !stepper1.find_magnet_tick()) {
-  }
-  for (int idx = 0; idx < 240; ++idx) {
-    stepper0.step(-1);
-    stepper1.step(-1);
-  }
-  StepExecutors::setup(stepper0, stepper1);
 
   lighting::current->start();
 #endif

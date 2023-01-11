@@ -8,64 +8,46 @@ button:
    name: '00:01'
    on_press:
     - then: 
-        - lambda: id(director).request_positions();
-        - delay: 3s 
         - lambda: id(animator).request_time_change(0, 1);
  - platform: template
    name: '00:02'
    on_press:
     - then: 
-        - lambda: id(director).request_positions();
-        - delay: 3s             
         - lambda: id(animator).request_time_change(0, 2);
  - platform: template
    name: '00:03'
    on_press:
     - then: 
-        - lambda: id(director).request_positions();
-        - delay: 3s             
         - lambda: id(animator).request_time_change(0, 3);
  - platform: template
    name: '00:04'
    on_press:
     - then: 
-        - lambda: id(director).request_positions();
-        - delay: 3s             
         - lambda: id(animator).request_time_change(0, 4);
  - platform: template
    name: '00:05'
    on_press:
     - then: 
-        - lambda: id(director).request_positions();
-        - delay: 3s             
         - lambda: id(animator).request_time_change(0, 5);
  - platform: template
    name: '00:06'
    on_press:
     - then: 
-        - lambda: id(director).request_positions();
-        - delay: 3s             
         - lambda: id(animator).request_time_change(0, 6);
  - platform: template
    name: '00:07'
    on_press:
     - then: 
-        - lambda: id(director).request_positions();
-        - delay: 3s             
         - lambda: id(animator).request_time_change(0, 7);
  - platform: template
    name: '00:08'
    on_press:
     - then: 
-        - lambda: id(director).request_positions();
-        - delay: 3s             
         - lambda: id(animator).request_time_change(0, 8);
  - platform: template
    name: '00:09'
    on_press:
     - then: 
-        - lambda: id(director).request_positions();
-        - delay: 3s             
         - lambda: id(animator).request_time_change(0, 9);
  - platform: template
    name: 'Dump config'
