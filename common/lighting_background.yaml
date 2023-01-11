@@ -49,3 +49,14 @@ light:
     green: green_id
     blue: blue_id
     restore_mode: RESTORE_DEFAULT_ON
+# actually a hack to make sure the brighness is always 100%
+interval:
+  - interval: 500ms
+    then: 
+     - if:
+         condition:
+          lambda: return id(clock24_background_solid_light).remote_values.get_brightness() < 0.98;
+         then:
+            - light.turn_on:
+               id: clock24_background_solid_light
+               brightness: 100%   
