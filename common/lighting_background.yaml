@@ -44,7 +44,7 @@ output:
 light:
   - platform: rgb
     name: "Background Solid Color"
-    id: oclock_light
+    id: clock24_background_solid_light
     red: red_id
     green: green_id
     blue: blue_id
