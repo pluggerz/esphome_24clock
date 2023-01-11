@@ -12,6 +12,10 @@ select:
     initial_option: Random
     set_action:
       lambda:  id(animator).pick(static_cast<animator24::handles_animation::Enum>(id(handles_animation_select).index_of(x).value_or(0)));
+esphome:
+  on_boot:
+    then:
+      - lambda: id(animator).pick(static_cast<animator24::handles_animation::Enum>(id(handles_animation_select).active_index().value_or(0)));
 switch:
   - platform: template
     name: "Handles Animation: Swipe"
