@@ -38,7 +38,7 @@ const char *const TAG = "1wireTimer";
 #else
 
 #endif
-
+void follow_change();
 MOVE2RAM void follow_change() {
   const bool state = PIN_READ(SYNC_IN_PIN);
 #if MODE == MODE_ONEWIRE_PASSTROUGH
@@ -67,6 +67,7 @@ constexpr bool aligning = false;
 volatile bool aligning = false;
 #endif
 
+void TxTimerHandler();
 void MOVE2RAM TxTimerHandler() {
   if (tx_rx_cycle & 1) {
     auto tx = OnewireInterrupt::tx;
@@ -199,7 +200,9 @@ void OnewireInterrupt::attach() {
   OCR1A = double(16000000L) / double(FREQ) / 8 - 1;
 
   // TIMER2
-  // turn on CTC mode
+  // double check:
+  // https://microcontrollerslab.com/arduino-timer-interrupts-tutorial/ turn on
+  // CTC mode
   TCCR2A = 0;  // set entire TCCR2A register to 0
   TCCR2B = 0;  // same for TCCR2B
   TCCR2A |= (1 << WGM21);

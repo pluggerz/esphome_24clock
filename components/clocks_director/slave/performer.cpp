@@ -1,5 +1,6 @@
 #include "../clocks_shared/channel.h"
 #include "../clocks_shared/channel.interop.h"
+#include "../clocks_shared/lighting.h"
 #include "../clocks_shared/onewire.interop.h"
 #include "../clocks_shared/onewire.rx.h"
 #include "../clocks_shared/onewire.tx.h"
@@ -9,7 +10,6 @@
 #include "keys.executor.h"
 #include "leds.background.h"
 #include "leds.h"
-#include "lighting.h"
 #include "stepper.h"
 
 using channel::ChannelInterop;
@@ -352,8 +352,12 @@ void execute_settings(const channel::messages::StepperSettings *settings) {
   Leds::blink(LedColors::purple, 1 + ChannelInterop::id);
 }
 
+lighting::LightingMode current_lighting_mode = -1;
+
 void process_lighting(channel::messages::LightingMode *msg) {
   auto mode = msg->mode;
+  Leds::set_brightness(msg->brightness);
+
   switch (mode) {
     case lighting::WarmWhiteShimmer:
     case lighting::RandomColorWalk:
@@ -362,11 +366,15 @@ void process_lighting(channel::messages::LightingMode *msg) {
     case lighting::Gradient:
     case lighting::BrightTwinkle:
     case lighting::Collision:
+      if (mode == current_lighting_mode) return;
+
       lighting::current = &lighting::xmas;
       lighting::xmas.setPattern(mode);
       transmit(onewire::OneCommand::CheckPoint::for_info('l', 1));
       break;
     case lighting::Rainbow:
+      if (mode == current_lighting_mode) return;
+
       lighting::current = &lighting::rainbow;
       transmit(onewire::OneCommand::CheckPoint::for_info('l', 2));
       break;
