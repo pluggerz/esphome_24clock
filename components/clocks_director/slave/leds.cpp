@@ -4,6 +4,8 @@
 #include "leds.background.h"
 #include "leds.foreground.h"
 
+uint8_t default_brightness = 31;
+
 using BackgroundLedAnimations::Debug;
 
 BackgroundLedAnimations::Xmas lighting::xmas;
@@ -43,13 +45,18 @@ void Debug::combine(RgbLeds &result) const {
   dirty = false;
 }
 
+void Leds::set_brightness(uint8_t brightness) {
+  default_brightness = brightness;
+}
+
 void BackgroundLayer::publish() {
   combine(colors);
 
   // TODO: move to better place
   current_foreground_layer->update(millis());
-  BrightnessLeds brightness = {31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31};
+  BrightnessLeds brightness;
   for (uint8_t idx = 0; idx < LED_COUNT; idx++) {
+    brightness[idx] = default_brightness;
     ForegroundLayer::colors[idx] = BackgroundLayer::colors[idx];
   }
   current_foreground_layer->combine(ForegroundLayer::colors, brightness);

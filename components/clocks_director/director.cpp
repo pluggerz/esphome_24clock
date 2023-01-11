@@ -14,7 +14,6 @@ esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 #include "../clocks_shared/pins.h"
 #include "animation.h"
 #include "director.h"
-#include "lighting.h"
 
 using channel::ChannelInterop;
 using onewire::CmdEnum;
@@ -139,8 +138,6 @@ void Director::dump_config() {
   my_channel.dump_config();
   onewire::OnewireInterrupt::dump_config();
   if (this->animation_controller_) this->animation_controller_->dump_config();
-  if (this->get_lighting_controller())
-    this->get_lighting_controller()->dump_config();
 }
 
 class WireSender {
@@ -273,9 +270,6 @@ class TestOnewireAction : public IntervalAction {
 } test_onewire_action;
 
 void Director::setup() {
-  lighting_controller = new lighting::Controller();
-  lighting_controller->set_director(this);
-
   LOGI(TAG, "Master: setup!");
   this->animation_controller_ = new AnimationController();
   for (int performer_id = 0; performer_id < NMBR_OF_PERFORMERS;
@@ -497,7 +491,8 @@ void Director::loop() {
                 settings.stepper1.offset);
             my_channel.send(message);
 
-            this->get_lighting_controller()->on_performer_online();
+            on_attach();
+            // this->get_lighting_controller()->on_performer_online();
           }
         }
       } break;

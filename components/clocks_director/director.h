@@ -1,6 +1,7 @@
-#include "../clocks_shared/stub.h"
-#if defined(MASTER) && !defined(MASTER_H)
-#define MASTER_H
+#pragma once
+
+#ifdef ESP8266
+#include <vector>
 
 #include "../clocks_shared/channel.h"
 #include "../clocks_shared/onewire.interop.h"
@@ -8,10 +9,6 @@
 #include "esphome/core/component.h"
 
 class AnimationController;
-
-namespace lighting {
-class Controller;
-};
 
 namespace clock24 {
 class Stepper {
@@ -32,6 +29,11 @@ class Performer {
   }
 };
 
+class AttachListener {
+ public:
+  virtual void on_attach() = 0;
+};
+
 class Director : public esphome::Component {
  private:
   bool dumped = false;
@@ -39,10 +41,10 @@ class Director : public esphome::Component {
   bool _killed = false;
   Performer performers[NMBR_OF_PERFORMERS];
   int baudrate = 0;
+  std::vector<AttachListener *> listeners;
 
  protected:
   AnimationController *animation_controller_ = nullptr;
-  lighting::Controller *lighting_controller = nullptr;
 
   virtual void setup() override;
   virtual void loop() override;
@@ -51,6 +53,12 @@ class Director : public esphome::Component {
   Director();
 
   Performer &performer(int idx) { return performers[idx]; }
+
+  void add_listener(AttachListener *listener) { listeners.push_back(listener); }
+
+  void on_attach() {
+    for (auto listener : listeners) listener->on_attach();
+  }
 
   void kill();
   virtual void dump_config() override;
@@ -62,10 +70,6 @@ class Director : public esphome::Component {
   rs485::BufferChannel *get_channel();
   AnimationController *get_animation_controller() {
     return animation_controller_;
-  }
-
-  lighting::Controller *get_lighting_controller() {
-    return lighting_controller;
   }
 };
 

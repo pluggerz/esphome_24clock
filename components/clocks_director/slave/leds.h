@@ -31,6 +31,8 @@ void error(int leds);
 void set_ex(uint8_t led, const rgb_color &color);
 void set_all_ex(const rgb_color &color);
 
+void set_brightness(uint8_t brightness);
+
 void publish();
 };  // namespace Leds
 

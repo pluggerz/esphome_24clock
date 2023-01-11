@@ -41,6 +41,11 @@ output:
     type: float
     write_action:
       - lambda: id(lighting_controller)->set_solid_blue(state);
+  - platform: template
+    id: brightness_id
+    type: float
+    write_action:
+      - lambda: id(lighting_controller)->set_brightness(state);
 light:
   - platform: rgb
     name: "Background Solid Color"
@@ -49,7 +54,12 @@ light:
     green: green_id
     blue: blue_id
     restore_mode: RESTORE_DEFAULT_ON
-# actually a hack to make sure the brighness is always 100%
+  - platform: monochromatic
+    name: "Brightness"
+    id: brightness
+    output: brightness_id
+    restore_mode: RESTORE_DEFAULT_ON
+# actually a hack to make sure the brighness is always
 interval:
   - interval: 500ms
     then: 

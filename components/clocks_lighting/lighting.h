@@ -1,26 +1,9 @@
 #pragma once
 
-namespace lighting {
-enum LightingMode {
-  // NOTE, do not change the ids below!
-  WarmWhiteShimmer = 0,
-  RandomColorWalk = 1,
-  TraditionalColors = 2,
-  ColorExplosion = 3,
-  Gradient = 4,
-  BrightTwinkle = 5,
-  Collision = 6,
-  // NOTE, do not change the ids above!
-  Off = 7,
-  Solid = 8,
-  Rainbow = 9,
-  Debug = 10,
-};
-}
-
 #if defined(ESP8266)
 #include "../clocks_director/director.h"
 #include "../clocks_shared/channel.interop.h"
+#include "../clocks_shared/lighting.h"
 
 namespace lighting {
 const char *const TAG = "lighting";
@@ -48,7 +31,7 @@ class LightingController : public esphome::Component, public AttachListener {
     LOGI(TAG, "   mode: %d", mode);
   }
   void set_director(Director *director);
-  int red = 0, green = 0, blue = 0xFF;
+  int red = 0, green = 0, blue = 0xFF, brightness = 31;
 
   void pick(LightingMode mode) { use_mode(mode); }
 
@@ -60,7 +43,7 @@ class LightingController : public esphome::Component, public AttachListener {
     LOGI(TAG, "LightingMode: %d", mode);
     this->mode = mode;
     this->director->get_channel()->send(
-        channel::messages::LightingMode(mode, red, green, blue));
+        channel::messages::LightingMode(mode, red, green, blue, brightness));
   }
 
   void set_solid_red(float state) {
@@ -77,6 +60,11 @@ class LightingController : public esphome::Component, public AttachListener {
     LOGD(TAG, "set_solid_blue: %f", state);
     this->blue = 0xFF * state;
     update_solid();
+  }
+  void set_brightness(float state) {
+    LOGD(TAG, "set_brightness: %f", state);
+    this->brightness = 31 * state;
+    use_mode(this->mode);
   }
 };
 #endif
