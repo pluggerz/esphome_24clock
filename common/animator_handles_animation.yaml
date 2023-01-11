@@ -18,6 +18,7 @@ esphome:
       - lambda: id(animator).pick(static_cast<animator24::handles_animation::Enum>(id(handles_animation_select).active_index().value_or(0)));
 switch:
   - platform: template
+    entity_category: 'animator'
     name: "Handles Animation: Swipe"
     restore_state: true
     lambda: return id(animator).state(animator24::handles_animation::Swipe);
@@ -26,6 +27,7 @@ switch:
     turn_off_action:
       - lambda: id(animator).turn_off(animator24::handles_animation::Swipe);
   - platform: template
+    entity_category: 'animator'
     name: "Handles Animation: Distance"
     restore_state: true
     lambda: return id(animator).state(animator24::handles_animation::Distance);
