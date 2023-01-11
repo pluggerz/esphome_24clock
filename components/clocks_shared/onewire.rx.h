@@ -86,7 +86,7 @@ class RxOnewire : public onewire::Rx {
           _rx_bit++;
         else if (current && !last) {  // actual end symbol
           _rx_bit = MAX_DATA_BITS + 2;
-          ESP_LOGV(TAG, "receive:  Possible END");
+          ESP_LOGVV(TAG, "receive:  Possible END");
         } else {
           // invalid state!
           ESP_LOGW(TAG, "receive:  INVALID !?");
@@ -95,8 +95,8 @@ class RxOnewire : public onewire::Rx {
         return;
       } else {
         if (current) _rx_value |= onewire::Value(1) << onewire::Value(_rx_bit);
-        ESP_LOGV(TAG, "receive:  DATAF: %s @%d (%d)", current ? "HIGH" : "LOW",
-                 _rx_bit, _rx_value);
+        ESP_LOGVV(TAG, "receive:  DATAF: %s @%d (%d)", current ? "HIGH" : "LOW",
+                  _rx_bit, _rx_value);
         _rx_nibble = true;
         return;
       }
@@ -136,11 +136,11 @@ class RxOnewire : public onewire::Rx {
         if (_rx_nibble) {
           if (current) {
             // snipz... reset
-            ESP_LOGV(TAG, "RESET!");
+            ESP_LOGVV(TAG, "RESET!");
             reset_interrupt();
             return;
           }
-          ESP_LOGV(TAG, "receive:  START DETECTED");
+          ESP_LOGVV(TAG, "receive:  START DETECTED");
           _rx_bit = 0;
           _rx_nibble = false;
           _rx_value = 0;
@@ -153,7 +153,7 @@ class RxOnewire : public onewire::Rx {
         return;
 
       default:
-        ESP_LOGV(TAG, "receive:  UNKNOWN STATE!?");
+        ESP_LOGVV(TAG, "receive:  UNKNOWN STATE!?");
         reset_interrupt();
     }
   }

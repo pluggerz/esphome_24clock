@@ -45,8 +45,8 @@ class RawTxOnewire : public Tx {
     if (_tx_bit < 0) {
       bool bit = _tx_bit != -1;
       write(bit);
-      ESP_LOGV(TAG, "transmit: START %s tx_value=%d, tx_bit=%d)",
-               bit ? "HIGH" : "LOW ", _tx_value, _tx_bit);
+      ESP_LOGVV(TAG, "transmit: START %s tx_value=%d, tx_bit=%d)",
+                bit ? "HIGH" : "LOW ", _tx_value, _tx_bit);
       _tx_bit++;
       return;
     }
@@ -61,7 +61,7 @@ class RawTxOnewire : public Tx {
         _tx_transmitted_value |= mask;
         _tx_remainder_value -= mask;
       }
-      ESP_LOGV(
+      ESP_LOGVV(
           TAG,
           "transmit: DATA%s %s tx_value=%d, _tx_transmitted=%d, tx_bit=%d)",
           _tx_nibble ? "S" : "F", written ? "HIGH" : "LOW ", _tx_value,
@@ -75,26 +75,26 @@ class RawTxOnewire : public Tx {
     }
 
     if (_tx_bit == MAX_DATA_BITS) {
-      ESP_LOGV(TAG, "transmit: END1  LOW  tx_value=%d, tx_bit=%d)", _tx_value,
-               _tx_bit);
+      ESP_LOGVV(TAG, "transmit: END1  LOW  tx_value=%d, tx_bit=%d)", _tx_value,
+                _tx_bit);
 
       write(false);
       _tx_bit++;
     } else if (_tx_bit == MAX_DATA_BITS + 1) {
-      ESP_LOGV(TAG, "transmit: END2  HIGH tx_value=%d, tx_bit=%d)", _tx_value,
-               _tx_bit);
+      ESP_LOGVV(TAG, "transmit: END2  HIGH tx_value=%d, tx_bit=%d)", _tx_value,
+                _tx_bit);
       write(true);
 
       _tx_bit++;
     } else if (_tx_bit == MAX_DATA_BITS + 2) {
-      ESP_LOGV(TAG, "transmit: END3  LOW tx_value=%d, tx_bit=%d)", _tx_value,
-               _tx_bit);
+      ESP_LOGVV(TAG, "transmit: END3  LOW tx_value=%d, tx_bit=%d)", _tx_value,
+                _tx_bit);
       write(false);
 
       _tx_bit++;
     } else if (_tx_bit == MAX_DATA_BITS + 3) {
-      ESP_LOGV(TAG, "transmit: FINAL tx_value=%d, tx_bit=%d)", _tx_value,
-               _tx_bit);
+      ESP_LOGVV(TAG, "transmit: FINAL tx_value=%d, tx_bit=%d)", _tx_value,
+                _tx_bit);
       ESP_LOGD(TAG, "transmit: END tx_value=%d", _tx_value);
       _tx_bit = LAST_TX_BIT;
     }
@@ -151,8 +151,8 @@ class RawTxOnewire : public Tx {
                _tx_value, value);
     }
     ESP_LOGD(TAG, "transmit: START tx_value=%d", _tx_value);
-    ESP_LOGV(TAG, "transmit: START HIGH tx_value=%d, tx_bit=%d)", _tx_value,
-             _tx_bit);
+    ESP_LOGVV(TAG, "transmit: START HIGH tx_value=%d, tx_bit=%d)", _tx_value,
+              _tx_bit);
     // OnewireInterrupt::enableTimer();
   }
 
