@@ -17,7 +17,7 @@ select:
 esphome:
   on_boot:
     then:
-      - lambda: id(animator).pick(static_cast<animator24::handles_distance::Enum>(id(handles_distance_select).active_index(x).value_or(0)));
+      - lambda: id(animator).pick(static_cast<animator24::handles_distance::Enum>(id(handles_distance_select).active_index().value_or(0)));
 switch:
   - platform: template
     name: "Distance: SHORTEST"
