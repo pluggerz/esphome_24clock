@@ -38,7 +38,7 @@ const char *const TAG = "1wireTimer";
 #else
 
 #endif
-void follow_change();
+
 MOVE2RAM void follow_change() {
   const bool state = PIN_READ(SYNC_IN_PIN);
 #if MODE == MODE_ONEWIRE_PASSTROUGH
