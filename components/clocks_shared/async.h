@@ -3,6 +3,9 @@
 #ifdef ESP8266
 #include <deque>
 
+#include "../clocks_shared/onewire.interop.h"
+#include "../clocks_shared/shared.types.h"
+
 namespace async {
 const char* const TAG = "async";
 
@@ -24,22 +27,8 @@ class DelayAsync : public Async {
   const Millis delay_in_millis;
 
  protected:
-  virtual Async* loop() {
-    if (this->t0 == 0L) {
-      this->t0 = this->t1 = millis();
-      return first();
-    }
-    Millis now = millis();
-    if (now - this->t1 < this->delay_in_millis) {
-      return this;
-    }
-    this->t1 = now;
-    return update();
-  };
-
-  Millis age_in_millis() const {
-    return this->t0 == 0L ? 0 : millis() - this->t0;
-  }
+  virtual Async* loop();
+  Millis age_in_millis() const;
   virtual Async* first() = 0;
   virtual Async* update() = 0;
 
@@ -48,36 +37,11 @@ class DelayAsync : public Async {
 };
 
 class AsyncExecutor {
-  static std::deque<Async*> deque;
+  std::deque<Async*> deque;
 
  public:
-  static void queue(Async* async) {
-    LOGI(TAG, "Push to back: %d", async);
-    deque.push_back(async);
-  }
-  static void loop() {
-    if (deque.empty()) return;
-
-    Async* front = deque.front();
-    Async* next = front->loop();
-    if (front == next) {
-      return;
-    }
-
-    LOGI(TAG, "Deleting async: %d", front);
-    delete front;
-    if (next) {
-      LOGI(TAG, "Replace front with %d", next);
-      deque[0] = next;
-    } else {
-      LOGI(TAG, "Popping %d from front", front);
-      next = deque.front();
-      deque.pop_front();
-      if (next != front) {
-        LOGI(TAG, "Popped value %d is not equal to front %d", next, front);
-      }
-    }
-  }
-};
+  void queue(Async* async);
+  void loop();
+} static async_executor;
 }  // namespace async
 #endif

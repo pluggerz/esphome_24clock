@@ -11,7 +11,7 @@
 #include "transmitter.h"
 
 using async::Async;
-using async::AsyncExecutor;
+using async::async_executor;
 using channel::Message;
 using channel::MsgEnum;
 using channel::messages::UartEndKeysMessage;
@@ -184,5 +184,5 @@ class TimeChangeAsyncRequest : public Async {
 void ClocksAnimator::request_time_change(int hours, int minutes) {
   ESP_LOGW(TAG, "request_time_change %d:%d", hours, minutes);
   director->request_positions();
-  AsyncExecutor::queue(new TimeChangeAsyncRequest(this, hours, minutes));
+  async_executor.queue(new TimeChangeAsyncRequest(this, hours, minutes));
 }

@@ -17,13 +17,12 @@ esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 #include "director.h"
 
 using async::Async;
-using async::AsyncExecutor;
+using async::async_executor;
 using async::DelayAsync;
 using channel::ChannelInterop;
 using onewire::CmdEnum;
 using rs485::BufferChannel;
 
-std::deque<Async *> AsyncExecutor::deque;
 uint8_t ChannelInterop::id = ChannelInterop::DIRECTOR;
 int guid = rand();
 
@@ -421,7 +420,7 @@ void Director::loop() {
   ping_onewire_action.loop();
   tick_action.loop();
   my_channel.loop();
-  AsyncExecutor::loop();
+  async_executor.loop();
 
   if (rx.pending()) {
     onewire::OneCommand cmd;
@@ -567,7 +566,7 @@ class RequestPositionsAsync : public DelayAsync {
 };
 
 void Director::request_positions() {
-  AsyncExecutor::queue(new RequestPositionsAsync(this));
+  async_executor.queue(new RequestPositionsAsync(this));
 }
 
 void Director::kill() {

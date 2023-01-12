@@ -13,10 +13,3 @@
 #include "../clocks_shared/onewire.interop.h"
 
 void transmit(const onewire::OneCommand &value);
-
-#define ESP_LOGVV(...)
-#define ESP_LOGV(...)
-#define ESP_LOGD(...)
-#define LOGI(...)
-#define ESP_LOGW(...)
-#define ESP_LOGE(...)

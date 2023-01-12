@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../clocks_shared/shared.types.h"
+
 #define MODE_ONEWIRE_PASSTROUGH 1
 #define MODE_ONEWIRE_MIRROR 2
 #define MODE_ONEWIRE_VALUE 3
@@ -13,9 +15,6 @@
 #define MODE_ONEWIRE_INTERACT 7
 
 #define MODE MODE_ONEWIRE_INTERACT
-
-typedef unsigned long Micros;
-typedef unsigned long Millis;
 
 constexpr int NMBR_OF_PERFORMERS = 24;
 
@@ -73,3 +72,5 @@ class IntervalAction : public Action {
     }
   }
 };
+
+#include "../clocks_shared/log.h"
