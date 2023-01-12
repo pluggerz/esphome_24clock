@@ -157,5 +157,6 @@ class BufferChannel : public Channel {
   void send(const M &m) {
     _send(m);
   }
+  void raw_send(const byte *bytes, const byte length) { _send(bytes, length); }
 };
 }  // namespace rs485

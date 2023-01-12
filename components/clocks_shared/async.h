@@ -29,7 +29,7 @@ class DelayAsync : public Async {
  protected:
   virtual Async* loop();
   Millis age_in_millis() const;
-  virtual Async* first() = 0;
+  virtual Async* first() { return update(); }
   virtual Async* update() = 0;
 
  public:

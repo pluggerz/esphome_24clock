@@ -2,12 +2,13 @@
 
 #if defined(ESP8266)
 #include "../clocks_director/director.h"
-#include "../clocks_shared/channel.interop.h"
+#include "../clocks_shared/async.interop.h"
 #include "../clocks_shared/lighting.h"
 
 namespace lighting {
 const char *const TAG = "lighting";
 
+using async::async_interop;
 using clock24::AttachListener;
 using clock24::Director;
 
@@ -42,7 +43,7 @@ class LightingController : public esphome::Component, public AttachListener {
     }
     LOGI(TAG, "LightingMode: %d", mode);
     this->mode = mode;
-    this->director->get_channel()->send(
+    async_interop.queue_message(
         channel::messages::LightingMode(mode, red, green, blue, brightness));
   }
 

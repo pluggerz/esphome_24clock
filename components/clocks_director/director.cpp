@@ -8,6 +8,7 @@
 esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 
 #include "../clocks_shared/async.h"
+#include "../clocks_shared/async.interop.h"
 #include "../clocks_shared/channel.h"
 #include "../clocks_shared/channel.interop.h"
 #include "../clocks_shared/onewire.rx.h"
@@ -18,6 +19,7 @@ esphome::HighFrequencyLoopRequester highFrequencyLoopRequester;
 
 using async::Async;
 using async::async_executor;
+using async::async_interop;
 using async::DelayAsync;
 using channel::ChannelInterop;
 using onewire::CmdEnum;
@@ -281,6 +283,9 @@ class TestOnewireAction : public IntervalAction {
 } test_onewire_action;
 
 void Director::setup() {
+  async_interop.set_channel(this->get_channel());
+  async_interop.set_tx_onewire(&tx);
+
   LOGI(TAG, "Master: setup!");
   this->animation_controller_ = new AnimationController();
   for (int performer_id = 0; performer_id < NMBR_OF_PERFORMERS;
@@ -521,6 +526,7 @@ void Director::loop() {
 }
 
 #endif
+
 class RequestPositionsAsync : public DelayAsync {
   int current_position_ack;
   Director *director;

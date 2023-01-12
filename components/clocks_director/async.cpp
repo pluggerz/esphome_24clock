@@ -1,3 +1,5 @@
+#ifdef ESP8266
+
 #include "../clocks_shared/async.h"
 
 #include "../clocks_shared/log.h"
@@ -53,3 +55,4 @@ void AsyncExecutor::loop() {
     }
   }
 }
+#endif
