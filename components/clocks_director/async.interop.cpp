@@ -37,11 +37,6 @@ class CommandAsyncRequest : public Async {
 void AsyncInterop::queue_async(Async *action) { async_executor.queue(action); }
 
 void AsyncInterop::queue_command(const Value &command) {
-  /*if (tx_onewire == nullptr) {
-    LOGE(TAG, "Unable to queue, because tx not set!");
-    return;
-  }
-  tx_onewire->transmit(command);*/
   queue_async(new CommandAsyncRequest(this->get_tx_onewire(), command));
 }
 

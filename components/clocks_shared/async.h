@@ -42,6 +42,6 @@ class AsyncExecutor {
  public:
   void queue(Async* async);
   void loop();
-} static async_executor;
+} extern async_executor;
 }  // namespace async
 #endif

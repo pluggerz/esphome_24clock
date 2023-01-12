@@ -251,7 +251,6 @@ void calibrate_steppers() {
 
 void setup() {
   setup_steppers();
-  calibrate_steppers();
 
   pinMode(SLAVE_RS485_TXD_DPIN, OUTPUT);
   pinMode(SLAVE_RS485_RXD_DPIN, INPUT);
@@ -295,6 +294,7 @@ void setup() {
 
   lighting::current->start();
 #endif
+  calibrate_steppers();
 }
 
 LoopFunction current = reset_mode;
