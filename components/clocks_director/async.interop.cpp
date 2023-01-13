@@ -23,13 +23,39 @@ class CommandAsyncRequest : public Async {
 
   Async *loop() override {
     if (tx_onewire == nullptr) {
-      LOGE(TAG, "Unable to queue, because tx not set!");
+      LOGE(TAG, "Unable to queue, because tx is not set!");
       return nullptr;
     }
     if (!tx_onewire->transmitted()) {
       return this;
     }
+    LOGE(TAG, "Command transmitted!");
     tx_onewire->transmit(command);
+    return nullptr;
+  }
+};
+
+class MessageAsyncRequest : public Async {
+  BufferChannel *channel;
+  int size;
+  byte *bytes;
+
+ public:
+  MessageAsyncRequest(BufferChannel *channel, const byte *msg_bytes, int size)
+      : channel(channel), size(size) {
+    this->bytes = new byte[size];
+    memcpy(this->bytes, msg_bytes, size);
+  }
+
+  ~MessageAsyncRequest() { delete[] this->bytes; }
+
+  Async *loop() override {
+    if (channel == nullptr) {
+      LOGE(TAG, "Unable to queue, because channel is not set!");
+      return nullptr;
+    }
+    LOGE(TAG, "Message transmitted!");
+    channel->raw_send(bytes, size);
     return nullptr;
   }
 };
@@ -45,7 +71,8 @@ void AsyncInterop::queue_raw_message(const byte *bytes, int length) {
     LOGE(TAG, "Unable to queue, because tx not set!");
     return;
   }
-  channel->raw_send(bytes, length);
+  // channel->raw_send(bytes, length);
+  queue_async(new MessageAsyncRequest(this->get_channel(), bytes, length));
 }
 
 #endif

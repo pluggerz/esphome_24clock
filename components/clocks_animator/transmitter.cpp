@@ -2,12 +2,14 @@
 
 #include <set>
 
+#include "../clocks_shared/async.interop.h"
 #include "../clocks_shared/channel.interop.h"
 
 const char *const TAG = "transmitter";
 
 using namespace transmitter;
 
+using async::async_interop;
 using channel::Message;
 using channel::MsgEnum;
 using channel::messages::UartEndKeysMessage;
@@ -55,7 +57,8 @@ void Transmitter::sendCommandsForHandle(
       LOGI(TAG, "  done");
     }
   }
-  channel->send(msg);
+
+  async_interop.queue_message(msg);
 }
 
 void Transmitter::sendCommands(std::vector<HandleCmd> &cmds) {
@@ -122,14 +125,14 @@ void Transmitter::sendInstructions(Instructions &instructions, u32 millisLeft) {
   updateSpeeds(instructions);
 
   // lets start transmitting
-  channel->send(Message(-1, MsgEnum::MSG_BEGIN_KEYS));
+  async_interop.queue_message(Message(-1, MsgEnum::MSG_BEGIN_KEYS));
 
   // send instructions
   sendCommands(instructions.cmds);
   instructions.dump();
 
   // finalize
-  channel->send(
+  async_interop.queue_message(
       UartEndKeysMessage(instructions.turn_speed, instructions.turn_steps,
                          cmdSpeedUtil.get_speeds(),
                          instructions.get_speed_detection(), millisLeft));

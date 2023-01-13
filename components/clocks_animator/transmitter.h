@@ -1,18 +1,15 @@
 #include "../clocks_director/animation.h"
 #include "../clocks_director/keys.h"
-#include "../clocks_shared/channel.h"
 
 namespace transmitter {
 using keys::DeflatedCmdKey;
-using rs485::BufferChannel;
 
 class Transmitter {
  public:
   AnimationController *animation_controller;
-  rs485::BufferChannel *channel;
 
-  Transmitter(AnimationController *animation_controller, BufferChannel *channel)
-      : animation_controller(animation_controller), channel(channel) {}
+  Transmitter(AnimationController *animation_controller)
+      : animation_controller(animation_controller) {}
 
   void sendCommandsForHandle(int animatorHandleId,
                              const std::vector<keys::DeflatedCmdKey> &commands);

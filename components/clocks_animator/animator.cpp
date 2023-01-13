@@ -112,7 +112,7 @@ void copyTo(const ClockCharacters &chars, HandlesState &state) {
   // state.debug();
 }
 
-void send_text(const AnimationSettings &settings, BufferChannel *channel,
+void send_text(const AnimationSettings &settings,
                AnimationController *controller, const Text &text) {
   LOGI(TAG, "do_track_time -> follow up: [%c %c %c %c]", text.ch0, text.ch1,
        text.ch2, text.ch3);
@@ -157,7 +157,7 @@ void send_text(const AnimationSettings &settings, BufferChannel *channel,
         instructions.follow_seconds(handle_id, true);
     });
 
-  transmitter::Transmitter(controller, channel)
+  transmitter::Transmitter(controller)
       .sendInstructions(instructions, millis_left);
 }
 
@@ -174,8 +174,7 @@ class TimeChangeAsyncRequest : public Async {
     ESP_LOGW(TAG, "request_time_change %d:%d", hours, minutes);
 
     auto director = animator->director;
-    send_text(*animator, director->get_channel(),
-              director->get_animation_controller(),
+    send_text(*animator, director->get_animation_controller(),
               Text::from_time(hours, minutes));
     return nullptr;
   }

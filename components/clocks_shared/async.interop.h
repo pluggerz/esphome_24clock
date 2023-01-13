@@ -6,6 +6,7 @@
 #include "onewire.h"
 
 namespace async {
+
 namespace interop {
 const char *const TAG = "async.interop";
 
