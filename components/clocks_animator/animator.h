@@ -1,3 +1,4 @@
+#include "../clocks_shared/log.h"
 #include "../clocks_shared/stub.h"
 #include "esphome/core/component.h"
 
