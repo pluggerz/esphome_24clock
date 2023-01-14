@@ -29,7 +29,7 @@ Millis DelayAsync::age_in_millis() const {
 //// AsyncExecutor
 
 void AsyncExecutor::queue(Async* async) {
-  LOGD(TAG, "Push to back: %d", async);
+  LOGV(TAG, "Push to back: %d", async);
   deque.push_back(async);
 }
 void AsyncExecutor::loop() {
@@ -41,13 +41,13 @@ void AsyncExecutor::loop() {
     return;
   }
 
-  LOGD(TAG, "Deleting async: %d", front);
+  LOGV(TAG, "Deleting async: %d", front);
   delete front;
   if (next) {
-    LOGD(TAG, "Replace front with %d", next);
+    LOGV(TAG, "Replace front with %d", next);
     deque[0] = next;
   } else {
-    LOGD(TAG, "Popping %d from front", front);
+    LOGV(TAG, "Popping %d from front", front);
     next = deque.front();
     deque.pop_front();
     if (next != front) {
