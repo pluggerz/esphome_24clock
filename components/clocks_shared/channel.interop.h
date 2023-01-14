@@ -11,7 +11,8 @@ enum MsgEnum {
   MSG_SEND_KEYS,
   MSG_END_KEYS,
   MSG_LIGTHING_MODE,
-  MSG_INDIVIDUAL_LEDS
+  MSG_INDIVIDUAL_LEDS_SET,
+  MSG_INDIVIDUAL_LEDS_SHOW
 };
 
 constexpr int MAX_UART_MESSAGE_SIZE = 32;
@@ -152,7 +153,7 @@ struct IndividualLeds : public Message {
   Rgb leds[12];
 
   IndividualLeds(int performer_id)
-      : Message(-1, MsgEnum::MSG_INDIVIDUAL_LEDS, performer_id) {}
+      : Message(-1, MsgEnum::MSG_INDIVIDUAL_LEDS_SET, performer_id) {}
 } __attribute__((packed, aligned(1)));
 
 }  // namespace messages

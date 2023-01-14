@@ -470,9 +470,13 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
       process_lighting(static_cast<channel::messages::LightingMode *>(msg));
       break;
 
-    case channel::MsgEnum::MSG_INDIVIDUAL_LEDS:
+    case channel::MsgEnum::MSG_INDIVIDUAL_LEDS_SET:
       process_individual_lighting(
           static_cast<channel::messages::IndividualLeds *>(msg));
+      break;
+
+    case channel::MsgEnum::MSG_INDIVIDUAL_LEDS_SHOW:
+      lighting::individual.show();
       break;
   }
 }

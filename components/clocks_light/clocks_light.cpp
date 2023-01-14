@@ -5,49 +5,40 @@
 #include "../clocks_shared/log.h"
 
 using namespace esphome::clocks_light;
+using channel::Message;
+using channel::MsgEnum;
 
-using async::Async;
-using async::DelayAsync;
-using async::OneshotAsync;
-
-class DelayedTransmitAsync : public DelayAsync {
-  ClocksLightOutput *owner;
-
- public:
-  DelayedTransmitAsync(ClocksLightOutput *owner)
-      : DelayAsync(20), owner(owner) {}
-
-  void execute() {
-    int leds_idx = 0;
-    for (int idx = 0; idx < 2; ++idx) {
-      channel::messages::IndividualLeds msg(idx);
-      for (int idx = 0; idx < 12; ++idx) {
-        auto &out = msg.leds[idx];
-        const auto &in = owner->leds[leds_idx++];
-        out.r = in.r;
-        out.g = in.g;
-        out.b = in.b;
-      }
-      async::async_interop.direct_message(msg);
+void ClocksLightOutput::transmit() {
+  int leds_idx = 0;
+  for (int idx = 0; idx < 2; ++idx) {
+    channel::messages::IndividualLeds msg(idx);
+    for (int idx = 0; idx < 12; ++idx) {
+      auto &out = msg.leds[idx];
+      const auto &in = this->leds[leds_idx++];
+      out.r = in.r;
+      out.g = in.g;
+      out.b = in.b;
     }
-    owner->in_queue = false;
-  }
 
-  virtual Async *update() override {
-    Millis now = millis();
-    if (now - owner->last_send_in_millis > 20) {
-      execute();
-      owner->last_send_in_millis = now;
-      return nullptr;
-    }
-    return this;
+    async::async_interop.direct_message(msg);
   }
-};
+  async::async_interop.direct_message(
+      Message(-1, MsgEnum::MSG_INDIVIDUAL_LEDS_SHOW));
+}
 
-void ClocksLightOutput::dump() {
-  if (this->in_queue) {
+void ClocksLightOutput::loop() {
+  AddressableLight::loop();
+
+  if (!this->dirty) {
     return;
   }
-  this->in_queue = true;
-  async::async_interop.queue_async(new DelayedTransmitAsync(this));
+
+  Millis now = millis();
+  if (now - this->last_send_in_millis > 20) {
+    transmit();
+    this->last_send_in_millis = now;
+    this->dirty = false;
+  }
 }
+
+void ClocksLightOutput::dump() { this->dirty = true; }

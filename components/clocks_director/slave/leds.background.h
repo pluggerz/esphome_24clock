@@ -13,6 +13,7 @@ class Individual;
 class BackgroundLayer {
  protected:
   static rgb_color colors[LED_COUNT];
+  static rgb_color buffer_colors[LED_COUNT];
 
  public:
   virtual void start(){};
@@ -55,10 +56,16 @@ class BackgroundLedAnimations::Individual : public BackgroundLayer {
   }
   virtual void combine(RgbLeds &result) const override {}
 
-  void set(int idx, const rgb_color &color) {
+  void show() {
+    for (int idx = 0; idx < LED_COUNT; ++idx) {
+      BackgroundLayer::colors[idx] = BackgroundLayer::buffer_colors[idx];
+    }
     dirty = true;
-    colors[idx] = color;
+
+    Leds::publish();
   }
+
+  void set(int idx, const rgb_color &color) { buffer_colors[idx] = color; }
 };
 
 class BackgroundLedAnimations::Debug : public BackgroundLayer {

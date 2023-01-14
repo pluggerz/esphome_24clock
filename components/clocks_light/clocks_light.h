@@ -11,11 +11,16 @@
 
 namespace esphome {
 namespace clocks_light {
-constexpr int TOTAL_LEDS = 24;
+using light::AddressableLight;
+
+constexpr int TOTAL_LEDS = 12 * 6 * 4;
 
 const char *const TAG = "clocks_light";
 
-class ClocksLightOutput : public light::AddressableLight {
+class ClocksLightOutput : public AddressableLight {
+ private:
+  void transmit();
+
   int32_t size() const override { return TOTAL_LEDS; }
 
   void clear_effect_data() override {
@@ -58,6 +63,8 @@ class ClocksLightOutput : public light::AddressableLight {
     dump();
   }
 
+  virtual void loop() override;
+
  public:
   void add_leds(int nmbr) {
     // ignored for now
@@ -69,7 +76,7 @@ class ClocksLightOutput : public light::AddressableLight {
 
  public:
   Color leds[TOTAL_LEDS];
-  bool in_queue = false;
+  bool dirty = false;
   Millis last_send_in_millis = 0L;
 };
 }  // namespace clocks_light

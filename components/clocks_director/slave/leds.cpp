@@ -35,7 +35,6 @@ rgb_color LedColors::black = rgb_color(0x00, 0x00, 0x00);
 // Create an object for writing to the LED strip.
 extern APA102<LED_DATA_PIN, LED_CLOCK_PIN> ledStrip;
 
-rgb_color BackgroundLayer::colors[LED_COUNT];
 
 bool Debug::update(Millis now) { return dirty; }
 

@@ -2,6 +2,7 @@
 
 #include "../clocks_shared/channel.h"
 
+#include "../clocks_shared/log.h"
 #include "../clocks_shared/stub.h"
 
 #ifdef ESP8266
@@ -260,7 +261,7 @@ using rs485::Protocol;
 Protocol *Protocol::create_default() { return &basic_protocol; }
 
 void Channel::_send(const byte *bytes, const byte length) {
-  ESP_LOGD(TAG, "Channel::_send(%d bytes)", length);
+  LOGV(TAG, "Channel::_send(%d bytes)", length);
   gate.start_transmitting();
   _protocol->sendMsg(bytes, length);
 }
