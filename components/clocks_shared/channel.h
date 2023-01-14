@@ -110,7 +110,7 @@ class Channel {
   }
 
  public:
-  bool ready() const;
+  bool bytes_available_for_write(int bytes) const;
 
   void start_receiving() {
     gate.start_receiving();

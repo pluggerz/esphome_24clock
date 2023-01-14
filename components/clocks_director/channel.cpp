@@ -268,7 +268,9 @@ void Channel::_send(const byte *bytes, const byte length) {
 
 Millis last_channel_process_ = 0;
 
-bool Channel::ready() const { return Serial.availableForWrite() > 32; }
+bool Channel::bytes_available_for_write(int bytes) const {
+  return Serial.availableForWrite() > bytes;
+}
 
 void Channel::loop() {
   if (_baudrate == 0) {
