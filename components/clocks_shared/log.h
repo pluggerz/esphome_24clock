@@ -17,10 +17,17 @@ using esphome::esp_log_printf_;
 #define LOGVV(tag, what, args, ...) esph_log_vv(tag, what DBGI, ##__VA_ARGS__)
 
 #else
+#define LOGVV(...)
+#define LOGV(...)
+#define LOGD(...)
+#define LOGI(...)
+#define LOGW(...)
+#define LOGE(...)
+
 #define ESP_LOGVV(...)
 #define ESP_LOGV(...)
 #define ESP_LOGD(...)
-#define LOGI(...)
+#define ESP_LOGI(...)
 #define ESP_LOGW(...)
 #define ESP_LOGE(...)
 #endif
