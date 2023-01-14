@@ -38,9 +38,11 @@ Director::Director() {}
 onewire::RxOnewire rx;
 onewire::TxOnewire tx;
 
+#define UART_BAUDRATE 115200  // 9600
+
 class DirectorChannel : public BufferChannel {
  public:
-  DirectorChannel() { baudrate(9600); }
+  DirectorChannel() { baudrate(UART_BAUDRATE); }
 
   virtual void process(const byte *bytes, const byte length) override {}
 } my_channel;

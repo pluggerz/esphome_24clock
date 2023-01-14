@@ -10,8 +10,8 @@ using channel::MsgEnum;
 
 void ClocksLightOutput::transmit() {
   int leds_idx = 0;
-  for (int idx = 0; idx < 2; ++idx) {
-    channel::messages::IndividualLeds msg(idx);
+  for (int performer_id = 0; performer_id < 24; ++performer_id) {
+    channel::messages::IndividualLeds msg(performer_id);
     for (int idx = 0; idx < 12; ++idx) {
       auto &out = msg.leds[idx];
       const auto &in = this->leds[leds_idx++];
@@ -20,9 +20,9 @@ void ClocksLightOutput::transmit() {
       out.b = in.b;
     }
 
-    async::async_interop.direct_message(msg);
+    async::async_interop.queue_message(msg);
   }
-  async::async_interop.direct_message(
+  async::async_interop.queue_message(
       Message(-1, MsgEnum::MSG_INDIVIDUAL_LEDS_SHOW));
 }
 

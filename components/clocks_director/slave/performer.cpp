@@ -178,6 +178,8 @@ void ResetAction::loop() {
         }
         transmit(cmd.forward());
         transmit_ticks();
+        transmit(onewire::OneCommand::CheckPoint::for_info(
+            '@', cmd.accept.baudrate));
         break;
 
       default:

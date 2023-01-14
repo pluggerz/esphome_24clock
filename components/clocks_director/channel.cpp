@@ -268,6 +268,8 @@ void Channel::_send(const byte *bytes, const byte length) {
 
 Millis last_channel_process_ = 0;
 
+bool Channel::ready() const { return Serial.availableForWrite() > 32; }
+
 void Channel::loop() {
   if (_baudrate == 0) {
 #ifdef DOLED

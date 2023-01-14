@@ -1,5 +1,7 @@
 #pragma once
 
+// #define USE_LED_BUFFER
+
 #include "leds.h"
 
 namespace BackgroundLedAnimations {
@@ -13,7 +15,9 @@ class Individual;
 class BackgroundLayer {
  protected:
   static rgb_color colors[LED_COUNT];
+#ifdef USE_LED_BUFFER
   static rgb_color buffer_colors[LED_COUNT];
+#endif
 
  public:
   virtual void start(){};
@@ -57,15 +61,24 @@ class BackgroundLedAnimations::Individual : public BackgroundLayer {
   virtual void combine(RgbLeds &result) const override {}
 
   void show() {
+#ifdef USE_LED_BUFFER
     for (int idx = 0; idx < LED_COUNT; ++idx) {
       BackgroundLayer::colors[idx] = BackgroundLayer::buffer_colors[idx];
     }
     dirty = true;
 
     Leds::publish();
+#endif
   }
 
-  void set(int idx, const rgb_color &color) { buffer_colors[idx] = color; }
+  void set(int idx, const rgb_color &color) {
+#ifdef USE_LED_BUFFER
+    buffer_colors[idx] = color;
+#else
+    colors[idx] = color;
+    dirty = true;
+#endif
+  }
 };
 
 class BackgroundLedAnimations::Debug : public BackgroundLayer {

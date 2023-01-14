@@ -110,6 +110,8 @@ class Channel {
   }
 
  public:
+  bool ready() const;
+
   void start_receiving() {
     gate.start_receiving();
     if (_protocol) _protocol->reset("start_receiving");

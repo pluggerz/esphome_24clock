@@ -54,6 +54,9 @@ class MessageAsyncRequest : public Async {
       LOGE(TAG, "Unable to queue, because channel is not set!");
       return nullptr;
     }
+    if (!channel->ready()) {
+      return this;
+    }
     LOGD(TAG, "Message transmitted!");
     channel->raw_send(bytes, size);
     return nullptr;
