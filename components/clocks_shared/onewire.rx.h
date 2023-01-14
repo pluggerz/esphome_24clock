@@ -2,6 +2,7 @@
 
 #define USE_RX_BUFFER
 
+#include "../clocks_shared/log.h"
 #include "../clocks_shared/onewire.h"
 
 namespace onewire {

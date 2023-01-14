@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../clocks_shared/log.h"
 #include "../clocks_shared/pinio.h"
 #include "../clocks_shared/pins.h"
 #include "../clocks_shared/stub.h"

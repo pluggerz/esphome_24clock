@@ -72,5 +72,3 @@ class IntervalAction : public Action {
     }
   }
 };
-
-#include "../clocks_shared/log.h"

@@ -8,6 +8,7 @@ const char *const TAG = "animation.helper";
 #include <cmath>
 
 #include "../clocks_director/keys.h"
+#include "../clocks_shared/log.h"
 #include "../clocks_shared/ticks.h"
 
 typedef std::function<int(int from, int to)> StepCalculator;

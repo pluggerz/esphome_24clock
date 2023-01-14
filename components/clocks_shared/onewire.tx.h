@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../clocks_shared/log.h"
 #include "../clocks_shared/onewire.h"
 
 namespace onewire {

@@ -1,6 +1,7 @@
 #include "../clocks_shared/stub.h"
 
 #if defined(IS_DIRECTOR)
+#include "../clocks_shared/log.h"
 #include "animation.h"
 
 const char *const TAG = "animation";
