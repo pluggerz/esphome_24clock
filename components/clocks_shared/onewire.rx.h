@@ -1,5 +1,7 @@
 #pragma once
 
+#define USE_RX_BUFFER
+
 #include "../clocks_shared/onewire.h"
 
 namespace onewire {
@@ -40,9 +42,13 @@ class Rx {
  */
 class RxOnewire : public onewire::Rx {
  protected:
+#ifdef USE_RX_BUFFER
+  RingBuffer<onewire::Value, ONEWIRE_BUFFER_SIZE> buffer;
+#else
   // last read value, valid if _rx_available is true
   volatile onewire::Value _rx_last_value;
   volatile bool _rx_available = false;
+#endif
 
   // vars for the scanner
   volatile int8_t _rx_bit = RX_BIT_INITIAL;
@@ -108,6 +114,15 @@ class RxOnewire : public onewire::Rx {
           ESP_LOGW(TAG, "receive:  INVALID END !?");
         } else {
           ESP_LOGD(TAG, "receive:  END -> %d", _rx_value);
+#ifdef USE_RX_BUFFER
+          if (!buffer.is_empty()) {
+            ESP_LOGW(TAG,
+                     "receive:  Previous recieved value not processed, will "
+                     "be buffered by %d (size=%d",
+                     _rx_value, buffer.size());
+          }
+          buffer.push(_rx_value);
+#else
           if (_rx_available) {
             ESP_LOGW(TAG,
                      "receive:  Previous recieved value %d not processed, will "
@@ -116,6 +131,7 @@ class RxOnewire : public onewire::Rx {
           }
           _rx_last_value = _rx_value;
           _rx_available = true;
+#endif
 #ifdef DOLED
           Leds::set_ex(LED_ONEWIRE, LedColors::green);
 #endif
@@ -164,7 +180,13 @@ class RxOnewire : public onewire::Rx {
    * true: a byte is available
    * false: no byte is available
    */
-  bool pending() const { return _rx_available; }
+  bool pending() const {
+#ifdef USE_RX_BUFFER
+    return !buffer.is_empty();
+#else
+    return _rx_available;
+#endif
+  }
 
   bool reading() const { return _rx_bit != RX_BIT_INITIAL; }
 
@@ -174,8 +196,12 @@ class RxOnewire : public onewire::Rx {
    * if pending() == true, then returns the read byte, otherwise -1
    */
   onewire::Value flush() {
+#ifdef USE_RX_BUFFER
+    return buffer.pop();
+#else
     _rx_available = false;
     return _rx_last_value;
+#endif
   }
   void begin() {
     OnewireInterrupt::attach();

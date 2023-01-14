@@ -171,13 +171,11 @@ class RawTxOnewire : public Tx {
   }
 };
 
-constexpr int SIZE = 12;
-
 class TxOnewire {
  private:
   volatile bool locked = false;
   RawTxOnewire _raw_tx;
-  RingBuffer<onewire::Value, SIZE> buffer;
+  RingBuffer<onewire::Value, ONEWIRE_BUFFER_SIZE> buffer;
 
  public:
   TxOnewire() {}
