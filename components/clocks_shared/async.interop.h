@@ -32,6 +32,12 @@ class AsyncInterop {
   void queue_message(const M &m) {
     queue_raw_message((const byte *)&m, sizeof(M));
   }
+
+  void direct_raw_message(const byte *m, int size);
+  template <class M>
+  void direct_message(const M &m) {
+    direct_raw_message((const byte *)&m, sizeof(M));
+  }
 };
 }  // namespace interop
 extern interop::AsyncInterop async_interop;

@@ -7,6 +7,7 @@ class Solid;
 class Xmas;
 class Rainbow;
 class Debug;
+class Individual;
 };  // namespace BackgroundLedAnimations
 
 class BackgroundLayer {
@@ -38,6 +39,25 @@ class BackgroundLedAnimations::Solid : public BackgroundLayer {
     for (int idx = 0; idx < LED_COUNT; ++idx) {
       result[idx] = color;
     }
+  }
+};
+
+class BackgroundLedAnimations::Individual : public BackgroundLayer {
+ protected:
+  bool dirty = true;
+
+ public:
+  virtual void start() override { dirty = true; }
+  virtual bool update(Millis now) override {
+    if (!dirty) return false;
+    dirty = false;
+    return true;
+  }
+  virtual void combine(RgbLeds &result) const override {}
+
+  void set(int idx, const rgb_color &color) {
+    dirty = true;
+    colors[idx] = color;
   }
 };
 
@@ -977,5 +997,6 @@ extern BackgroundLedAnimations::Xmas xmas;
 extern BackgroundLedAnimations::Rainbow rainbow;
 extern BackgroundLedAnimations::Solid solid;
 extern BackgroundLedAnimations::Debug debug;
+extern BackgroundLedAnimations::Individual individual;
 extern BackgroundLayer *current;
 };  // namespace lighting

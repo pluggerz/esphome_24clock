@@ -357,6 +357,17 @@ void execute_settings(const channel::messages::StepperSettings *settings) {
 
 lighting::LightingMode current_lighting_mode = -1;
 
+void process_individual_lighting(channel::messages::IndividualLeds *msg) {
+  if (msg->getDstId() != ChannelInterop::id) {
+    return;
+  }
+  lighting::current = &lighting::individual;
+  for (int led = 0; led < LED_COUNT; ++led) {
+    const auto &source = msg->leds[led];
+    lighting::individual.set(led, rgb_color(source.r, source.g, source.b));
+  }
+}
+
 void process_lighting(channel::messages::LightingMode *msg) {
   auto mode = msg->mode;
   Leds::set_brightness(msg->brightness);
@@ -375,6 +386,7 @@ void process_lighting(channel::messages::LightingMode *msg) {
       lighting::xmas.setPattern(mode);
       transmit(onewire::OneCommand::CheckPoint::for_info('l', 1));
       break;
+
     case lighting::Rainbow:
       if (mode == current_lighting_mode) return;
 
@@ -399,8 +411,13 @@ void process_lighting(channel::messages::LightingMode *msg) {
       transmit(onewire::OneCommand::CheckPoint::for_info('l', 5));
       break;
 
-    default:
+    case lighting::Individual:
+      lighting::current = &lighting::individual;
       transmit(onewire::OneCommand::CheckPoint::for_info('l', 6));
+      break;
+
+    default:
+      transmit(onewire::OneCommand::CheckPoint::for_info('l', 7));
       break;
   };
   lighting::current->start();
@@ -451,6 +468,11 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
 
     case channel::MsgEnum::MSG_LIGTHING_MODE:
       process_lighting(static_cast<channel::messages::LightingMode *>(msg));
+      break;
+
+    case channel::MsgEnum::MSG_INDIVIDUAL_LEDS:
+      process_individual_lighting(
+          static_cast<channel::messages::IndividualLeds *>(msg));
       break;
   }
 }

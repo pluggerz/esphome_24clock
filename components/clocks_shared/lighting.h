@@ -15,5 +15,6 @@ enum LightingMode {
   Solid = 8,
   Rainbow = 9,
   Debug = 10,
+  Individual = 11,
 };
 }

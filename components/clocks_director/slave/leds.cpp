@@ -12,6 +12,7 @@ BackgroundLedAnimations::Xmas lighting::xmas;
 BackgroundLedAnimations::Rainbow lighting::rainbow;
 BackgroundLedAnimations::Solid lighting::solid;
 BackgroundLedAnimations::Debug lighting::debug;
+BackgroundLedAnimations::Individual lighting::individual;
 BackgroundLayer *lighting::current = &debug;
 
 EmptyForegroundLayer empty_foreground_led_layer;

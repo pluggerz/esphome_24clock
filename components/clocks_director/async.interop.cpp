@@ -54,7 +54,7 @@ class MessageAsyncRequest : public Async {
       LOGE(TAG, "Unable to queue, because channel is not set!");
       return nullptr;
     }
-    LOGE(TAG, "Message transmitted!");
+    LOGD(TAG, "Message transmitted!");
     channel->raw_send(bytes, size);
     return nullptr;
   }
@@ -73,6 +73,14 @@ void AsyncInterop::queue_raw_message(const byte *bytes, int length) {
   }
   // channel->raw_send(bytes, length);
   queue_async(new MessageAsyncRequest(this->get_channel(), bytes, length));
+}
+
+void AsyncInterop::direct_raw_message(const byte *bytes, int length) {
+  if (channel == nullptr) {
+    LOGE(TAG, "Unable to queue, because tx not set!");
+    return;
+  }
+  channel->raw_send(bytes, length);
 }
 
 #endif

@@ -36,6 +36,17 @@ class DelayAsync : public Async {
   DelayAsync(Millis delay_in_millis) : delay_in_millis(delay_in_millis) {}
 };
 
+class OneshotAsync : public Async {
+ private:
+  virtual Async* loop() override {
+    one_shot();
+    return nullptr;
+  }
+
+ public:
+  virtual void one_shot() = 0;
+};
+
 class AsyncExecutor {
   std::deque<Async*> deque;
 
