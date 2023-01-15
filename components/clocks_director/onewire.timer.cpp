@@ -104,7 +104,7 @@ void MOVE2RAM TxTimerHandler() {
 class FrequencyChecker {
  public:
   Micros start = 0L;
-  const int wait_in_seconds = 5;
+  const int wait_in_seconds = 60;
   uint32_t ticks = 0;
   const char ch;
 

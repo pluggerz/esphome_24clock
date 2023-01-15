@@ -36,6 +36,7 @@ class AttachListener {
 
 class Director : public esphome::Component {
  private:
+  bool accepted = true;
   bool dumped = false;
   int _performers = -1;
   bool _killed = false;

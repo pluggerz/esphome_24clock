@@ -47,89 +47,6 @@ class DirectorChannel : public BufferChannel {
   virtual void process(const byte *bytes, const byte length) override {}
 } my_channel;
 
-constexpr int MAX_SCRATCH_LENGTH = 200;
-char scratch_buffer[MAX_SCRATCH_LENGTH];
-
-const char *format(const onewire::OneCommand &cmd) {
-  char const *from;
-  int id = 0;
-  if (cmd.from_master()) {
-    from = "D";
-    id = 0;
-  } else if (cmd.from_performer()) {
-    from = "p";
-    id = cmd.msg.source_id;
-  } else {
-    from = "U";
-    id = cmd.msg.source_id;
-  }
-
-  char const *what;
-  switch (cmd.msg.cmd) {
-    case CmdEnum::DIRECTOR_ONLINE:
-      what = "DIRECTOR_ONLINE";
-      break;
-    case onewire::TOCK:
-      what = "TOCK";
-      break;
-    case CmdEnum::DIRECTOR_ACCEPT:
-      what = "DIRECTOR_ACCEPT";
-      break;
-    case CmdEnum::PERFORMER_POSITION:
-      what = "PERFORMER_POSITION";
-      break;
-    case CmdEnum::DIRECTOR_PING:
-      what = "DIRECTOR_PING";
-      break;
-    case CmdEnum::PERFORMER_CHECK_POINT:
-      what = "PERFORMER_CHECK_POINT";
-      break;
-    case CmdEnum::DIRECTOR_POSITION_ACK:
-      what = "DIRECTOR_POSITION_ACK";
-      break;
-
-    default:
-      what = "UNKNOWN";
-      break;
-  }
-  switch (cmd.msg.cmd) {
-    case CmdEnum::DIRECTOR_ONLINE:
-      snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s guid=%d", from,
-               id, cmd.msg.cmd, what, cmd.msg.reserved);
-      break;
-
-    case CmdEnum::PERFORMER_CHECK_POINT:
-      snprintf(scratch_buffer, MAX_SCRATCH_LENGTH,
-               "%s%d->[%d]%s check=%c value=%d", from, id, cmd.msg.cmd, what,
-               cmd.check_point.id, cmd.check_point.value);
-      break;
-
-    case CmdEnum::PERFORMER_POSITION:
-      snprintf(scratch_buffer, MAX_SCRATCH_LENGTH,
-               "%s%d->[%d]%s ticks0=%d ticks1=%d", from, id, cmd.msg.cmd, what,
-               cmd.position.ticks0, cmd.position.ticks1);
-      break;
-
-    case CmdEnum::DIRECTOR_ACCEPT:
-      snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s baud=%d", from,
-               id, cmd.msg.cmd, what, cmd.accept.baudrate);
-      break;
-
-    case CmdEnum::DIRECTOR_POSITION_ACK:
-    case CmdEnum::DIRECTOR_PING:
-    case CmdEnum::TOCK:
-      snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s reserved=%d",
-               from, id, cmd.msg.cmd, what, cmd.msg.reserved);
-      break;
-
-    default:
-      snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s reserved=%d",
-               from, id, cmd.msg.cmd, what, cmd.msg.reserved);
-      break;
-  }
-  return scratch_buffer;
-}
-
 void transmit(onewire::OneCommand command) {
   ESP_LOGD(TAG, "(via onewire:) %s", format(command));
   tx.transmit(command.raw);
@@ -426,18 +343,18 @@ void Director::loop() {
   ping_onewire_action.loop();
   tick_action.loop();
   my_channel.loop();
-  async_executor.loop();
+  if (accepted) async_executor.loop();
 
   if (rx.pending()) {
     onewire::OneCommand cmd;
     cmd.raw = rx.flush();
-    ESP_LOGD(TAG, "Received: %s", format(cmd));
+    ESP_LOGD(TAG, "Received: %s", cmd.format());
     switch (cmd.msg.cmd) {
       case CmdEnum::PERFORMER_CHECK_POINT:
         if (cmd.check_point.debug)
-          ESP_LOGD(TAG, "%s", format(cmd));
+          ESP_LOGD(TAG, "%s", cmd.format());
         else
-          LOGI(TAG, "%s", format(cmd));
+          LOGI(TAG, "%s", cmd.format());
         break;
 
       case CmdEnum::PERFORMER_POSITION: {
@@ -513,6 +430,7 @@ void Director::loop() {
                 settings.stepper1.offset);
             my_channel.send(message);
 
+            this->accepted = true;
             on_attach();
             // this->get_lighting_controller()->on_performer_online();
           }
@@ -521,7 +439,7 @@ void Director::loop() {
 
       default:
         // ignore
-        ESP_LOGW(TAG, "IGNORED: %s", format(cmd));
+        ESP_LOGW(TAG, "IGNORED: %s", cmd.format());
     }
   }
 }

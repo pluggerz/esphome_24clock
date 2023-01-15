@@ -6,8 +6,6 @@
 #include "esphome/components/light/light_output.h"
 #include "esphome/core/color.h"
 #include "esphome/core/component.h"
-#include "esphome/core/helpers.h"
-#include "esphome/core/macros.h"
 
 namespace esphome {
 namespace clocks_light {
@@ -38,7 +36,7 @@ class ClocksLightOutput : public AddressableLight {
   }
 
   light::ESPColorView get_view_internal(int32_t index) const override {
-    Color *base = (Color *)&leds[index];
+    Color *base = (Color *)&internal_view_leds[index];
     return light::ESPColorView(&base->red, &base->green, &base->blue, nullptr,
                                this->effect_data_ + index, &this->correction_);
   }
@@ -75,7 +73,8 @@ class ClocksLightOutput : public AddressableLight {
   uint8_t rgb_offsets_[4]{0, 1, 2, 3};
 
  public:
-  Color leds[TOTAL_LEDS];
+  Color internal_view_leds[TOTAL_LEDS];
+  Color dirty_leds[TOTAL_LEDS];
   bool dirty = false;
   Millis last_send_in_millis = 0L;
 };

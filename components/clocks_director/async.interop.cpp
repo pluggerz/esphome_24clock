@@ -54,7 +54,7 @@ class MessageAsyncRequest : public Async {
       LOGE(TAG, "Unable to queue, because channel is not set!");
       return nullptr;
     }
-    if (!channel->bytes_available_for_write(size)) {
+    if (!channel->bytes_available_for_write(min(size, 20))) {
       return this;
     }
     LOGD(TAG, "Message transmitted!");

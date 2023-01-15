@@ -45,6 +45,7 @@ class RxOnewire : public onewire::Rx {
  protected:
 #ifdef USE_RX_BUFFER
   RingBuffer<onewire::Value, ONEWIRE_BUFFER_SIZE> buffer;
+  void debug(onewire::Value value);
 #else
   // last read value, valid if _rx_available is true
   volatile onewire::Value _rx_last_value;
@@ -115,6 +116,8 @@ class RxOnewire : public onewire::Rx {
           ESP_LOGW(TAG, "receive:  INVALID END !?");
         } else {
           ESP_LOGD(TAG, "receive:  END -> %d", _rx_value);
+          debug(_rx_value);
+
 #ifdef USE_RX_BUFFER
           if (!buffer.is_empty()) {
             ESP_LOGW(TAG,

@@ -28,8 +28,95 @@ enum CmdEnum {
   DIRECTOR_POSITION_ACK
 };
 
+#ifdef ESP8266
+constexpr int MAX_SCRATCH_LENGTH = 200;
+extern char scratch_buffer[MAX_SCRATCH_LENGTH];
+#endif
+
 union OneCommand {
   uint32_t raw;
+
+#ifdef ESP8266
+  const char *format() {
+    char const *from;
+    int id = 0;
+    if (this->from_master()) {
+      from = "D";
+      id = 0;
+    } else if (this->from_performer()) {
+      from = "p";
+      id = this->msg.source_id;
+    } else {
+      from = "U";
+      id = this->msg.source_id;
+    }
+
+    char const *what;
+    switch (this->msg.cmd) {
+      case CmdEnum::DIRECTOR_ONLINE:
+        what = "DIRECTOR_ONLINE";
+        break;
+      case onewire::TOCK:
+        what = "TOCK";
+        break;
+      case CmdEnum::DIRECTOR_ACCEPT:
+        what = "DIRECTOR_ACCEPT";
+        break;
+      case CmdEnum::PERFORMER_POSITION:
+        what = "PERFORMER_POSITION";
+        break;
+      case CmdEnum::DIRECTOR_PING:
+        what = "DIRECTOR_PING";
+        break;
+      case CmdEnum::PERFORMER_CHECK_POINT:
+        what = "PERFORMER_CHECK_POINT";
+        break;
+      case CmdEnum::DIRECTOR_POSITION_ACK:
+        what = "DIRECTOR_POSITION_ACK";
+        break;
+
+      default:
+        what = "UNKNOWN";
+        break;
+    }
+    switch (this->msg.cmd) {
+      case CmdEnum::DIRECTOR_ONLINE:
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s guid=%d",
+                 from, id, this->msg.cmd, what, this->msg.reserved);
+        break;
+
+      case CmdEnum::PERFORMER_CHECK_POINT:
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH,
+                 "%s%d->[%d]%s check=%c value=%d", from, id, this->msg.cmd,
+                 what, this->check_point.id, this->check_point.value);
+        break;
+
+      case CmdEnum::PERFORMER_POSITION:
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH,
+                 "%s%d->[%d]%s ticks0=%d ticks1=%d", from, id, this->msg.cmd,
+                 what, this->position.ticks0, this->position.ticks1);
+        break;
+
+      case CmdEnum::DIRECTOR_ACCEPT:
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s baud=%d",
+                 from, id, this->msg.cmd, what, this->accept.baudrate);
+        break;
+
+      case CmdEnum::DIRECTOR_POSITION_ACK:
+      case CmdEnum::DIRECTOR_PING:
+      case CmdEnum::TOCK:
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s reserved=%d",
+                 from, id, this->msg.cmd, what, this->msg.reserved);
+        break;
+
+      default:
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s reserved=%d",
+                 from, id, this->msg.cmd, what, this->msg.reserved);
+        break;
+    }
+    return scratch_buffer;
+  }
+#endif
 
 #define SOURCE_HEADER      \
   uint32_t cmd : CMD_BITS; \

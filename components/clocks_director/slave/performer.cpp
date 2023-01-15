@@ -12,6 +12,9 @@
 #include "leds.h"
 #include "stepper.h"
 
+// note nice, shoulde be removed...
+void onewire::RxOnewire::debug(onewire::Value value) {}
+
 using channel::ChannelInterop;
 using channel::Message;
 using channel::messages::UartEndKeysMessage;

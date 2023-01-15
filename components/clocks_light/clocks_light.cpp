@@ -14,15 +14,15 @@ void ClocksLightOutput::transmit() {
     channel::messages::IndividualLeds msg(performer_id);
     for (int idx = 0; idx < 12; ++idx) {
       auto &out = msg.leds[idx];
-      const auto &in = this->leds[leds_idx++];
+      const auto &in = this->dirty_leds[leds_idx++];
       out.r = in.r;
       out.g = in.g;
       out.b = in.b;
     }
 
-    async::async_interop.queue_message(msg);
+    async::async_interop.direct_message(msg);
   }
-  async::async_interop.queue_message(
+  async::async_interop.direct_message(
       Message(-1, MsgEnum::MSG_INDIVIDUAL_LEDS_SHOW));
 }
 
@@ -33,12 +33,17 @@ void ClocksLightOutput::loop() {
     return;
   }
 
-  Millis now = millis();
-  if (now - this->last_send_in_millis > 20) {
+  if (millis() - this->last_send_in_millis > 50) {
     transmit();
-    this->last_send_in_millis = now;
+    this->last_send_in_millis = millis();
     this->dirty = false;
   }
 }
 
-void ClocksLightOutput::dump() { this->dirty = true; }
+void ClocksLightOutput::dump() {
+  for (int i = 0; i < this->size(); i++)
+    this->dirty_leds[i] = this->internal_view_leds[i];
+
+  this->dirty = true;
+  // loop();
+}
