@@ -1,10 +1,4 @@
-esphome:
-  name: ${node_name}
-#  platformio_options:
-#    board_build.f_cpu: 80000000L
-  libraries:
-    - ESP8266TimerInterrupt
-#    - "EspSoftwareSerial"
+
 
 esp8266:      
   board: nodemcuv2
