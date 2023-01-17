@@ -67,6 +67,7 @@ class Director : public esphome::Component {
   void set_baudrate(int value) { baudrate = value; }
 
   void request_positions();
+  void realign_performers();
 
   rs485::BufferChannel *get_channel();
   AnimationController *get_animation_controller() {

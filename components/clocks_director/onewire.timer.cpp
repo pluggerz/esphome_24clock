@@ -1,7 +1,9 @@
 
+#include "../clocks_shared/onewire.interop.h"
 #include "../clocks_shared/onewire.rx.h"
 #include "../clocks_shared/onewire.tx.h"
 
+using onewire::command_builder;
 using onewire::OnewireInterrupt;
 using onewire::RxOnewire;
 using onewire::TimerLoop;
@@ -254,6 +256,7 @@ void OnewireInterrupt::align() {}
 void OnewireInterrupt::align() {
   aligning = true;
 
+  rx->reset(false);
   Leds::set_ex(LED_MODE, LedColors::purple);
 
   // wait for first change
@@ -271,14 +274,19 @@ void OnewireInterrupt::align() {
   TCNT1 = 0;
   TCNT2 = 0;
   tx_rx_cycle = 1;
+
   aligning = false;
 
   // submit
-  transmit(onewire::OneCommand::CheckPoint::for_info('B', OCR1A / 256));
-  transmit(onewire::OneCommand::CheckPoint::for_info('b', OCR1A % 256));
 
-  transmit(onewire::OneCommand::CheckPoint::for_info('C', OCR2A / 256));
-  transmit(onewire::OneCommand::CheckPoint::for_info('c', OCR2A % 256));
+  // transmit(onewire::OneCommand::CheckPoint::for_info('B', OCR1A / 256));
+  // transmit(onewire::OneCommand::CheckPoint::for_info('b', OCR1A % 256));
+
+  // transmit(onewire::OneCommand::CheckPoint::for_info('C', OCR2A / 256));
+  // transmit(onewire::OneCommand::CheckPoint::for_info('c', OCR2A % 256));
+
+  Leds::set_ex(LED_MODE, LedColors::blue);
+  transmit(command_builder.realign());
 }
 #endif
 

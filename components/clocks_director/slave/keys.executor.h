@@ -4,6 +4,8 @@
 #include "stepper.h"
 
 class StepExecutors {
+  bool stopped = true;
+
  public:
   static void setup(Stepper0 &stepper0, Stepper1 &stepper1);
   static void reset();
@@ -13,19 +15,20 @@ class StepExecutors {
    * @return true it at least one key is still being executed
    * @return false
    */
-  static bool active();
+  bool active();
   /**
    * @brief will inject stop keys
    *
    */
-  static void request_stop();
+  void request_stop();
+  void send_positions();
 
   //
-  static void process_begin_keys(const channel::Message *msg);
-  static void process_add_keys(const channel::messages::UartKeysMessage *msg);
-  static void process_end_keys(
-      int stepper_id, const channel::messages::UartEndKeysMessage *msg);
+  void process_begin_keys(const channel::Message *msg);
+  void process_add_keys(const channel::messages::UartKeysMessage *msg);
+  void process_end_keys(int stepper_id,
+                        const channel::messages::UartEndKeysMessage *msg);
 
   // will execute the steps
-  static void loop(Micros now);
-};
+  void loop(Micros now);
+} extern step_executors;

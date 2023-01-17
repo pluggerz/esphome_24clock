@@ -63,10 +63,6 @@ struct IntMessage : public Message {
 
 #if defined(IS_DIRECTOR)
 static IntMessage tick(uint8_t tick_id) { return IntMessage(tick_id); }
-
-static Message request_positions() {
-  return Message(-1, MsgEnum::MSG_POSITION_REQUEST);
-}
 #endif
 
 struct StepperSettings : public Message {
@@ -157,4 +153,12 @@ struct IndividualLeds : public Message {
 } __attribute__((packed, aligned(1)));
 
 }  // namespace messages
+
+class MessageBuilder {
+ public:
+  Message request_positions() {
+    return Message(-1, MsgEnum::MSG_POSITION_REQUEST);
+  }
+} extern message_builder;
+
 }  // namespace channel

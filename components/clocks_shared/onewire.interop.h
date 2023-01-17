@@ -2,6 +2,7 @@
 
 #include "Arduino.h"
 
+constexpr int CRC_BITS = 1;
 constexpr int SRC_BITS = 6;  // 24 handles, so 2^5 = 32 should fit
 constexpr int CMD_BITS = 4;
 
@@ -25,7 +26,8 @@ enum CmdEnum {
   PERFORMER_POSITION,
   PERFORMER_PREPPING,
   PERFORMER_CHECK_POINT,
-  DIRECTOR_POSITION_ACK
+  DIRECTOR_POSITION_ACK,
+  REALIGN
 };
 
 #ifdef ESP8266
@@ -58,6 +60,9 @@ union OneCommand {
         break;
       case onewire::TOCK:
         what = "TOCK";
+        break;
+      case onewire::REALIGN:
+        what = "REALIGN";
         break;
       case CmdEnum::DIRECTOR_ACCEPT:
         what = "DIRECTOR_ACCEPT";
@@ -119,8 +124,15 @@ union OneCommand {
 #endif
 
 #define SOURCE_HEADER      \
+  uint32_t crc : CRC_BITS; \
   uint32_t cmd : CMD_BITS; \
   uint32_t source_id : SRC_BITS;
+
+  OneCommand &fix_parity() {
+    msg.crc = 0;
+    msg.crc = __builtin_parityl(raw);
+    return *this;
+  }
 
   struct Msg {
     SOURCE_HEADER;
@@ -130,14 +142,14 @@ union OneCommand {
       OneCommand ret;
       ret.msg.source_id = SRC_MASTER;
       ret.msg.cmd = cmd;
-      return ret;
+      return ret.fix_parity();
     };
 
     static OneCommand by_performer(CmdEnum cmd, int performer_id) {
       OneCommand ret;
       ret.msg.source_id = performer_id;
       ret.msg.cmd = cmd;
-      return ret;
+      return ret.fix_parity();
     };
   } __attribute__((packed, aligned(1))) msg;
 
@@ -165,7 +177,7 @@ union OneCommand {
           Msg::by_performer(CmdEnum::PERFORMER_POSITION, performer_id);
       ret.position.ticks0 = handle0;
       ret.position.ticks1 = handle1;
-      return ret;
+      return ret.fix_parity();
     }
   } __attribute__((packed, aligned(1))) position;
 
@@ -186,7 +198,7 @@ union OneCommand {
       ret.check_point.debug = debug ? 1 : 0;
       ret.check_point.id = id;
       ret.check_point.value = value;
-      return ret;
+      return ret.fix_parity();
     }
 
     static OneCommand for_info(uint8_t id, uint16_t value) {
@@ -198,29 +210,11 @@ union OneCommand {
     }
   } __attribute__((packed, aligned(1))) check_point;
 
-  static OneCommand director_online(int guid) {
-    OneCommand ret = Msg::by_director(CmdEnum::DIRECTOR_ONLINE);
-    ret.msg.reserved = guid;
-    return ret;
-  }
-  static OneCommand director_position_ack(int guid) {
-    OneCommand ret = Msg::by_director(CmdEnum::DIRECTOR_POSITION_ACK);
-    ret.msg.reserved = guid;
-    return ret;
-  }
-
   static OneCommand performer_online() {
     OneCommand cmd;
     cmd.msg.source_id = SRC_UNKNOWN;
     cmd.msg.cmd = CmdEnum::PERFORMER_ONLINE;
-    return cmd;
-  }
-
-  static OneCommand ping() {
-    OneCommand cmd;
-    cmd.msg.source_id = SRC_MASTER;
-    cmd.msg.cmd = CmdEnum::DIRECTOR_PING;
-    return cmd;
+    return cmd.fix_parity();
   }
 
   static OneCommand tock(int performer_id, uint8_t tick_id) {
@@ -228,7 +222,7 @@ union OneCommand {
     cmd.msg.source_id = performer_id;
     cmd.msg.cmd = CmdEnum::TOCK;
     cmd.msg.reserved = tick_id;
-    return cmd;
+    return cmd.fix_parity();
   }
 
   bool from_master() const { return msg.source_id == SRC_MASTER; }
@@ -245,11 +239,40 @@ union OneCommand {
     return SRC_UNKNOWN;
   }
 
-  OneCommand forward() const {
+  OneCommand increase_performer_id_and_forward() const {
     OneCommand ret;
     ret.raw = raw;
     ret.msg.source_id = derive_next_source_id();
-    return ret;
+    return ret.fix_parity();
   }
 } __attribute__((packed, aligned(1)));
+
+class CommandBuilder {
+ public:
+  OneCommand ping() {
+    OneCommand cmd;
+    cmd.msg.source_id = SRC_MASTER;
+    cmd.msg.cmd = CmdEnum::DIRECTOR_PING;
+    return cmd.fix_parity();
+  }
+
+  OneCommand realign() {
+    OneCommand cmd;
+    cmd.msg.source_id = SRC_MASTER;
+    cmd.msg.cmd = CmdEnum::REALIGN;
+    return cmd.fix_parity();
+  }
+
+  OneCommand director_online(int guid) {
+    OneCommand ret = OneCommand::Msg::by_director(CmdEnum::DIRECTOR_ONLINE);
+    ret.msg.reserved = guid;
+    return ret.fix_parity();
+  }
+  OneCommand director_position_ack(int guid) {
+    OneCommand ret =
+        OneCommand::Msg::by_director(CmdEnum::DIRECTOR_POSITION_ACK);
+    ret.msg.reserved = guid;
+    return ret.fix_parity();
+  }
+} extern command_builder;
 }  // namespace onewire

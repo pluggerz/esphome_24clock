@@ -12,6 +12,8 @@ using keys::CmdSpecialMode;
 using keys::cmdSpeedUtil;
 using keys::InflatedCmdKey;
 
+StepExecutors step_executors;
+
 enum class StepMode {
   // we are speeding up the handle  honour the key request
   SPEED_UP,
@@ -315,6 +317,8 @@ typedef Animator<Stepper1> Animator1;
 Animator0 animator0;
 Animator1 animator1;
 
+void stepepers_loop(Micros micros) { step_executors.loop(micros); }
+
 void StepExecutors::setup(Stepper0 &stepper0, Stepper1 &stepper1) {
   animator0.stepperPtr = &stepper0;
   animator1.stepperPtr = &stepper1;
@@ -322,7 +326,7 @@ void StepExecutors::setup(Stepper0 &stepper0, Stepper1 &stepper1) {
   Leds::set_ex(LED_EXECUTOR_STATE, LedColors::purple);
   Leds::publish();
 
-  onewire::OnewireInterrupt::timer_loop = StepExecutors::loop;
+  onewire::OnewireInterrupt::timer_loop = stepepers_loop;
   // onewire::OnewireInterrupt::timer_loop = check;
 }
 
@@ -365,6 +369,7 @@ void StepExecutors::process_end_keys(int stepper_id,
   animator1.start(&animationKeysArray[1], msg->number_of_millis_left,
                   speed_detection1);
 
+  stopped = false;
   transmit(onewire::OneCommand::CheckPoint::for_debug('E', msg->getDstId()));
 }
 
@@ -377,6 +382,14 @@ void StepExecutors::process_add_keys(const UartKeysMessage *msg) {
 void StepExecutors::loop(Micros now) {
   animator0.loop(now);
   animator1.loop(now);
+
+  if (!this->stopped) {
+    if (!active()) {
+      this->stopped = true;
+      send_positions();
+      // Leds::error(9);
+    }
+  }
 }
 
 void StepExecutors::request_stop() {

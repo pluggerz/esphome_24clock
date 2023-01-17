@@ -21,6 +21,7 @@ using channel::messages::UartEndKeysMessage;
 using channel::messages::UartKeysMessage;
 using onewire::CmdEnum;
 using onewire::OneCommand;
+using onewire::OnewireInterrupt;
 
 uint8_t ChannelInterop::id = ChannelInterop::UNDEFINED;
 
@@ -98,7 +99,7 @@ void execute_director_online(const OneCommand &cmd) {
   if (guid_of_director == new_guid_of_director) {
     // ignore message, we are already dealt with it.
     // maybe next one failed to use it ? Lets forward...
-    transmit(cmd.forward());
+    transmit(cmd.increase_performer_id_and_forward());
     return;
   }
   ChannelInterop::id = ChannelInterop::UNDEFINED;
@@ -111,7 +112,7 @@ void execute_director_online(const OneCommand &cmd) {
   set_action(&reset_action);
 
   // inform next
-  transmit(cmd.forward());
+  transmit(cmd.increase_performer_id_and_forward());
 }
 
 void DefaultAction::loop() {
@@ -126,9 +127,13 @@ void DefaultAction::loop() {
   show_action(cmd);
   my_channel.loop();
   switch (cmd.msg.cmd) {
+    case CmdEnum::REALIGN:
+      OnewireInterrupt::align();
+      break;
+
     // these are special, we need to adapt the source
     case CmdEnum::DIRECTOR_ACCEPT:
-      transmit(cmd.forward());
+      transmit(cmd.increase_performer_id_and_forward());
       break;
 
     case CmdEnum::DIRECTOR_ONLINE:
@@ -152,6 +157,11 @@ void transmit_ticks() {
 
   transmit(OneCommand::Position::create(ChannelInterop::get_my_id(), ticks0,
                                         ticks1));
+}
+
+void StepExecutors::send_positions() {
+  transmit(onewire::OneCommand::CheckPoint::for_info('P', 0));
+  transmit_ticks();
 }
 
 void ResetAction::loop() {
@@ -179,10 +189,8 @@ void ResetAction::loop() {
           my_channel.baudrate(cmd.accept.baudrate);
           my_channel.start_receiving();
         }
-        transmit(cmd.forward());
+        transmit(cmd.increase_performer_id_and_forward());
         transmit_ticks();
-        transmit(onewire::OneCommand::CheckPoint::for_info(
-            '@', cmd.accept.baudrate));
         break;
 
       default:
@@ -256,6 +264,7 @@ void calibrate_steppers() {
 
 void setup() {
   setup_steppers();
+  calibrate_steppers();
 
   pinMode(SLAVE_RS485_TXD_DPIN, OUTPUT);
   pinMode(SLAVE_RS485_RXD_DPIN, INPUT);
@@ -299,7 +308,6 @@ void setup() {
 
   lighting::current->start();
 #endif
-  calibrate_steppers();
 }
 
 LoopFunction current = reset_mode;
@@ -434,20 +442,20 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
   channel::Message *msg = (channel::Message *)bytes;
   switch (msg->getMsgEnum()) {
     case channel::MsgEnum::MSG_BEGIN_KEYS:
-      StepExecutors::process_begin_keys(msg);
+      step_executors.process_begin_keys(msg);
       return;
 
     case channel::MsgEnum::MSG_SEND_KEYS: {
       auto performer_id = msg->getDstId() >> 1;
       if (performer_id == ChannelInterop::id) {
-        StepExecutors::process_add_keys(
+        step_executors.process_add_keys(
             reinterpret_cast<const UartKeysMessage *>(msg));
       }
     }
       return;
 
     case channel::MsgEnum::MSG_END_KEYS:
-      StepExecutors::process_end_keys(
+      step_executors.process_end_keys(
           ChannelInterop::id << 1,
           reinterpret_cast<const UartEndKeysMessage *>(msg));
 

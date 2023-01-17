@@ -10,15 +10,16 @@ using namespace async::interop;
 using async::Async;
 using async::async_executor;
 using async::interop::AsyncInterop;
+using onewire::OneCommand;
 using onewire::TxOnewire;
 using onewire::Value;
 
 class CommandAsyncRequest : public Async {
-  const Value command;
+  const OneCommand command;
   TxOnewire *tx_onewire;
 
  public:
-  CommandAsyncRequest(TxOnewire *tx_onewire, const Value &command)
+  CommandAsyncRequest(TxOnewire *tx_onewire, const OneCommand &command)
       : tx_onewire(tx_onewire), command(command) {}
 
   Async *loop() override {
@@ -30,7 +31,7 @@ class CommandAsyncRequest : public Async {
       return this;
     }
     LOGE(TAG, "Command transmitted!");
-    tx_onewire->transmit(command);
+    tx_onewire->transmit(command.raw);
     return nullptr;
   }
 };
@@ -65,7 +66,7 @@ class MessageAsyncRequest : public Async {
 
 void AsyncInterop::queue_async(Async *action) { async_executor.queue(action); }
 
-void AsyncInterop::queue_command(const Value &command) {
+void AsyncInterop::queue_command(const OneCommand &command) {
   queue_async(new CommandAsyncRequest(this->get_tx_onewire(), command));
 }
 

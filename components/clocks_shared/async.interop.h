@@ -10,7 +10,9 @@ namespace async {
 namespace interop {
 const char *const TAG = "async.interop";
 
+using onewire::OneCommand;
 using onewire::TxOnewire;
+
 using rs485::BufferChannel;
 class AsyncInterop {
  protected:
@@ -25,7 +27,7 @@ class AsyncInterop {
   void set_tx_onewire(TxOnewire *tx_onewire) { this->tx_onewire = tx_onewire; }
 
   void queue_async(Async *action);
-  void queue_command(const onewire::Value &command);
+  void queue_command(const OneCommand &command);
 
   void queue_raw_message(const byte *m, int size);
   template <class M>

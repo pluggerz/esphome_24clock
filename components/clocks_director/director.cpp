@@ -21,7 +21,9 @@ using async::async_executor;
 using async::async_interop;
 using async::DelayAsync;
 using channel::ChannelInterop;
+using channel::message_builder;
 using onewire::CmdEnum;
+using onewire::command_builder;
 using rs485::BufferChannel;
 
 uint8_t ChannelInterop::id = ChannelInterop::DIRECTOR;
@@ -38,7 +40,7 @@ Director::Director() {}
 onewire::RxOnewire rx;
 onewire::TxOnewire tx;
 
-#define UART_BAUDRATE 115200  // 9600
+#define UART_BAUDRATE 9600  // 115200  // 9600
 
 class DirectorChannel : public BufferChannel {
  public:
@@ -111,7 +113,7 @@ class DirectorOnlineAction : public IntervalAction {
     if (send_count > 10000 / delay) {
       ESP_LOGW(TAG, "Message DIRECTOR_ONLINE not returned to director!?");
     }
-    transmit(onewire::OneCommand::director_online(guid));
+    transmit(command_builder.director_online(guid));
   }
 } director_online_action;
 
@@ -141,7 +143,7 @@ class PingOneWireAction : public IntervalAction {
     if (!send) {
       send = true;
       t0 = millis();
-      transmit(onewire::OneCommand::ping());
+      transmit(command_builder.ping());
     } else {
       send = false;
       ESP_LOGW(TAG, "(via onewire:) Ping lost !?");
@@ -459,10 +461,10 @@ class RequestPositionsAsync : public DelayAsync {
   void request() {
     LOGI(TAG, "RequestPositionsAsync: REQUEST");
 
-    auto message = channel::messages::request_positions();
+    auto message = message_builder.request_positions();
     my_channel.send(message);
     delay(10);
-    transmit(onewire::OneCommand::director_position_ack(guid));
+    transmit(command_builder.director_position_ack(guid));
   }
 
   Async *first() override {
@@ -492,6 +494,10 @@ class RequestPositionsAsync : public DelayAsync {
 
 void Director::request_positions() {
   async_executor.queue(new RequestPositionsAsync(this));
+}
+
+void Director::realign_performers() {
+  async_interop.queue_command(command_builder.realign());
 }
 
 void Director::kill() {

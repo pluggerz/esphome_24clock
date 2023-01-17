@@ -43,6 +43,8 @@ class Rx {
  */
 class RxOnewire : public onewire::Rx {
  protected:
+  friend class OnewireInterrupt;
+
 #ifdef USE_RX_BUFFER
   RingBuffer<onewire::Value, ONEWIRE_BUFFER_SIZE> buffer;
   void debug(onewire::Value value);
