@@ -52,7 +52,12 @@ class BackgroundLedAnimations::Individual : public BackgroundLayer {
   bool dirty = true;
 
  public:
-  virtual void start() override { dirty = true; }
+  virtual void start() override {
+    dirty = true;
+    for (int idx = 0; idx < LED_COUNT; ++idx) {
+      BackgroundLayer::colors[idx] = LedColors::black;
+    }
+  }
   virtual bool update(Millis now) override {
     if (!dirty) return false;
     dirty = false;
