@@ -15,8 +15,8 @@ using onewire::TxOnewire;
 using onewire::Value;
 
 class CommandAsyncRequest : public Async {
-  const OneCommand command;
   TxOnewire *tx_onewire;
+  const OneCommand command;
 
  public:
   CommandAsyncRequest(TxOnewire *tx_onewire, const OneCommand &command)
