@@ -162,8 +162,8 @@ void send_text(const AnimationSettings &settings,
 }
 
 class TimeChangeAsyncRequest : public Async {
-  const int minutes;
   const int hours;
+  const int minutes;
   ClocksAnimator *animator;
 
  public:
