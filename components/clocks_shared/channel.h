@@ -123,7 +123,10 @@ class Channel {
     if (_protocol) _protocol->reset("start_transmitting");
   }
 
-  void dump_config() { gate.dump_config(); }
+  void dump_config() {
+    LOGI(TAG, "channel: %d BAUD", _baudrate);
+    gate.dump_config();
+  }
 
   Baudrate baudrate() { return _baudrate; }
 
