@@ -1,7 +1,6 @@
-#include "../clocks_shared/stub.h"
+#pragma once
 
-#ifndef PINS_H
-#define PINS_H
+#include "../clocks_shared/stub.h"
 
 #ifdef MASTER
 
@@ -45,7 +44,5 @@ const uint8_t LED_DATA_PIN = 11;
 const uint8_t LED_CLOCK_PIN = 13;
 
 const uint8_t SLAVE_RS485_TXD_DPIN = 0;  // PD0 DI !TXD
-
-#endif
 
 #endif

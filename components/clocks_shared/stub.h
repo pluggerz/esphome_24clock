@@ -62,6 +62,8 @@ class IntervalAction : public Action {
  public:
   void setup() { _last = 0; }
 
+  void set_delay_in_millis(Millis millis) { this->_delay = millis; }
+
   void loop() override {
     if (millis() - _last > _delay) {
       if (_last == 0)
