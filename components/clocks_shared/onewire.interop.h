@@ -58,6 +58,9 @@ union OneCommand {
       case CmdEnum::DIRECTOR_ONLINE:
         what = "DIRECTOR_ONLINE";
         break;
+      case CmdEnum::PERFORMER_ONLINE:
+        what = "PERFORMER_ONLINE";
+        break;
       case onewire::TOCK:
         what = "TOCK";
         break;
@@ -84,39 +87,44 @@ union OneCommand {
         what = "UNKNOWN";
         break;
     }
+    const char *parity = parity_okay() ? "Poke" : "P_FAILED!";
     switch (this->msg.cmd) {
       case CmdEnum::DIRECTOR_ONLINE:
-        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s guid=%d",
-                 from, id, this->msg.cmd, what, this->msg.reserved);
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "[%s]%s%d->[%d]%s guid=%d",
+                 parity, from, id, this->msg.cmd, what, this->msg.reserved);
         break;
 
       case CmdEnum::PERFORMER_CHECK_POINT:
         snprintf(scratch_buffer, MAX_SCRATCH_LENGTH,
-                 "%s%d->[%d]%s check=%c value=%d", from, id, this->msg.cmd,
-                 what, this->check_point.id, this->check_point.value);
+                 "[%s]%s%d->[%d]%s check=%c value=%d", parity, from, id,
+                 this->msg.cmd, what, this->check_point.id,
+                 this->check_point.value);
         break;
 
       case CmdEnum::PERFORMER_POSITION:
         snprintf(scratch_buffer, MAX_SCRATCH_LENGTH,
-                 "%s%d->[%d]%s ticks0=%d ticks1=%d", from, id, this->msg.cmd,
-                 what, this->position.ticks0, this->position.ticks1);
+                 "[%s]%s%d->[%d]%s ticks0=%d ticks1=%d", parity, from, id,
+                 this->msg.cmd, what, this->position.ticks0,
+                 this->position.ticks1);
         break;
 
       case CmdEnum::DIRECTOR_ACCEPT:
-        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s baud=%d",
-                 from, id, this->msg.cmd, what, this->accept.baudrate);
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "[%s]%s%d->[%d]%s baud=%d",
+                 parity, from, id, this->msg.cmd, what, this->accept.baudrate);
         break;
 
       case CmdEnum::DIRECTOR_POSITION_ACK:
       case CmdEnum::DIRECTOR_PING:
       case CmdEnum::TOCK:
-        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s reserved=%d",
-                 from, id, this->msg.cmd, what, this->msg.reserved);
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH,
+                 "[%s]%s%d->[%d]%s reserved=%d", parity, from, id,
+                 this->msg.cmd, what, this->msg.reserved);
         break;
 
       default:
-        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH, "%s%d->[%d]%s reserved=%d",
-                 from, id, this->msg.cmd, what, this->msg.reserved);
+        snprintf(scratch_buffer, MAX_SCRATCH_LENGTH,
+                 "[%s]%s%d->[%d]%s reserved=%d", parity, from, id,
+                 this->msg.cmd, what, this->msg.reserved);
         break;
     }
     return scratch_buffer;
@@ -129,10 +137,11 @@ union OneCommand {
   uint32_t source_id : SRC_BITS;
 
   OneCommand &fix_parity() {
-    msg.crc = 0;
-    msg.crc = __builtin_parityl(raw);
+    msg.crc = __builtin_parityl(raw >> 1);
     return *this;
   }
+
+  bool parity_okay() { return __builtin_parityl(raw >> 1) == msg.crc; }
 
   struct Msg {
     SOURCE_HEADER;
@@ -140,6 +149,7 @@ union OneCommand {
 
     static OneCommand by_director(CmdEnum cmd) {
       OneCommand ret;
+      ret.raw = random();
       ret.msg.source_id = SRC_MASTER;
       ret.msg.cmd = cmd;
       return ret.fix_parity();
@@ -147,6 +157,7 @@ union OneCommand {
 
     static OneCommand by_performer(CmdEnum cmd, int performer_id) {
       OneCommand ret;
+      ret.raw = random();
       ret.msg.source_id = performer_id;
       ret.msg.cmd = cmd;
       return ret.fix_parity();
@@ -160,7 +171,7 @@ union OneCommand {
     static OneCommand create(uint32_t baudrate) {
       OneCommand ret = Msg::by_director(CmdEnum::DIRECTOR_ACCEPT);
       ret.accept.baudrate = baudrate;
-      return ret;
+      return ret.fix_parity();
     }
   } __attribute__((packed, aligned(1))) accept;
 
@@ -212,6 +223,7 @@ union OneCommand {
 
   static OneCommand performer_online() {
     OneCommand cmd;
+    cmd.raw = random();
     cmd.msg.source_id = SRC_UNKNOWN;
     cmd.msg.cmd = CmdEnum::PERFORMER_ONLINE;
     return cmd.fix_parity();
@@ -219,6 +231,7 @@ union OneCommand {
 
   static OneCommand tock(int performer_id, uint8_t tick_id) {
     OneCommand cmd;
+    cmd.raw = random();
     cmd.msg.source_id = performer_id;
     cmd.msg.cmd = CmdEnum::TOCK;
     cmd.msg.reserved = tick_id;
@@ -251,6 +264,7 @@ class CommandBuilder {
  public:
   OneCommand ping() {
     OneCommand cmd;
+    cmd.raw = random();
     cmd.msg.source_id = SRC_MASTER;
     cmd.msg.cmd = CmdEnum::DIRECTOR_PING;
     return cmd.fix_parity();
@@ -258,6 +272,7 @@ class CommandBuilder {
 
   OneCommand realign() {
     OneCommand cmd;
+    cmd.raw = random();
     cmd.msg.source_id = SRC_MASTER;
     cmd.msg.cmd = CmdEnum::REALIGN;
     return cmd.fix_parity();
