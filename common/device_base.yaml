@@ -8,11 +8,6 @@ esp8266:
 
 i2c:  
 
-pcf8574: # depends on i2c
-  - id: 'pcf8574_hub'
-    address: 0x38
-    pcf8575: false
-
 time: # depends on api 
   - platform: homeassistant
     id: current_time   
