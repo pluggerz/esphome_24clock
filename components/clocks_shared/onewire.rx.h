@@ -44,10 +44,12 @@ class Rx {
 class RxOnewire : public onewire::Rx {
  protected:
   friend class OnewireInterrupt;
+  // MMMM onewire::Value rx_double_check_value;
 
 #ifdef USE_RX_BUFFER
   RingBuffer<onewire::Value, ONEWIRE_BUFFER_SIZE> buffer;
   void debug(onewire::Value value);
+
 #else
   // last read value, valid if _rx_available is true
   volatile onewire::Value _rx_last_value;
@@ -119,14 +121,15 @@ class RxOnewire : public onewire::Rx {
         } else {
           ESP_LOGD(TAG, "receive:  END -> %d", _rx_value);
           debug(_rx_value);
+          // MMMM if (onewire::one_wire_double_check &&
+          // MMMM     _rx_value != rx_double_check_value) {
+          // MMMM   if (rx_double_check_value != 0)
+          // MMMM     ESP_LOGI(TAG, "Mismatch in message!");
+          // MMMM   rx_double_check_value = _rx_value;
+          // MMMM } else {
+          // MMMM  rx_double_check_value = 0;
 
 #ifdef USE_RX_BUFFER
-          if (!buffer.is_empty()) {
-            ESP_LOGD(TAG,
-                     "receive:  Previous recieved value not processed, will "
-                     "be buffered by %d (size=%d",
-                     _rx_value, buffer.size());
-          }
           buffer.push(_rx_value);
 #else
           if (_rx_available) {
@@ -141,6 +144,7 @@ class RxOnewire : public onewire::Rx {
 #ifdef DOLED
           Leds::set_ex(LED_ONEWIRE, LedColors::green);
 #endif
+          // MMMM }
         }
         reset_interrupt();
         return;

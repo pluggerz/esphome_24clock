@@ -118,8 +118,6 @@ void execute_director_online(const OneCommand &cmd) {
 
 void dump_performer(int source) {
   transmit(onewire::OneCommand::CheckPoint::for_info('D', source));
-
-  transmit(onewire::command_builder.dump_performers_by_performer());
 }
 
 void DefaultAction::loop() {
@@ -141,6 +139,7 @@ void DefaultAction::loop() {
   switch (cmd.msg.cmd) {
     case CmdEnum::DUMP_PERFORMERS:
       dump_performer(1);
+      transmit(onewire::command_builder.dump_performers_by_performer());
       break;
 
     case CmdEnum::REALIGN:
@@ -196,6 +195,7 @@ void ResetAction::loop() {
     switch (cmd.msg.cmd) {
       case CmdEnum::DUMP_PERFORMERS:
         dump_performer(2);
+        transmit(onewire::command_builder.dump_performers_by_performer());
         break;
 
       case CmdEnum::DIRECTOR_ONLINE:
@@ -291,7 +291,7 @@ void calibrate_steppers() {
 
 void setup() {
   setup_steppers();
-  calibrate_steppers();
+  //calibrate_steppers();
 
   pinMode(SLAVE_RS485_TXD_DPIN, OUTPUT);
   pinMode(SLAVE_RS485_RXD_DPIN, INPUT);
