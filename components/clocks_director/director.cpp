@@ -40,7 +40,8 @@ Director::Director() {}
 onewire::RxOnewire rx;
 onewire::TxOnewire tx;
 
-#define UART_BAUDRATE 9600  // 115200  // 9600
+#define UART_BAUDRATE 115200
+// 57600 // 256000  // 115200  // 9600  // 115200  // 9600
 
 class DirectorChannel : public BufferChannel {
  public:
@@ -50,7 +51,7 @@ class DirectorChannel : public BufferChannel {
 } my_channel;
 
 void transmit(onewire::OneCommand command) {
-  ESP_LOGD(TAG, "(via onewire:) %s", format(command));
+  ESP_LOGD(TAG, "(via onewire:) %s", command.format());
   tx.transmit(command.raw);
 }
 
@@ -66,7 +67,15 @@ void Director::dump_config() {
   LOGI(TAG, "     Msg:        %d", sizeof(onewire::OneCommand::Msg));
   LOGI(TAG, "     Accept:     %d", sizeof(onewire::OneCommand::Accept));
   LOGI(TAG, "     CheckPoint: %d", sizeof(onewire::OneCommand::CheckPoint));
+  // LOGI(TAG, "  SERIAL_RX_BUFFER_SIZE: %d", SERIAL_RX_BUFFER_SIZE);
+  // LOGI(TAG, "  SERIAL_TX_BUFFER_SIZE: %d", SERIAL_TX_BUFFER_SIZE);
 
+  if (wi_fi_component == nullptr) {
+    LOGI(TAG, "  wifi: nullpntr");
+  } else {
+    LOGI(TAG, "  wifi: %s",
+         wi_fi_component->is_connected() ? "CONNECTED" : "NOT connected");
+  }
   tx.dump_config();
   my_channel.dump_config();
   onewire::OnewireInterrupt::dump_config();
@@ -127,7 +136,7 @@ class AcceptAction : public IntervalAction {
   virtual void update() override {
     if (!this->active) return;
 
-    auto msg = onewire::OneCommand::Accept::create(my_channel.baudrate());
+    auto msg = command_builder.accept(my_channel.baudrate());
     transmit(msg);
     LOGI(TAG, "transmit: Accept(%dbaud)", msg.accept.baudrate);
   }
@@ -138,7 +147,7 @@ class PingOneWireAction : public IntervalAction {
   Millis t0;
 
  public:
-  PingOneWireAction() : IntervalAction(5000) {}
+  PingOneWireAction() : IntervalAction(500) {}
   virtual void update() override {
     if (!send) {
       send = true;
@@ -174,7 +183,7 @@ class TickChannelAction : public IntervalAction {
     if (!send) {
       send = true;
       t0 = millis();
-      my_channel.send(channel::messages::tick(tick_id++));
+      my_channel.send(message_builder.tick(tick_id++));
     } else {
       send = false;
       ESP_LOGW(TAG, "(via channel:) Tick lost !?");
@@ -202,7 +211,18 @@ class TestOnewireAction : public IntervalAction {
   }
 } test_onewire_action;
 
-void Director::setup() {
+void Director::setup() {}
+
+bool Director::is_started() {
+  if (!async::interop::suspended) return true;
+  if (!this->wi_fi_component->is_connected()) return false;
+
+  start();
+  async::interop::suspended = false;
+  return true;
+}
+
+void Director::start() {
   async_interop.set_channel(this->get_channel());
   async_interop.set_tx_onewire(&tx);
 
@@ -236,6 +256,9 @@ void Director::setup() {
   rx.setup();
   rx.begin();
 
+  // Serial.setRxBufferSize(256);
+  // Serial.setTxBufferSize(1024);
+
 #if MODE == MODE_ONEWIRE_VALUE || MODE == MODE_ONEWIRE_PASSTROUGH || \
     MODE == MODE_ONEWIRE_MIRROR
   tx.setup(1);
@@ -247,6 +270,7 @@ void Director::setup() {
 #if MODE >= MODE_ONEWIRE_INTERACT
   // accept_action.start();
 #endif
+  async::interop::suspended = false;
 }
 
 #if MODE == MODE_ONEWIRE_VALUE || MODE == MODE_ONEWIRE_PASSTROUGH || \
@@ -255,9 +279,11 @@ onewire::Value value = 0;
 int received = 0;
 
 void Director::loop() {
+  if (!is_started()) return;
+
   if (rx.pending()) {
     auto value = rx.flush();
-    if (onewire::BAUD < 200)
+    if (onewire::USED_BAUD < 200)
       LOGI(TAG, "RECEIVED: {%d}", value);
     else
       ESP_LOGD(TAG, "RECEIVED: {%d}", value);
@@ -265,7 +291,7 @@ void Director::loop() {
   }
   if (tx.transmitted()) {
     delay(20);
-    if (onewire::BAUD < 200)
+    if (onewire::USED_BAUD < 200)
       LOGI(TAG, "TRANSMIT: {value=%d}", value);
     else
       ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
@@ -284,22 +310,25 @@ void Director::loop() {
 #endif
 
 #if MODE == MODE_ONEWIRE_CMD
+int baud_idx = 0;
 void Director::loop() {
-  if (rx.pending()) {
+  if (!is_started()) return;
+
+  while (rx.pending()) {
     auto value = rx.flush();
-    if (onewire::BAUD < 200)
+    if (onewire::USED_BAUD < 200)
       LOGI(TAG, "RECEIVED: {%d}", value);
     else
-      ESP_LOGD(TAG, "RECEIVED: {%d}", value);
+      LOGI(TAG, "RECEIVED: {%d}", value);
   }
   if (tx.transmitted()) {
     delay(50);
-    auto cmd = onewire::OneCommand::Accept::create(channel.baudrate());
+    auto cmd = command_builder.accept(baud_idx++);
     auto value = cmd.raw;
-    if (onewire::BAUD < 200)
+    if (onewire::USED_BAUD < 200)
       LOGI(TAG, "TRANSMIT: {value=%d}", value);
     else
-      ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
+      LOGI(TAG, "TRANSMIT: {value=%d}", value);
 
     tx.transmit(value);
   }
@@ -335,6 +364,7 @@ bool pheripal_online = true;
 
 void Director::loop() {
   if (_killed) return;
+  if (!is_started()) return;
 
   // if (!dumped)
   //     return;
@@ -360,9 +390,9 @@ void Director::loop() {
         break;
 
       case CmdEnum::PERFORMER_POSITION: {
-        ESP_LOGW(TAG, "PERFORMER_POSITION: performer_id = %d (%d, %d)",
-                 cmd.position.source_id, cmd.position.ticks0,
-                 cmd.position.ticks1);
+        ESP_LOGW(TAG, "PERFORMER_POSITION: performer_id = %d (%f, %f)",
+                 cmd.position.source_id, cmd.position.ticks0 / 720.0 * 12.0,
+                 cmd.position.ticks1 / 720.0 * 12.0);
         auto &p = performer(cmd.position.source_id);
         p.stepper0.ticks = cmd.position.ticks0;
         p.stepper1.ticks = cmd.position.ticks1;
@@ -418,6 +448,8 @@ void Director::loop() {
                "MODE_ONEWIRE_PASSTROUGH!",
                cmd.accept.baudrate);
         } else {
+          ping_onewire_action.set_delay_in_millis(5000);
+
           accept_action.stop();
 
           _performers = cmd.msg.source_id + 1;
@@ -449,7 +481,7 @@ void Director::loop() {
 #endif
 
 class RequestPositionsAsync : public DelayAsync {
-  int current_position_ack;
+  const int current_position_ack;
   Director *director;
 
  public:
@@ -461,8 +493,8 @@ class RequestPositionsAsync : public DelayAsync {
   void request() {
     LOGI(TAG, "RequestPositionsAsync: REQUEST");
 
-    auto message = message_builder.request_positions();
-    my_channel.send(message);
+    my_channel.send(message_builder.request_kill_keys_or_request_position());
+    // my_channel.send(message_builder.request_positions());
     delay(10);
     transmit(command_builder.director_position_ack(guid));
   }

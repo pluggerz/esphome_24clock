@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 from esphome.const import CONF_LIGHT,CONF_RED,CONF_GREEN,CONF_BLUE
-from esphome.components import output, light
+from esphome.components import output, light, wifi
 from esphome.voluptuous_schema import _Schema
 import esphome.config_validation as cv
 from esphome.const import (
@@ -62,6 +62,7 @@ def cv_performers_check(conf):
 CONFIG_SCHEMA = _Schema(
     {
         cv.Optional(CONF_ID, default='director'): cv.declare_id(Director24),
+        cv.Required('wifi'): cv.use_id(wifi.WiFiComponent),
 #        cv.GenerateID(): cv.declare_id(OClockStubController),
 #        cv.Optional(CONF_COUNT_START, -1): cv.int_range(min=-1, max=64),
         cv.Optional(CONF_BAUDRATE, 9600): cv.int_range(min=1200),
@@ -113,6 +114,9 @@ async def to_code(config):
         to_code_slave(master, slaveId, slaveConf)
 
     cg.add(master.set_baudrate(config[CONF_BAUDRATE]))
+
+    wifi = await cg.get_variable(config['wifi'])
+    cg.add(master.set_wi_fi_component(wifi))
 
     await cg.register_component(master, config)
 

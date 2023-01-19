@@ -83,7 +83,6 @@ class BasicProtocol : public rs485::Protocol {
 #ifdef DOLED
     Leds::set_ex(LED_CHANNEL_DATA, LedColors::red);
     Leds::set_ex(LED_CHANNEL_STATE, LedColors::purple);
-    Leds::publish();
 #endif
   }
 
@@ -100,20 +99,12 @@ class BasicProtocol : public rs485::Protocol {
   bool update();
 
   inline void wait_for_room() {
-    return;
+    // return;
 
-#ifdef DOLOG
-    bool waited = false;
-#endif
     int av = Serial.availableForWrite();
-    while (av < 20) {
-#ifdef DOLOG
-      if (!waited) {
-        ESP_LOGW(TAG, "Waited for available: %d", av);
-      }
-      waited = true;
-#endif
-      delay(3);  // FIX CRC ERRORS ?
+    while (av < 42) {
+      yield();
+      // delay(3);  // FIX CRC ERRORS ?
       av = Serial.availableForWrite();
     }
   }
@@ -124,11 +115,14 @@ class BasicProtocol : public rs485::Protocol {
     wait_for_room();
     Serial.write(STX);  // STX
     for (byte i = 0; i < length; i++) {
-      wait_for_room();
+      // wait_for_room();
       sendComplemented(data[i]);
     }
+    // wait_for_room();
     Serial.write(ETX);  // ETX
+    // wait_for_room();
     sendComplemented(crc8(data, length));
+    delay(2);
   }  // end of RS485::sendMsg
 
   // returns true if packet available
@@ -163,7 +157,6 @@ bool BasicProtocol::update() {
   if (available == 0) {
 #ifdef DOLED
     Leds::set_ex(LED_CHANNEL_DATA, LedColors::red);
-    // Leds::publish();
 #endif
     return false;
   }
@@ -173,7 +166,8 @@ bool BasicProtocol::update() {
   Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
 #endif
 
-  // while (Serial.available() > 0)
+  while (Serial.available() > 0)
+  // if (Serial.available() > 0)
   {
     byte inByte = Serial.read();
     switch (inByte) {
@@ -261,7 +255,7 @@ using rs485::Protocol;
 Protocol *Protocol::create_default() { return &basic_protocol; }
 
 void Channel::_send(const byte *bytes, const byte length) {
-  LOGV(TAG, "Channel::_send(%d bytes)", length);
+  LOGD(TAG, "Channel::_send(%d bytes)", length);
   gate.start_transmitting();
   _protocol->sendMsg(bytes, length);
 }
@@ -275,7 +269,7 @@ bool Channel::bytes_available_for_write(int bytes) const {
 void Channel::loop() {
   if (_baudrate == 0) {
 #ifdef DOLED
-    Leds::set_ex(LED_CHANNEL_STATE, LedColors::orange);
+    Leds::set_ex(LED_CHANNEL_STATE, LedColors::purple);
 #endif
     return;
   }
@@ -288,7 +282,6 @@ void Channel::loop() {
   }
 
 #ifdef DOLED
-#define alternative 10
   if (last_channel_process_ && millis() - last_channel_process_ > 50) {
     Leds::set_ex(LED_CHANNEL_STATE, LedColors::blue);
     Leds::publish();

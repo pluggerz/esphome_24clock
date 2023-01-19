@@ -32,33 +32,30 @@ void Transmitter::sendCommandsForHandle(
   for (std::size_t idx = 0; idx < nmbrOfCommands; ++idx) {
     msg.set_key(idx, commands[idx].asInflatedCmdKey().raw);
   }
+  async_interop.direct_message(msg);
 
-  if (true) {
-    LOGI(TAG, "send(S%02d, A%d->PA%d size: %d", animatorHandleId >> 1,
-         animatorHandleId, physicalHandleId, commands.size());
+  LOGI(TAG, "send(S%02d, A%d->PA%d size: %d", animatorHandleId >> 1,
+       animatorHandleId, physicalHandleId, commands.size());
 
-    if (false) {
-      for (std::size_t idx = 0; idx < nmbrOfCommands; ++idx) {
-        const auto cmd = InflatedCmdKey(msg.get_key(idx));
-        if (cmd.extended()) {
-          const auto extended_cmd = cmd.steps();
-          LOGI(TAG, "Cmd: extended_cmd=%d", int(extended_cmd));
-        } else {
-          const auto ghosting = cmd.ghost();
-          const auto steps = cmd.steps();
-          const auto speed = cmdSpeedUtil.deflate_speed(cmd.inflated_speed());
-          const auto clockwise = cmd.clockwise();
-          const auto relativePosition = true;
-          LOGI(TAG, "Cmd: %s=%3d sp=%d gh=%s cl=%s",
-               ghosting || relativePosition ? "steps" : "   to", steps, speed,
-               YESNO(ghosting), ghosting ? "N/A" : YESNO(clockwise));
-        }
-      }
-      LOGI(TAG, "  done");
+  // NOTE: executing (all) the code below gives the performer time as well
+  delay(2);
+  for (std::size_t idx = 0; idx < nmbrOfCommands; ++idx) {
+    const auto cmd = InflatedCmdKey(msg.get_key(idx));
+    if (cmd.extended()) {
+      const auto extended_cmd = cmd.steps();
+      LOGD(TAG, "Cmd: extended_cmd=%d", int(extended_cmd));
+    } else {
+      const auto ghosting = cmd.ghost();
+      const auto steps = cmd.steps();
+      const auto speed = cmdSpeedUtil.deflate_speed(cmd.inflated_speed());
+      const auto clockwise = cmd.clockwise();
+      const auto relativePosition = true;
+      LOGD(TAG, "Cmd: %s=%3d sp=%d gh=%s cl=%s",
+           ghosting || relativePosition ? "steps" : "   to", steps, speed,
+           YESNO(ghosting), ghosting ? "N/A" : YESNO(clockwise));
     }
+    LOGI(TAG, "  done");
   }
-
-  async_interop.queue_message(msg);
 }
 
 void Transmitter::sendCommands(std::vector<HandleCmd> &cmds) {
@@ -125,14 +122,14 @@ void Transmitter::sendInstructions(Instructions &instructions, u32 millisLeft) {
   updateSpeeds(instructions);
 
   // lets start transmitting
-  async_interop.queue_message(Message(-1, MsgEnum::MSG_BEGIN_KEYS));
+  async_interop.direct_message(Message(-1, MsgEnum::MSG_BEGIN_KEYS));
 
   // send instructions
   sendCommands(instructions.cmds);
   instructions.dump();
 
   // finalize
-  async_interop.queue_message(
+  async_interop.direct_message(
       UartEndKeysMessage(instructions.turn_speed, instructions.turn_steps,
                          cmdSpeedUtil.get_speeds(),
                          instructions.get_speed_detection(), millisLeft));

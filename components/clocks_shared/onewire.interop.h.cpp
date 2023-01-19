@@ -12,5 +12,5 @@ char onewire::scratch_buffer[onewire::MAX_SCRATCH_LENGTH];
 #include "../clocks_shared/onewire.rx.h"
 
 void onewire::RxOnewire::debug(onewire::Value value) {
-  LOGI(__FILE__, "Got: %s", ((onewire::OneCommand*)&value)->format());
+  LOGD(__FILE__, "Got: %s", ((onewire::OneCommand*)&value)->format());
 }

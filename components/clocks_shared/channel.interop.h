@@ -6,13 +6,15 @@ namespace channel {
 enum MsgEnum {
   MSG_TICK,
   MSG_PERFORMER_SETTINGS,
-  MSG_POSITION_REQUEST,
+  MSG_REQUEST_POSITIONS,
   MSG_BEGIN_KEYS,
   MSG_SEND_KEYS,
   MSG_END_KEYS,
+  MSG_KILL_KEYS_OR_REQUEST_POSITIONS,
   MSG_LIGTHING_MODE,
   MSG_INDIVIDUAL_LEDS_SET,
-  MSG_INDIVIDUAL_LEDS_SHOW
+  MSG_INDIVIDUAL_LEDS_SHOW,
+  MSG_DUMP_PERFORMERS_VIA_CHANNEL,
 };
 
 constexpr int MAX_UART_MESSAGE_SIZE = 32;
@@ -52,18 +54,14 @@ struct Message {
 } __attribute__((packed, aligned(1)));
 
 namespace messages {
-struct IntMessage : public Message {
+struct TickMessage : public Message {
  public:
   int32_t value;
 
-  IntMessage(int32_t value)
+  TickMessage(int32_t value)
       : Message(-1, MsgEnum::MSG_TICK, ChannelInterop::ALL_PERFORMERS),
         value(value) {}
 } __attribute__((packed, aligned(1)));
-
-#if defined(IS_DIRECTOR)
-static IntMessage tick(uint8_t tick_id) { return IntMessage(tick_id); }
-#endif
 
 struct StepperSettings : public Message {
  public:
@@ -157,7 +155,19 @@ struct IndividualLeds : public Message {
 class MessageBuilder {
  public:
   Message request_positions() {
-    return Message(-1, MsgEnum::MSG_POSITION_REQUEST);
+    return Message(-1, MsgEnum::MSG_REQUEST_POSITIONS);
+  }
+
+  Message request_kill_keys_or_request_position() {
+    return Message(-1, MsgEnum::MSG_KILL_KEYS_OR_REQUEST_POSITIONS);
+  }
+
+  Message dump_performers_by_director() {
+    return Message(-1, MsgEnum::MSG_DUMP_PERFORMERS_VIA_CHANNEL);
+  }
+
+  messages::TickMessage tick(uint8_t tick_id) {
+    return messages::TickMessage(tick_id);
   }
 } extern message_builder;
 

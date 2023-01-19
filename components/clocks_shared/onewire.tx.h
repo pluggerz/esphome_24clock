@@ -201,6 +201,7 @@ class TxOnewire {
     }
     locked = true;
     buffer.push(value);
+    if (onewire::one_wire_double_check) buffer.push(value);
     locked = false;
   }
 
@@ -215,7 +216,7 @@ class TxOnewire {
     if (!buffer.is_empty() && _raw_tx.transmitted()) {
       _raw_tx.transmit(buffer.pop());
       if (!buffer.is_empty()) {
-        ESP_LOGW(TAG, "receive: buffer not empty, size: %d", buffer.size());
+        ESP_LOGD(TAG, "tx: buffer not empty, size: %d", buffer.size());
       }
       locked = false;
       return;

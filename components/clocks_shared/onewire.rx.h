@@ -48,9 +48,9 @@ class RxOnewire : public onewire::Rx {
 #ifdef USE_RX_BUFFER
   RingBuffer<onewire::Value, ONEWIRE_BUFFER_SIZE> buffer;
   void debug(onewire::Value value);
+  volatile onewire::Value _rx_last_value;
 #else
   // last read value, valid if _rx_available is true
-  volatile onewire::Value _rx_last_value;
   volatile bool _rx_available = false;
 #endif
 
@@ -72,13 +72,16 @@ class RxOnewire : public onewire::Rx {
       //    Leds::set_ex(LED_ONEWIRE, LedColors::blue);
 #endif
     }
-    _rx_value = 0;
+    _rx_value = Value(0);
     _rx_bit = RX_BIT_INITIAL;
     _rx_nibble = false;
+    _rx_last_value = Value(0);
   }
+
   void reset_interrupt() {
     _rx_nibble = false;
     _rx_bit = onewire::RX_BIT_INITIAL;
+    _rx_last_value = Value(0);
   }
 
  public:
@@ -120,24 +123,30 @@ class RxOnewire : public onewire::Rx {
           ESP_LOGD(TAG, "receive:  END -> %d", _rx_value);
           debug(_rx_value);
 
+          /*if (onewire::one_wire_double_check && _rx_last_value != _rx_value) {
+            _rx_last_value = _rx_value;
+          } else*/
+          {
 #ifdef USE_RX_BUFFER
-          if (!buffer.is_empty()) {
-            ESP_LOGW(TAG,
-                     "receive:  Previous recieved value not processed, will "
-                     "be buffered by %d (size=%d",
-                     _rx_value, buffer.size());
-          }
-          buffer.push(_rx_value);
+            if (!buffer.is_empty()) {
+              ESP_LOGD(TAG,
+                       "receive:  Previous recieved value not processed, will "
+                       "be buffered by %d (size=%d",
+                       _rx_value, buffer.size());
+            }
+            buffer.push(_rx_value);
 #else
-          if (_rx_available) {
-            ESP_LOGW(TAG,
-                     "receive:  Previous recieved value %d not processed, will "
-                     "be overwritten by %d",
-                     _rx_last_value, _rx_value);
-          }
-          _rx_last_value = _rx_value;
-          _rx_available = true;
+            if (_rx_available) {
+              ESP_LOGW(
+                  TAG,
+                  "receive:  Previous recieved value %d not processed, will "
+                  "be overwritten by %d",
+                  _rx_last_value, _rx_value);
+            }
+            _rx_last_value = _rx_value;
+            _rx_available = true;
 #endif
+          }
 #ifdef DOLED
           Leds::set_ex(LED_ONEWIRE, LedColors::green);
 #endif

@@ -29,6 +29,7 @@ int onewire::my_performer_id() { return ChannelInterop::id; }
 
 // steppers
 int guid_of_director = -1;
+lighting::LightingMode current_lighting_mode = -1;
 
 Stepper0 stepper0(NUMBER_OF_STEPS);
 Stepper1 stepper1(NUMBER_OF_STEPS);
@@ -75,6 +76,23 @@ void show_action(const onewire::OneCommand &cmd) {
   }
   Leds::publish();
 }
+
+void dump_performer(int source) {
+  transmit(onewire::OneCommand::CheckPoint::for_info('D', source));
+}
+
+void transmit_ticks() {
+  auto ticks0 = Ticks::normalize(stepper0.ticks()) / STEP_MULTIPLIER;
+  auto ticks1 = Ticks::normalize(stepper1.ticks()) / STEP_MULTIPLIER;
+
+  transmit(OneCommand::Position::create(ticks0, ticks1));
+}
+
+void StepExecutors::send_positions() {
+  transmit(onewire::OneCommand::CheckPoint::for_info('P', 0));
+  transmit_ticks();
+}
+
 #if MODE >= MODE_ONEWIRE_INTERACT
 
 class DefaultAction : public IntervalAction {
@@ -116,6 +134,8 @@ void execute_director_online(const OneCommand &cmd) {
 }
 
 void DefaultAction::loop() {
+  my_channel.loop();
+
   IntervalAction::loop();
 
   Leds::set_ex(LED_MODE, LedColors::orange);
@@ -124,9 +144,17 @@ void DefaultAction::loop() {
 
   OneCommand cmd;
   cmd.raw = rx.flush();
+  if (!cmd.parity_okay()) {
+    return;
+  }
   show_action(cmd);
-  my_channel.loop();
+
   switch (cmd.msg.cmd) {
+    case CmdEnum::DUMP_PERFORMERS:
+      dump_performer(1);
+      transmit(onewire::command_builder.dump_performers_by_performer());
+      break;
+
     case CmdEnum::REALIGN:
       OnewireInterrupt::align();
       break;
@@ -137,6 +165,8 @@ void DefaultAction::loop() {
       break;
 
     case CmdEnum::DIRECTOR_ONLINE:
+      current_lighting_mode = -1;
+      lighting::current = &lighting::debug;
       execute_director_online(cmd);
       break;
 
@@ -151,19 +181,6 @@ void DefaultAction::loop() {
   }
 }
 
-void transmit_ticks() {
-  auto ticks0 = Ticks::normalize(stepper0.ticks()) / STEP_MULTIPLIER;
-  auto ticks1 = Ticks::normalize(stepper1.ticks()) / STEP_MULTIPLIER;
-
-  transmit(OneCommand::Position::create(ChannelInterop::get_my_id(), ticks0,
-                                        ticks1));
-}
-
-void StepExecutors::send_positions() {
-  transmit(onewire::OneCommand::CheckPoint::for_info('P', 0));
-  transmit_ticks();
-}
-
 void ResetAction::loop() {
   IntervalAction::loop();
 
@@ -172,8 +189,16 @@ void ResetAction::loop() {
   if (rx.pending()) {
     onewire::OneCommand cmd;
     cmd.raw = rx.flush();
+    if (!cmd.parity_okay()) {
+      return;
+    }
     show_action(cmd);
     switch (cmd.msg.cmd) {
+      case CmdEnum::DUMP_PERFORMERS:
+        dump_performer(2);
+        transmit(onewire::command_builder.dump_performers_by_performer());
+        break;
+
       case CmdEnum::DIRECTOR_ONLINE:
         execute_director_online(cmd);
         break;
@@ -184,13 +209,16 @@ void ResetAction::loop() {
 
       case CmdEnum::DIRECTOR_ACCEPT:
         ChannelInterop::id = cmd.derive_next_source_id();
-        set_action(&default_action);
         if (my_channel.baudrate() != cmd.accept.baudrate) {
           my_channel.baudrate(cmd.accept.baudrate);
           my_channel.start_receiving();
+        } else {
+          set_action(&default_action);
+
+          // send after we 'heard' twice the right baudrate
+          transmit(cmd.increase_performer_id_and_forward());
+          transmit_ticks();
         }
-        transmit(cmd.increase_performer_id_and_forward());
-        transmit_ticks();
         break;
 
       default:
@@ -290,8 +318,8 @@ void setup() {
 
 #if MODE == MODE_CHANNEL || MODE == MODE_ONEWIRE_CMD || \
     MODE == MODE_ONEWIRE_PASSTROUGH
-  channel.baudrate(9600);
-  channel.start_receiving();
+  my_channel.baudrate(9600);
+  my_channel.start_receiving();
   Leds::blink(LedColors::green, 4);
 #endif
 
@@ -353,7 +381,7 @@ void loop() {
 #if MODE == MODE_ONEWIRE_CMD
     onewire::OneCommand cmd;
     cmd.raw = rx.flush();
-    tx.transmit(cmd.forward().raw);
+    tx.transmit(cmd.increase_performer_id_and_forward().raw);
 #endif
   }
 
@@ -368,13 +396,14 @@ void execute_settings(const channel::messages::StepperSettings *settings) {
   Leds::blink(LedColors::purple, 1 + ChannelInterop::id);
 }
 
-lighting::LightingMode current_lighting_mode = -1;
-
 void process_individual_lighting(channel::messages::IndividualLeds *msg) {
   if (msg->getDstId() != ChannelInterop::id) {
     return;
   }
-  lighting::current = &lighting::individual;
+  if (lighting::current != &lighting::individual) {
+    return;
+  }
+  // lighting::current = &lighting::individual;
   for (int led = 0; led < LED_COUNT; ++led) {
     const auto &source = msg->leds[led];
     lighting::individual.set(led, rgb_color(source.r, source.g, source.b));
@@ -440,7 +469,12 @@ void process_lighting(channel::messages::LightingMode *msg) {
 
 void PerformerChannel::process(const byte *bytes, const byte length) {
   channel::Message *msg = (channel::Message *)bytes;
+
   switch (msg->getMsgEnum()) {
+    case channel::MsgEnum::MSG_DUMP_PERFORMERS_VIA_CHANNEL:
+      dump_performer(3);
+      return;
+
     case channel::MsgEnum::MSG_BEGIN_KEYS:
       step_executors.process_begin_keys(msg);
       return;
@@ -461,7 +495,18 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
 
       return;
 
-    case channel::MsgEnum::MSG_POSITION_REQUEST:
+    case channel::MsgEnum::MSG_KILL_KEYS_OR_REQUEST_POSITIONS:
+      // this message is
+      if (ChannelInterop::id != ChannelInterop::UNDEFINED) {
+        if (step_executors.active()) {
+          step_executors.request_stop();
+        } else {
+          transmit_ticks();
+        }
+      }
+      break;
+
+    case channel::MsgEnum::MSG_REQUEST_POSITIONS:
       if (ChannelInterop::id != ChannelInterop::UNDEFINED) {
         transmit_ticks();
       }
@@ -472,8 +517,8 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
       break;
 
     case channel::MsgEnum::MSG_TICK: {
-      channel::messages::IntMessage *tick =
-          (channel::messages::IntMessage *)bytes;
+      channel::messages::TickMessage *tick =
+          (channel::messages::TickMessage *)bytes;
       if (ChannelInterop::id != ChannelInterop::UNDEFINED)
         transmit(onewire::OneCommand::tock(ChannelInterop::get_my_id(),
                                            tick->value));

@@ -24,19 +24,24 @@ void ClocksLightOutput::transmit() {
   }
   async::async_interop.direct_message(
       Message(-1, MsgEnum::MSG_INDIVIDUAL_LEDS_SHOW));
+  dirty = false;
+  LOGI(TAG, "ClocksLightOutput::transmit!");
 }
 
 void ClocksLightOutput::loop() {
+  if (async::interop::suspended) return;
+  // LOGI(TAG, "ClocksLightOutput::loop!");
+
+  // if (true) return;
   AddressableLight::loop();
 
   if (!this->dirty) {
     return;
   }
 
-  if (millis() - this->last_send_in_millis > 50) {
+  if (millis() - this->last_send_in_millis > 40) {
     transmit();
     this->last_send_in_millis = millis();
-    this->dirty = false;
   }
 }
 

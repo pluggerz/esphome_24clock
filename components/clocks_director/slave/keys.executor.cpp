@@ -183,13 +183,13 @@ class Animator final {
 
   void loop(Micros now) {
     if (keysPtr == nullptr || stepperPtr == nullptr) {
-      Leds::set_ex(LED_EXECUTOR_STATE, LedColors::red);
+      // Leds::set_ex(LED_EXECUTOR_STATE, LedColors::red);
       return;
     }
 
     auto &stepper = *stepperPtr;
     if (steps > 0) {
-      Leds::set_ex(LED_EXECUTOR_STATE, LedColors::orange);
+      // Leds::set_ex(LED_EXECUTOR_STATE, LedColors::orange);
       if (special) {
         switch (steps) {
           case CmdSpecialMode::FOLLOW_SECONDS_DISCRETE:
@@ -323,7 +323,7 @@ void StepExecutors::setup(Stepper0 &stepper0, Stepper1 &stepper1) {
   animator0.stepperPtr = &stepper0;
   animator1.stepperPtr = &stepper1;
 
-  Leds::set_ex(LED_EXECUTOR_STATE, LedColors::purple);
+  // Leds::set_ex(LED_EXECUTOR_STATE, LedColors::purple);
   Leds::publish();
 
   onewire::OnewireInterrupt::timer_loop = stepepers_loop;

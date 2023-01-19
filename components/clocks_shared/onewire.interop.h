@@ -27,7 +27,8 @@ enum CmdEnum {
   PERFORMER_PREPPING,
   PERFORMER_CHECK_POINT,
   DIRECTOR_POSITION_ACK,
-  REALIGN
+  REALIGN,
+  DUMP_PERFORMERS
 };
 
 #ifdef ESP8266
@@ -81,6 +82,9 @@ union OneCommand {
         break;
       case CmdEnum::DIRECTOR_POSITION_ACK:
         what = "DIRECTOR_POSITION_ACK";
+        break;
+      case CmdEnum::DUMP_PERFORMERS:
+        what = "DUMP_PERFORMERS";
         break;
 
       default:
@@ -155,10 +159,10 @@ union OneCommand {
       return ret.fix_parity();
     };
 
-    static OneCommand by_performer(CmdEnum cmd, int performer_id) {
+    static OneCommand by_performer(CmdEnum cmd) {
       OneCommand ret;
       ret.raw = random();
-      ret.msg.source_id = performer_id;
+      ret.msg.source_id = onewire::my_performer_id();
       ret.msg.cmd = cmd;
       return ret.fix_parity();
     };
@@ -166,13 +170,9 @@ union OneCommand {
 
   struct Accept {
     SOURCE_HEADER;
-    uint32_t baudrate : RESERVED_BITS;
-
-    static OneCommand create(uint32_t baudrate) {
-      OneCommand ret = Msg::by_director(CmdEnum::DIRECTOR_ACCEPT);
-      ret.accept.baudrate = baudrate;
-      return ret.fix_parity();
-    }
+    // up to 256000 baud
+    uint32_t baudrate : 18;
+    uint32_t reserved : RESERVED_BITS - 18;
   } __attribute__((packed, aligned(1))) accept;
 
   struct Position {
@@ -183,9 +183,8 @@ union OneCommand {
     uint32_t ticks1 : POS_BITS;
     uint32_t remainder : RESERVED_BITS - POS_BITS - POS_BITS;
 
-    static OneCommand create(int performer_id, int handle0, int handle1) {
-      OneCommand ret =
-          Msg::by_performer(CmdEnum::PERFORMER_POSITION, performer_id);
+    static OneCommand create(int handle0, int handle1) {
+      OneCommand ret = Msg::by_performer(CmdEnum::PERFORMER_POSITION);
       ret.position.ticks0 = handle0;
       ret.position.ticks1 = handle1;
       return ret.fix_parity();
@@ -204,8 +203,7 @@ union OneCommand {
                          CHECK_POINT_BITS - 1;
 
     static OneCommand create(bool debug, uint8_t id, uint16_t value) {
-      OneCommand ret =
-          Msg::by_performer(CmdEnum::PERFORMER_CHECK_POINT, my_performer_id());
+      OneCommand ret = Msg::by_performer(CmdEnum::PERFORMER_CHECK_POINT);
       ret.check_point.debug = debug ? 1 : 0;
       ret.check_point.id = id;
       ret.check_point.value = value;
@@ -262,6 +260,13 @@ union OneCommand {
 
 class CommandBuilder {
  public:
+  OneCommand accept(uint32_t baudrate) {
+    OneCommand ret = OneCommand::Msg::by_director(CmdEnum::DIRECTOR_ACCEPT);
+    ret.accept.baudrate = baudrate;
+    ret.accept.reserved = random();
+    return ret.fix_parity();
+  }
+
   OneCommand ping() {
     OneCommand cmd;
     cmd.raw = random();
@@ -282,6 +287,12 @@ class CommandBuilder {
     OneCommand ret = OneCommand::Msg::by_director(CmdEnum::DIRECTOR_ONLINE);
     ret.msg.reserved = guid;
     return ret.fix_parity();
+  }
+  OneCommand dump_performers_by_director() {
+    return OneCommand::Msg::by_director(CmdEnum::DUMP_PERFORMERS);
+  }
+  OneCommand dump_performers_by_performer() {
+    return OneCommand::Msg::by_performer(CmdEnum::DUMP_PERFORMERS);
   }
   OneCommand director_position_ack(int guid) {
     OneCommand ret =

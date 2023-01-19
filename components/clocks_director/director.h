@@ -6,6 +6,7 @@
 #include "../clocks_shared/channel.h"
 #include "../clocks_shared/onewire.interop.h"
 #include "esphome/components/time/real_time_clock.h"
+#include "esphome/components/wifi/wifi_component.h"
 #include "esphome/core/component.h"
 
 class AnimationController;
@@ -16,6 +17,7 @@ class Stepper {
   int offset = 0;
   int ticks = -1;
 };
+using esphome::wifi::WiFiComponent;
 
 class Performer {
  public:
@@ -43,11 +45,14 @@ class Director : public esphome::Component {
   Performer performers[NMBR_OF_PERFORMERS];
   int baudrate = 0;
   std::vector<AttachListener *> listeners;
+  WiFiComponent *wi_fi_component = nullptr;
 
  protected:
   AnimationController *animation_controller_ = nullptr;
 
   virtual void setup() override;
+  void start();
+  bool is_started();
   virtual void loop() override;
 
  public:
@@ -64,7 +69,10 @@ class Director : public esphome::Component {
   void kill();
   virtual void dump_config() override;
 
-  void set_baudrate(int value) { baudrate = value; }
+  void set_baudrate(int value) { this->baudrate = value; }
+  void set_wi_fi_component(WiFiComponent *value) {
+    this->wi_fi_component = value;
+  }
 
   void request_positions();
   void realign_performers();

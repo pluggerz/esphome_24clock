@@ -42,7 +42,10 @@ void publish();
 #define LED_SYNC_OUT 4
 #define LED_MODE 7
 
+#define LED_TIMER_ONEWIRE 8
+#define LED_TIMER_STEPPER 9
+
 #define LED_CHANNEL_STATE 11
 #define LED_CHANNEL_DATA 10
 
-#define LED_EXECUTOR_STATE 9
+// #define LED_EXECUTOR_STATE 9

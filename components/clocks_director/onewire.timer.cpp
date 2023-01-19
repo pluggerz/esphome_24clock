@@ -129,10 +129,35 @@ class FrequencyChecker {
   }
 } frequencyChecker1('1'), frequencyChecker2('2');
 
+template <int PIN>
+class LedTracker {
+ public:
+  uint16_t counter = 0;
+  const uint16_t hit0;
+  const uint16_t hit1;
+  LedTracker(uint16_t hit) : hit0(hit), hit1(2 * hit) {}
+  void loop() {
+    if (this->counter == 0 || this->counter == this->hit0) {
+      Leds::set_ex(PIN, this->counter ? LedColors::blue : LedColors::purple);
+      this->counter++;
+    } else if (counter == this->hit1)
+      this->counter = 0;
+    else
+      this->counter++;
+  }
+};
+
+// communication is around 1000 BAUD, the clock on 2000 BAUD
+LedTracker<LED_TIMER_ONEWIRE> onewire_timer_tracker(1600);
+// communication is around 4000Hz
+LedTracker<LED_TIMER_STEPPER> onewire_steppers_tracker(1600);
+
 ISR(TIMER1_COMPA_vect) {
+  onewire_steppers_tracker.loop();
   frequencyChecker1.loop();
   if (OnewireInterrupt::timer_loop) OnewireInterrupt::timer_loop(micros());
 #ifdef TIMER1_FALLBACK
+  onewire_timer_tracker.loop();
   if (aligning) return;
   TxTimerHandler();
 #endif
@@ -140,6 +165,8 @@ ISR(TIMER1_COMPA_vect) {
 
 ISR(TIMER2_COMPA_vect) {
   frequencyChecker2.loop();
+  onewire_timer_tracker.loop();
+
 #ifndef TIMER1_FALLBACK
   if (aligning) return;
   TxTimerHandler();
