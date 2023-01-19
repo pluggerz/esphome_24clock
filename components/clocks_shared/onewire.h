@@ -38,7 +38,7 @@
 namespace onewire {
 const char *const TAG = "onewire";
 
-constexpr bool one_wire_double_check = true;
+constexpr bool one_wire_double_check = false;
 
 constexpr int ONEWIRE_BUFFER_SIZE = 12;
 

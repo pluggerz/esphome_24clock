@@ -76,23 +76,6 @@ void show_action(const onewire::OneCommand &cmd) {
   }
   Leds::publish();
 }
-
-void dump_performer(int source) {
-  transmit(onewire::OneCommand::CheckPoint::for_info('D', source));
-}
-
-void transmit_ticks() {
-  auto ticks0 = Ticks::normalize(stepper0.ticks()) / STEP_MULTIPLIER;
-  auto ticks1 = Ticks::normalize(stepper1.ticks()) / STEP_MULTIPLIER;
-
-  transmit(OneCommand::Position::create(ticks0, ticks1));
-}
-
-void StepExecutors::send_positions() {
-  transmit(onewire::OneCommand::CheckPoint::for_info('P', 0));
-  transmit_ticks();
-}
-
 #if MODE >= MODE_ONEWIRE_INTERACT
 
 class DefaultAction : public IntervalAction {
@@ -133,6 +116,12 @@ void execute_director_online(const OneCommand &cmd) {
   transmit(cmd.increase_performer_id_and_forward());
 }
 
+void dump_performer(int source) {
+  transmit(onewire::OneCommand::CheckPoint::for_info('D', source));
+
+  transmit(onewire::command_builder.dump_performers_by_performer());
+}
+
 void DefaultAction::loop() {
   my_channel.loop();
 
@@ -152,7 +141,6 @@ void DefaultAction::loop() {
   switch (cmd.msg.cmd) {
     case CmdEnum::DUMP_PERFORMERS:
       dump_performer(1);
-      transmit(onewire::command_builder.dump_performers_by_performer());
       break;
 
     case CmdEnum::REALIGN:
@@ -181,6 +169,18 @@ void DefaultAction::loop() {
   }
 }
 
+void transmit_ticks() {
+  auto ticks0 = Ticks::normalize(stepper0.ticks()) / STEP_MULTIPLIER;
+  auto ticks1 = Ticks::normalize(stepper1.ticks()) / STEP_MULTIPLIER;
+
+  transmit(OneCommand::Position::create(ticks0, ticks1));
+}
+
+void StepExecutors::send_positions() {
+  transmit(onewire::OneCommand::CheckPoint::for_info('P', 0));
+  transmit_ticks();
+}
+
 void ResetAction::loop() {
   IntervalAction::loop();
 
@@ -196,7 +196,6 @@ void ResetAction::loop() {
     switch (cmd.msg.cmd) {
       case CmdEnum::DUMP_PERFORMERS:
         dump_performer(2);
-        transmit(onewire::command_builder.dump_performers_by_performer());
         break;
 
       case CmdEnum::DIRECTOR_ONLINE:
@@ -318,8 +317,8 @@ void setup() {
 
 #if MODE == MODE_CHANNEL || MODE == MODE_ONEWIRE_CMD || \
     MODE == MODE_ONEWIRE_PASSTROUGH
-  my_channel.baudrate(9600);
-  my_channel.start_receiving();
+  channel.baudrate(9600);
+  channel.start_receiving();
   Leds::blink(LedColors::green, 4);
 #endif
 
@@ -381,7 +380,7 @@ void loop() {
 #if MODE == MODE_ONEWIRE_CMD
     onewire::OneCommand cmd;
     cmd.raw = rx.flush();
-    tx.transmit(cmd.increase_performer_id_and_forward().raw);
+    tx.transmit(cmd.forward().raw);
 #endif
   }
 
