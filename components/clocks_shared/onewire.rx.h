@@ -98,10 +98,12 @@ class RxOnewire : public onewire::Rx {
           _rx_bit++;
         else if (current && !last) {  // actual end symbol
           _rx_bit = MAX_DATA_BITS + 2;
-          ESP_LOGVV(TAG, "receive:  Possible END");
+          ESP_LOGVV(TAG, "receive:  Possible END bit=%d value=%d", _rx_bit,
+                    _rx_value);
         } else {
           // invalid state!
-          ESP_LOGW(TAG, "receive:  INVALID !?");
+          ESP_LOGW(TAG, "receive:  INVALID !? bit=%d value=%d", _rx_bit,
+                   _rx_value);
           reset_interrupt();
         }
         return;
@@ -117,9 +119,9 @@ class RxOnewire : public onewire::Rx {
     switch (_rx_bit) {
       case MAX_DATA_BITS + 2:
         if (current) {
-          ESP_LOGW(TAG, "receive:  INVALID END !?");
+          ESP_LOGW(TAG, "receive:  INVALID END !? _rx_value=%d", _rx_value);
         } else {
-          ESP_LOGD(TAG, "receive:  END -> %d", _rx_value);
+          ESP_LOGD(TAG, "receive:  END -> _rx_value=%d", _rx_value);
           debug(_rx_value);
           // MMMM if (onewire::one_wire_double_check &&
           // MMMM     _rx_value != rx_double_check_value) {
@@ -152,7 +154,7 @@ class RxOnewire : public onewire::Rx {
       case MAX_DATA_BITS + 1:
       case MAX_DATA_BITS:
         if (current != (_rx_bit == MAX_DATA_BITS ? false : true)) {
-          LOGI(TAG, "NOT EXPECTED !?");
+          LOGI(TAG, "NOT EXPECTED !? bit=%d, value=%d", _rx_bit, _rx_value);
           reset_interrupt();
         } else
           _rx_bit++;

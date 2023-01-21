@@ -61,7 +61,7 @@ MOVE2RAM void follow_change() {
 volatile uint8_t tx_rx_cycle = 1;
 
 volatile bool in_between_tick = false;
-volatile bool use_inbetween = false;
+constexpr bool use_inbetween = true;
 
 #ifdef ESP8266
 constexpr bool aligning = false;
@@ -84,7 +84,7 @@ void MOVE2RAM TxTimerHandler() {
     } else if (tx->transmitted()) {
       if (use_inbetween) {
         in_between_tick = !in_between_tick;
-        if (in_between_tick) PIN_WRITE(SYNC_OUT_PIN, true);
+        PIN_WRITE(SYNC_OUT_PIN, in_between_tick);
 #ifdef DOLED
         Leds::set_ex(LED_SYNC_OUT,
                      in_between_tick ? LedColors::blue : LedColors::black);
@@ -108,6 +108,7 @@ class FrequencyChecker {
   Micros start = 0L;
   const int wait_in_seconds = 60;
   uint32_t ticks = 0;
+
   const char ch;
 
   FrequencyChecker(char ch) : ch(ch) {}
@@ -133,17 +134,28 @@ template <int PIN>
 class LedTracker {
  public:
   uint16_t counter = 0;
+  uint32_t data_hits = 0;
+  bool first_color = true;
   const uint16_t hit0;
   const uint16_t hit1;
   LedTracker(uint16_t hit) : hit0(hit), hit1(2 * hit) {}
   void loop() {
     if (this->counter == 0 || this->counter == this->hit0) {
-      Leds::set_ex(PIN, this->counter ? LedColors::blue : LedColors::purple);
+      first_color = !first_color;
       this->counter++;
-    } else if (counter == this->hit1)
+      this->data_hits = 0;
+    } else if (counter == this->hit1) {
+      first_color = !first_color;
       this->counter = 0;
-    else
+      this->data_hits = 0;
+    } else
       this->counter++;
+
+#ifdef DOLED
+    Leds::set_ex(PIN,
+                 rgb_color(first_color ? 0xFF : 0x00, first_color ? 0x00 : 0xff,
+                           data_hits ? 0xFF : 0x00));
+#endif
   }
 };
 
@@ -160,6 +172,10 @@ ISR(TIMER1_COMPA_vect) {
   onewire_timer_tracker.loop();
   if (aligning) return;
   TxTimerHandler();
+  auto rx = OnewireInterrupt::rx;
+  if (rx && rx->reading()) {
+    onewire_timer_tracker.data_hits++;
+  }
 #endif
 }
 
@@ -170,6 +186,10 @@ ISR(TIMER2_COMPA_vect) {
 #ifndef TIMER1_FALLBACK
   if (aligning) return;
   TxTimerHandler();
+  auto rx = OnewireInterrupt::rx;
+  if (rx && rx->reading()) {
+    onewire_timer_tracker.data_hits++;
+  }
 #endif
 }
 #endif
@@ -282,13 +302,14 @@ void OnewireInterrupt::align() {}
 #else
 void OnewireInterrupt::align() {
   aligning = true;
+  in_between_tick = false;
+  PIN_WRITE(SYNC_OUT_PIN, false);
 
   rx->reset(false);
   Leds::set_ex(LED_MODE, LedColors::purple);
 
   // wait for first change
-  Leds::blink(LedColors::purple, 1);
-  for (int idx = 2; idx < 4; ++idx) {
+  for (int idx = 1; idx < 10; ++idx) {
     bool last_state = false;
     while (true) {
       bool state = PIN_READ(SYNC_IN_PIN);

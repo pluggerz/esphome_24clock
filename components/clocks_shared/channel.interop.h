@@ -142,8 +142,8 @@ struct LightingMode : public Message {
 struct IndividualLeds : public Message {
  public:
   struct Rgb {
-    uint8_t r, g, b;
-  };
+    uint16_t r : 5, g : 6, b : 5;
+  } __attribute__((packed, aligned(1)));
   Rgb leds[12];
 
   IndividualLeds(int performer_id)

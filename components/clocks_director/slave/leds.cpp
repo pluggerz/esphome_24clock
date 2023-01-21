@@ -35,7 +35,6 @@ rgb_color LedColors::black = rgb_color(0x00, 0x00, 0x00);
 // Create an object for writing to the LED strip.
 extern APA102<LED_DATA_PIN, LED_CLOCK_PIN> ledStrip;
 
-
 bool Debug::update(Millis now) { return dirty; }
 
 void Debug::combine(RgbLeds &result) const {
@@ -110,12 +109,17 @@ void set_all_raw(const rgb_color &color, int leds) {
   ledStrip.endFrame(LED_COUNT);
 }
 
+int blink_delay = 200;
+void Leds::set_blink_delay(int value_in_millis) {
+  blink_delay = value_in_millis;
+}
+
 void Leds::blink(const rgb_color &color, int leds) {
   for (int idx = 0; idx < 2; idx++) {
     set_all_raw(LedColors::black, LED_COUNT);
-    delay(50);
+    delay(blink_delay / 4);
     set_all_raw(color, leds);
-    delay(200);
+    delay(blink_delay);
   }
   dirty = true;
   publish();

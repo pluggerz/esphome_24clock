@@ -23,6 +23,7 @@ class LedColors {
 
 namespace Leds {
 void setup();
+void set_blink_delay(int value_in_millis);
 
 void blink(const rgb_color &color, int leds = LED_COUNT);
 

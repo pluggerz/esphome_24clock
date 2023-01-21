@@ -15,9 +15,9 @@ void ClocksLightOutput::transmit() {
     for (int idx = 0; idx < 12; ++idx) {
       auto &out = msg.leds[idx];
       const auto &in = this->dirty_leds[leds_idx++];
-      out.r = in.r;
-      out.g = in.g;
-      out.b = in.b;
+      out.r = in.r >> 3;
+      out.g = in.g >> 2;
+      out.b = in.b >> 3;
     }
 
     async::async_interop.direct_message(msg);
@@ -25,7 +25,7 @@ void ClocksLightOutput::transmit() {
   async::async_interop.direct_message(
       Message(-1, MsgEnum::MSG_INDIVIDUAL_LEDS_SHOW));
   dirty = false;
-  LOGI(TAG, "ClocksLightOutput::transmit!");
+  // LOGI(TAG, "ClocksLightOutput::transmit!");
 }
 
 void ClocksLightOutput::loop() {
@@ -39,7 +39,7 @@ void ClocksLightOutput::loop() {
     return;
   }
 
-  if (millis() - this->last_send_in_millis > 40) {
+  if (millis() - this->last_send_in_millis > 80) {
     transmit();
     this->last_send_in_millis = millis();
   }

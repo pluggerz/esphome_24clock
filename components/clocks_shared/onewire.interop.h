@@ -202,7 +202,7 @@ union OneCommand {
     uint32_t remainder : RESERVED_BITS - CHECK_POINT_ID_BITS -
                          CHECK_POINT_BITS - 1;
 
-    static OneCommand create(bool debug, uint8_t id, uint16_t value) {
+    static OneCommand create(bool debug, uint8_t id, uint32_t value) {
       OneCommand ret = Msg::by_performer(CmdEnum::PERFORMER_CHECK_POINT);
       ret.check_point.debug = debug ? 1 : 0;
       ret.check_point.id = id;
@@ -210,11 +210,11 @@ union OneCommand {
       return ret.fix_parity();
     }
 
-    static OneCommand for_info(uint8_t id, uint16_t value) {
+    static OneCommand for_info(uint8_t id, uint32_t value) {
       return create(false, id, value);
     }
 
-    static OneCommand for_debug(uint8_t id, uint16_t value) {
+    static OneCommand for_debug(uint8_t id, uint32_t value) {
       return create(true, id, value);
     }
   } __attribute__((packed, aligned(1))) check_point;

@@ -1,3 +1,6 @@
+#include <EEPROM.h>
+#define EEPROM_ACCEPTED 0x34
+
 #include "../clocks_shared/channel.h"
 #include "../clocks_shared/channel.interop.h"
 #include "../clocks_shared/lighting.h"
@@ -118,6 +121,8 @@ void execute_director_online(const OneCommand &cmd) {
 
 void dump_performer(int source) {
   transmit(onewire::OneCommand::CheckPoint::for_info('D', source));
+  transmit(onewire::OneCommand::CheckPoint::for_info(
+      '@', my_channel.baudrate() / 100));
 }
 
 void DefaultAction::loop() {
@@ -290,8 +295,14 @@ void calibrate_steppers() {
 }
 
 void setup() {
+  bool accepted = EEPROM.read(0) == EEPROM_ACCEPTED;
+  EEPROM.write(0, 0);
+
+  Leds::set_blink_delay(accepted ? 10 : 500);
+  Leds::blink(accepted ? LedColors::green : LedColors::red);
+
   setup_steppers();
-  //calibrate_steppers();
+  calibrate_steppers();
 
   pinMode(SLAVE_RS485_TXD_DPIN, OUTPUT);
   pinMode(SLAVE_RS485_RXD_DPIN, INPUT);
@@ -405,7 +416,8 @@ void process_individual_lighting(channel::messages::IndividualLeds *msg) {
   // lighting::current = &lighting::individual;
   for (int led = 0; led < LED_COUNT; ++led) {
     const auto &source = msg->leds[led];
-    lighting::individual.set(led, rgb_color(source.r, source.g, source.b));
+    lighting::individual.set(
+        led, rgb_color(source.r << 3, source.g << 2, source.b << 3));
   }
 }
 
@@ -513,6 +525,7 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
 
     case channel::MsgEnum::MSG_PERFORMER_SETTINGS:
       execute_settings(static_cast<channel::messages::StepperSettings *>(msg));
+      EEPROM.write(0, EEPROM_ACCEPTED);
       break;
 
     case channel::MsgEnum::MSG_TICK: {
