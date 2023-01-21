@@ -79,6 +79,11 @@ void show_action(const onewire::OneCommand &cmd) {
   }
   Leds::publish();
 }
+
+#ifdef MODE_ONEWIRE_PASSTROUGH
+void StepExecutors::send_positions() {}
+#endif
+
 #if MODE >= MODE_ONEWIRE_INTERACT
 
 class DefaultAction : public IntervalAction {
@@ -328,8 +333,8 @@ void setup() {
 
 #if MODE == MODE_CHANNEL || MODE == MODE_ONEWIRE_CMD || \
     MODE == MODE_ONEWIRE_PASSTROUGH
-  channel.baudrate(9600);
-  channel.start_receiving();
+  my_channel.baudrate(9600);
+  my_channel.start_receiving();
   Leds::blink(LedColors::green, 4);
 #endif
 
@@ -479,6 +484,7 @@ void process_lighting(channel::messages::LightingMode *msg) {
 }
 
 void PerformerChannel::process(const byte *bytes, const byte length) {
+#ifndef MODE_ONEWIRE_PASSTROUGH
   channel::Message *msg = (channel::Message *)bytes;
 
   switch (msg->getMsgEnum()) {
@@ -549,4 +555,5 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
       lighting::individual.show();
       break;
   }
+#endif
 }

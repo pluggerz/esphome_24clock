@@ -6,7 +6,7 @@
 #define MODE_ONEWIRE_MIRROR 2
 #define MODE_ONEWIRE_VALUE 3
 
-#define MODE_ONEWIRE_CMD 5
+#define MODE_ONEWIRE_CMD 1
 
 // make sure all slaves+master use this one as well
 #define MODE_CHANNEL 6
@@ -14,7 +14,7 @@
 // MODE_ONEWIRE_INTERACT can work with PASSTHROUGH and MIRROR for slaves
 #define MODE_ONEWIRE_INTERACT 7
 
-#define MODE MODE_ONEWIRE_INTERACT
+#define MODE MODE_ONEWIRE_PASSTROUGH
 
 constexpr int NMBR_OF_PERFORMERS = 24;
 
