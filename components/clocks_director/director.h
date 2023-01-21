@@ -75,7 +75,6 @@ class Director : public esphome::Component {
   }
 
   void request_positions();
-  void realign_performers();
 
   rs485::BufferChannel *get_channel();
   AnimationController *get_animation_controller() {

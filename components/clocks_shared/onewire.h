@@ -40,7 +40,7 @@ const char *const TAG = "onewire";
 
 constexpr bool one_wire_double_check = false;
 
-constexpr int ONEWIRE_BUFFER_SIZE = 12;
+constexpr int ONEWIRE_BUFFER_SIZE = 16;
 
 constexpr int UNO_TIMER2_1024_OCR2A = 7;
 constexpr int UNO_TIMER2_256_OCR2A = 24;
@@ -69,7 +69,7 @@ constexpr double USED_BAUD = 1953.5 / 2;
 #else
 constexpr double USED_BAUD = double(16000000) /
                              double(determine_ocr2a(TIMER2_PRESCALER) + 1) /
-                             double(2 * TIMER2_PRESCALER);
+                             double(TIMER2_PRESCALER);
 #endif
 
 class RxOnewire;
@@ -101,9 +101,7 @@ class OnewireInterrupt {
   static float delay;
 
   static void attach();
-  static void restart();
   static void kill();
-  static void align();
 
   static void dump_config();
 

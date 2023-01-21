@@ -27,79 +27,20 @@ class Tx {
 };
 
 class RawTxOnewire : public Tx {
+ private:
+  int tx_pulses;
+  Micros tx_start;
+
  protected:
   bool started = false;
 
-  const int8_t LAST_TX_BIT = MAX_DATA_BITS + 4;
+  int hi_length = 0;
+  int bit_state = false;
+
+  const int8_t LAST_TX_BIT = MAX_DATA_BITS + 2;
   int8_t _tx_bit = LAST_TX_BIT;
-  bool _tx_nibble = false;
 
   onewire::Value _tx_value, _tx_remainder_value, _tx_transmitted_value;
-
-  void write_to_sync() {
-    if (_tx_bit == -onewire::START_BITS - 1) {
-      _tx_bit++;
-      write(true);
-      return;
-    }
-
-    if (_tx_bit < 0) {
-      bool bit = _tx_bit != -1;
-      write(bit);
-      ESP_LOGVV(TAG, "transmit: START %s tx_value=%d, tx_bit=%d)",
-                bit ? "HIGH" : "LOW ", _tx_value, _tx_bit);
-      _tx_bit++;
-      return;
-    }
-
-    if (_tx_bit < MAX_DATA_BITS) {
-      onewire::Value mask = onewire::Value(1) << onewire::Value(_tx_bit);
-      bool bit = _tx_remainder_value & mask;
-      // if (bit && !_tx_nibble)
-      bool written = bit && !_tx_nibble;
-      write(written);
-      if (written) {
-        _tx_transmitted_value |= mask;
-        _tx_remainder_value -= mask;
-      }
-      ESP_LOGVV(
-          TAG,
-          "transmit: DATA%s %s tx_value=%d, _tx_transmitted=%d, tx_bit=%d)",
-          _tx_nibble ? "S" : "F", written ? "HIGH" : "LOW ", _tx_value,
-          _tx_transmitted_value, _tx_bit);
-      if (_tx_nibble) {
-        _tx_bit = _tx_remainder_value == 0 ? MAX_DATA_BITS : _tx_bit + 1;
-        //_tx_bit++;
-      }
-      _tx_nibble = !_tx_nibble;
-      return;
-    }
-
-    if (_tx_bit == MAX_DATA_BITS) {
-      ESP_LOGVV(TAG, "transmit: END1  LOW  tx_value=%d, tx_bit=%d)", _tx_value,
-                _tx_bit);
-
-      write(false);
-      _tx_bit++;
-    } else if (_tx_bit == MAX_DATA_BITS + 1) {
-      ESP_LOGVV(TAG, "transmit: END2  HIGH tx_value=%d, tx_bit=%d)", _tx_value,
-                _tx_bit);
-      write(true);
-
-      _tx_bit++;
-    } else if (_tx_bit == MAX_DATA_BITS + 2) {
-      ESP_LOGVV(TAG, "transmit: END3  LOW tx_value=%d, tx_bit=%d)", _tx_value,
-                _tx_bit);
-      write(false);
-
-      _tx_bit++;
-    } else if (_tx_bit == MAX_DATA_BITS + 3) {
-      ESP_LOGVV(TAG, "transmit: FINAL tx_value=%d, tx_bit=%d)", _tx_value,
-                _tx_bit);
-      ESP_LOGD(TAG, "transmit: END tx_value=%d", _tx_value);
-      _tx_bit = LAST_TX_BIT;
-    }
-  }
 
  public:
   RawTxOnewire() {}
@@ -109,6 +50,77 @@ class RawTxOnewire : public Tx {
     LOGI(TAG, "     re_pin: %d", RS485_RE_PIN);
     LOGI(TAG, "     OnewireInterrupt::tx: 0x%d", OnewireInterrupt::tx);
     // LOGI(TAG, "     state: %d", state);
+  }
+
+  MOVE2RAM void timer_interrupt() {
+    auto bit = this->_tx_bit;
+    if (bit == MAX_DATA_BITS + 2) {
+      return;
+    }
+
+    if (bit == MAX_DATA_BITS + 1) {
+      write(false);
+
+      ESP_LOGD(
+          TAG,
+          "transmit: DONE %d, total_time=%d pulses=%d(?=%d) pulse_length=%d "
+          "expected=%d",
+          _tx_value, micros() - tx_start, tx_pulses,
+          3 + MAX_DATA_BITS + __builtin_popcountl(_tx_value) + 1,
+          (micros() - tx_start) / tx_pulses, int(1000000 / USED_BAUD));
+      this->_tx_bit++;
+      return;
+    }
+
+    if (bit >= 0 && this->hi_length) {
+      tx_pulses++;
+      ESP_LOGV(TAG, "transmit: PULSE=%s (%d) INTER",
+               this->bit_state ? "HI" : "LOW", tx_pulses);
+      this->hi_length--;
+      return;
+    }
+
+    if (bit == MAX_DATA_BITS) {
+      this->bit_state = !this->bit_state;
+      write(this->bit_state);
+      this->_tx_bit++;
+      this->tx_pulses++;
+      ESP_LOGV(TAG, "transmit: PULSE=%s (%d) END",
+               this->bit_state ? "HI" : "LOW", tx_pulses);
+      return;
+    }
+
+    if (bit >= 0 && bit < onewire::MAX_DATA_BITS) {
+      auto value = this->_tx_remainder_value & 1;
+      this->_tx_remainder_value >>= 1;
+      this->hi_length = value ? 1 : 0;
+      this->tx_pulses++;
+      this->bit_state = !this->bit_state;
+      write(this->bit_state);
+      ESP_LOGV(TAG, "transmit: bit=%d bit_value=%d (data)", bit, value ? 1 : 0);
+      ESP_LOGV(TAG, "transmit: PULSE=%s (%d) DATA",
+               this->bit_state ? "HI" : "LOW", tx_pulses);
+      this->_tx_bit++;
+      return;
+    } else if (bit == -1) {
+      ESP_LOGD(TAG, "transmit: START value=%d", _tx_value);
+
+      tx_start = micros();
+      tx_pulses = 1;
+
+      this->_tx_remainder_value = _tx_value;
+      this->hi_length = 2;
+
+      this->bit_state = true;
+      write(true);
+      ESP_LOGV(TAG, "transmit: PULSE=HI (1) START");
+
+      this->_tx_bit = 0;
+      return;
+    } else {
+      ESP_LOGW(TAG, "CODE TO BE ADDED! bit=%d other", bit);
+      return;
+    }
   }
 
   void kill() {
@@ -134,19 +146,18 @@ class RawTxOnewire : public Tx {
     }
 
     // OnewireInterrupt::disableTimer();
-    if (_tx_bit != LAST_TX_BIT && _tx_bit != LAST_TX_BIT + 1) {
+    if (_tx_bit != MAX_DATA_BITS + 2) {
       ESP_LOGW(TAG, "transmit not complete !?: tx_value=%d, tx_bit=%d)",
                _tx_value, _tx_bit);
     }
     _tx_bit = LAST_TX_BIT;
 
-    _tx_nibble = false;
     _tx_value = masked_value;
     _tx_remainder_value = _tx_value;
     _tx_transmitted_value = 0;
 
     // this one should be done last
-    _tx_bit = -onewire::START_BITS - 1;
+    _tx_bit = -1;
     if (_tx_value != value) {
       ESP_LOGW(TAG, "Warning masked value(=%d) is not same as input(=%d)",
                _tx_value, value);
@@ -157,18 +168,8 @@ class RawTxOnewire : public Tx {
     // OnewireInterrupt::enableTimer();
   }
 
-  MOVE2RAM void timer_interrupt() {
-    if (_tx_bit == LAST_TX_BIT + 4) {
-      // OnewireInterrupt::disableTimer();
-      // done
-      return;
-    }
-    write_to_sync();
-    return;
-  }
-
   MOVE2RAM bool transmitted() const {
-    return started && (_tx_bit == LAST_TX_BIT);
+    return started && (_tx_bit == MAX_DATA_BITS + 2);
   }
 };
 

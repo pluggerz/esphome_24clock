@@ -281,9 +281,9 @@ int received = 0;
 void Director::loop() {
   if (!is_started()) return;
 
-  if (rx.pending()) {
+  while (rx.pending()) {
     auto value = rx.flush();
-    if (onewire::USED_BAUD < 200)
+    if (onewire::USED_BAUD < 2000)
       LOGI(TAG, "RECEIVED: {%d}", value);
     else
       ESP_LOGD(TAG, "RECEIVED: {%d}", value);
@@ -291,7 +291,7 @@ void Director::loop() {
   }
   if (tx.transmitted()) {
     delay(20);
-    if (onewire::USED_BAUD < 200)
+    if (onewire::USED_BAUD < 2000)
       LOGI(TAG, "TRANSMIT: {value=%d}", value);
     else
       ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
@@ -322,7 +322,6 @@ void Director::loop() {
       LOGI(TAG, "RECEIVED: {%d}", value);
   }
   if (tx.transmitted()) {
-    delay(50);
     auto cmd = command_builder.accept(baud_idx++);
     auto value = cmd.raw;
     if (onewire::USED_BAUD < 200)
@@ -526,10 +525,6 @@ class RequestPositionsAsync : public DelayAsync {
 
 void Director::request_positions() {
   async_executor.queue(new RequestPositionsAsync(this));
-}
-
-void Director::realign_performers() {
-  async_interop.queue_command(command_builder.realign());
 }
 
 void Director::kill() {

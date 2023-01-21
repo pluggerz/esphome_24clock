@@ -27,7 +27,6 @@ enum CmdEnum {
   PERFORMER_PREPPING,
   PERFORMER_CHECK_POINT,
   DIRECTOR_POSITION_ACK,
-  REALIGN,
   DUMP_PERFORMERS
 };
 
@@ -64,9 +63,6 @@ union OneCommand {
         break;
       case onewire::TOCK:
         what = "TOCK";
-        break;
-      case onewire::REALIGN:
-        what = "REALIGN";
         break;
       case CmdEnum::DIRECTOR_ACCEPT:
         what = "DIRECTOR_ACCEPT";
@@ -272,14 +268,6 @@ class CommandBuilder {
     cmd.raw = random();
     cmd.msg.source_id = SRC_MASTER;
     cmd.msg.cmd = CmdEnum::DIRECTOR_PING;
-    return cmd.fix_parity();
-  }
-
-  OneCommand realign() {
-    OneCommand cmd;
-    cmd.raw = random();
-    cmd.msg.source_id = SRC_MASTER;
-    cmd.msg.cmd = CmdEnum::REALIGN;
     return cmd.fix_parity();
   }
 

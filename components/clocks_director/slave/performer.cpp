@@ -80,7 +80,7 @@ void show_action(const onewire::OneCommand &cmd) {
   Leds::publish();
 }
 
-#ifdef MODE_ONEWIRE_PASSTROUGH
+#if MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_ONEWIRE_MIRROR
 void StepExecutors::send_positions() {}
 #endif
 
@@ -113,9 +113,6 @@ void execute_director_online(const OneCommand &cmd) {
   }
   ChannelInterop::id = ChannelInterop::UNDEFINED;
   guid_of_director = new_guid_of_director;
-
-  // align onewire channel
-  onewire::OnewireInterrupt::align();
 
   // go to reset mode
   set_action(&reset_action);
@@ -150,10 +147,6 @@ void DefaultAction::loop() {
     case CmdEnum::DUMP_PERFORMERS:
       dump_performer(1);
       transmit(onewire::command_builder.dump_performers_by_performer());
-      break;
-
-    case CmdEnum::REALIGN:
-      OnewireInterrupt::align();
       break;
 
     // these are special, we need to adapt the source
