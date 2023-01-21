@@ -6,7 +6,7 @@
 #define MODE_ONEWIRE_MIRROR 2
 #define MODE_ONEWIRE_VALUE 3
 
-#define MODE_ONEWIRE_CMD 4
+#define MODE_ONEWIRE_CMD 5
 
 // make sure all slaves+master use this one as well
 #define MODE_CHANNEL 6
