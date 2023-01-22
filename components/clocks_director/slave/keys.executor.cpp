@@ -335,6 +335,12 @@ void StepExecutors::reset() {
   animator1.stop();
 }
 
+// TODO: merge with reset
+void StepExecutors::kill() {
+  animator0.stop();
+  animator1.stop();
+}
+
 AnimationKeys animationKeysArray[2];
 
 void StepExecutors::process_begin_keys(const Message *msg) {

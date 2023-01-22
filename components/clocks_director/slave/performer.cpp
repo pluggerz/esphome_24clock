@@ -20,6 +20,7 @@ void onewire::RxOnewire::debug(onewire::Value value) {}
 
 using channel::ChannelInterop;
 using channel::Message;
+using channel::messages::RequestPositions;
 using channel::messages::UartEndKeysMessage;
 using channel::messages::UartKeysMessage;
 using onewire::CmdEnum;
@@ -27,6 +28,8 @@ using onewire::OneCommand;
 using onewire::OnewireInterrupt;
 
 uint8_t ChannelInterop::id = ChannelInterop::UNDEFINED;
+
+int performer_puid = -1;
 
 int onewire::my_performer_id() { return ChannelInterop::id; }
 
@@ -125,7 +128,26 @@ void dump_performer(int source) {
   transmit(onewire::OneCommand::CheckPoint::for_info('D', source));
   transmit(onewire::OneCommand::CheckPoint::for_info(
       '@', my_channel.baudrate() / 100));
+  if (my_channel.errors()) {
+    transmit(
+        onewire::OneCommand::CheckPoint::for_info('C', my_channel.errors()));
+  }
+  if (rx.error_count()) {
+    transmit(onewire::OneCommand::CheckPoint::for_info('O', rx.error_count()));
+    transmit(onewire::OneCommand::CheckPoint::for_info(
+        'E', rx.rx_start_detected_after_data));
+    transmit(onewire::OneCommand::CheckPoint::for_info(
+        'L', rx.rx_too_long_empty_detected_after_data));
+  }
 }
+
+void to_debug() {
+  lighting::current = &lighting::debug;
+  lighting::current->start();
+  lighting::current->update(millis());
+  lighting::current->publish();
+}
+void kill_steppers() { step_executors.kill(); }
 
 void DefaultAction::loop() {
   my_channel.loop();
@@ -144,6 +166,15 @@ void DefaultAction::loop() {
   show_action(cmd);
 
   switch (cmd.msg.cmd) {
+    case CmdEnum::TO_DEBUG:
+      to_debug();
+      transmit(cmd);
+      break;
+    case CmdEnum::KILL_STEPPERS:
+      kill_steppers();
+      transmit(cmd);
+      break;
+
     case CmdEnum::DUMP_PERFORMERS:
       dump_performer(1);
       transmit(onewire::command_builder.dump_performers_by_performer());
@@ -158,6 +189,17 @@ void DefaultAction::loop() {
       current_lighting_mode = -1;
       lighting::current = &lighting::debug;
       execute_director_online(cmd);
+      break;
+
+    case CmdEnum::DIRECTOR_POSITION_ACK:
+      if (cmd.position_ack.puid == performer_puid)
+        transmit(cmd);
+      else {
+        transmit(
+            onewire::OneCommand::CheckPoint::for_info('<', performer_puid));
+        transmit(onewire::OneCommand::CheckPoint::for_info(
+            '>', cmd.position_ack.puid));
+      }
       break;
 
       // these will be forwarded, without any changes (also default action):
@@ -196,6 +238,15 @@ void ResetAction::loop() {
     }
     show_action(cmd);
     switch (cmd.msg.cmd) {
+      case CmdEnum::TO_DEBUG:
+        to_debug();
+        transmit(cmd);
+        break;
+      case CmdEnum::KILL_STEPPERS:
+        kill_steppers();
+        transmit(cmd);
+        break;
+
       case CmdEnum::DUMP_PERFORMERS:
         dump_performer(2);
         transmit(onewire::command_builder.dump_performers_by_performer());
@@ -477,7 +528,6 @@ void process_lighting(channel::messages::LightingMode *msg) {
 }
 
 void PerformerChannel::process(const byte *bytes, const byte length) {
-#ifndef MODE_ONEWIRE_PASSTROUGH
   channel::Message *msg = (channel::Message *)bytes;
 
   switch (msg->getMsgEnum()) {
@@ -510,8 +560,13 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
       if (ChannelInterop::id != ChannelInterop::UNDEFINED) {
         if (step_executors.active()) {
           step_executors.request_stop();
+          performer_puid = -1;
         } else {
           transmit_ticks();
+          performer_puid =
+              reinterpret_cast<const RequestPositions *>(msg)->puid;
+          transmit(
+              onewire::OneCommand::CheckPoint::for_info('?', performer_puid));
         }
       }
       break;
@@ -519,12 +574,16 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
     case channel::MsgEnum::MSG_REQUEST_POSITIONS:
       if (ChannelInterop::id != ChannelInterop::UNDEFINED) {
         transmit_ticks();
+        performer_puid = reinterpret_cast<const RequestPositions *>(msg)->puid;
+        transmit(
+            onewire::OneCommand::CheckPoint::for_info('?', performer_puid));
       }
       break;
 
     case channel::MsgEnum::MSG_PERFORMER_SETTINGS:
       execute_settings(static_cast<channel::messages::StepperSettings *>(msg));
-      EEPROM.write(0, EEPROM_ACCEPTED);
+      rx.reset_error_count();
+      EEPROM.update(0, EEPROM_ACCEPTED);
       break;
 
     case channel::MsgEnum::MSG_TICK: {
@@ -548,5 +607,4 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
       lighting::individual.show();
       break;
   }
-#endif
 }

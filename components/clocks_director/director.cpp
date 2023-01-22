@@ -31,7 +31,7 @@ int guid = rand();
 
 static const char *const TAG = "controller";
 
-int guid_position_ack = 0;
+uint8_t guid_position_ack = 0;
 
 using clock24::Director;
 
@@ -40,8 +40,8 @@ Director::Director() {}
 onewire::RxOnewire rx;
 onewire::TxOnewire tx;
 
-#define UART_BAUDRATE 115200
-// 57600 // 256000  // 115200  // 9600  // 115200  // 9600
+#define UART_BAUDRATE 28800
+// 57600 // 256000  // 115200  // 28800  // 115200  // 9600
 
 class DirectorChannel : public BufferChannel {
  public:
@@ -386,6 +386,14 @@ void Director::loop() {
           ESP_LOGD(TAG, "%s", cmd.format());
         else
           LOGI(TAG, "%s", cmd.format());
+        if (cmd.msg.source_id >= 0 && cmd.msg.source_id < 24) {
+          if (cmd.check_point.id == 'C')
+            performers[cmd.msg.source_id].channel_errors =
+                cmd.check_point.value;
+          else if (cmd.check_point.id == 'O')
+            performers[cmd.msg.source_id].one_wire_errors =
+                cmd.check_point.value;
+        }
         break;
 
       case CmdEnum::PERFORMER_POSITION: {
@@ -401,6 +409,7 @@ void Director::loop() {
       } break;
 
       case CmdEnum::DIRECTOR_POSITION_ACK:
+        ESP_LOGW(TAG, "DIRECTOR_POSITION_ACK: puid=%d", cmd.position_ack.puid);
         guid_position_ack++;
         break;
 
@@ -480,7 +489,7 @@ void Director::loop() {
 #endif
 
 class RequestPositionsAsync : public DelayAsync {
-  const int current_position_ack;
+  const uint8_t current_position_ack;
   Director *director;
 
  public:
@@ -492,10 +501,10 @@ class RequestPositionsAsync : public DelayAsync {
   void request() {
     LOGI(TAG, "RequestPositionsAsync: REQUEST");
 
-    my_channel.send(message_builder.request_kill_keys_or_request_position());
+    my_channel.send(message_builder.request_kill_keys_or_request_position(
+        current_position_ack));
     // my_channel.send(message_builder.request_positions());
-    delay(10);
-    transmit(command_builder.director_position_ack(guid));
+    transmit(command_builder.director_position_ack(current_position_ack));
   }
 
   Async *first() override {

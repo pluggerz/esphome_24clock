@@ -10,6 +10,9 @@
 #include "../clocks_shared/pins.h"
 #include "../clocks_shared/ringbuffer.h"
 
+#define ENABLE_TIMER_INTERUPT() interrupts();
+#define DISABLE_TIMER_INTERUPT() noInterrupts();
+
 #ifdef SLAVE
 #define DOLED
 #endif
@@ -38,12 +41,10 @@
 namespace onewire {
 const char *const TAG = "onewire";
 
-constexpr bool one_wire_double_check = false;
-
 constexpr int ONEWIRE_BUFFER_SIZE = 16;
 
-constexpr int UNO_TIMER2_1024_OCR2A = 7;
-constexpr int UNO_TIMER2_256_OCR2A = 24;
+constexpr int UNO_TIMER2_1024_OCR2A = 7 * 1;
+constexpr int UNO_TIMER2_256_OCR2A = 24 * 1;
 // not working ?
 constexpr int UNO_TIMER2_128_OCR2A = 63;
 constexpr int UNO_TIMER2_64_OCR2A = 124;

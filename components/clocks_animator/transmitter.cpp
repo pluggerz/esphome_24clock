@@ -20,14 +20,14 @@ using keys::InflatedCmdKey;
 
 void Transmitter::sendCommandsForHandle(
     int animatorHandleId, const std::vector<keys::DeflatedCmdKey> &commands) {
-  auto physicalHandleId =
+  const auto physicalHandleId =
       animation_controller->mapAnimatorHandle2PhysicalHandleId(
           animatorHandleId);
   if (physicalHandleId < 0 || commands.empty())
     // ignore
     return;
 
-  auto nmbrOfCommands = commands.size();
+  const auto nmbrOfCommands = commands.size();
   UartKeysMessage msg(physicalHandleId, (u8)nmbrOfCommands);
   for (std::size_t idx = 0; idx < nmbrOfCommands; ++idx) {
     msg.set_key(idx, commands[idx].asInflatedCmdKey().raw);
@@ -43,14 +43,14 @@ void Transmitter::sendCommandsForHandle(
     const auto cmd = InflatedCmdKey(msg.get_key(idx));
     if (cmd.extended()) {
       const auto extended_cmd = cmd.steps();
-      LOGD(TAG, "Cmd: extended_cmd=%d", int(extended_cmd));
+      LOGI(TAG, "Cmd: extended_cmd=%d", int(extended_cmd));
     } else {
       const auto ghosting = cmd.ghost();
       const auto steps = cmd.steps();
       const auto speed = cmdSpeedUtil.deflate_speed(cmd.inflated_speed());
       const auto clockwise = cmd.clockwise();
       const auto relativePosition = true;
-      LOGD(TAG, "Cmd: %s=%3d sp=%d gh=%s cl=%s",
+      LOGI(TAG, "Cmd: %s=%3d sp=%d gh=%s cl=%s",
            ghosting || relativePosition ? "steps" : "   to", steps, speed,
            YESNO(ghosting), ghosting ? "N/A" : YESNO(clockwise));
     }
@@ -67,15 +67,22 @@ void Transmitter::sendCommands(std::vector<HandleCmd> &cmds) {
   std::vector<DeflatedCmdKey> selected;
   int lastHandleId = -1;
   int lastHandleMessages = 0;
+  // bool seenHandleIds[MAX_HANDLES];
+  // for (int handleId = 0; handleId < MAX_HANDLES; handleId++)
+  //  seenHandleIds[handleId] = false;
+
   for (auto it = std::begin(cmds); it != std::end(cmds); ++it) {
     const auto &handleCmd = *it;
     if (handleCmd.ignorable()) {
       // ignore ('deleted')
       continue;
     }
+    seenHandleIds[handleCmd.handleId] = true;
     if (handleCmd.handleId != lastHandleId) {
-      sendAndClear(lastHandleId, selected);
-      ESP_LOGW(TAG, "H%d : %d messages", lastHandleId, lastHandleMessages);
+      if (lastHandleId != -1) {
+        sendAndClear(lastHandleId, selected);
+        ESP_LOGW(TAG, "H%d : %d messages", lastHandleId, lastHandleMessages);
+      }
 
       lastHandleId = handleCmd.handleId;
       lastHandleMessages = 0;
@@ -88,6 +95,11 @@ void Transmitter::sendCommands(std::vector<HandleCmd> &cmds) {
   }
   sendAndClear(lastHandleId, selected);
   ESP_LOGW(TAG, "H%d : %d messages", lastHandleId, lastHandleMessages);
+  // for (int handleId = 0; handleId < MAX_HANDLES; handleId++) {
+  //   if (seenHandleIds[handleId]) continue;
+  //  ESP_LOGW(TAG, "H%d : dummy messages", lastHandleId);
+  // }
+
   cmds.clear();
 }
 

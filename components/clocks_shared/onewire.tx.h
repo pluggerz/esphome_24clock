@@ -175,7 +175,6 @@ class RawTxOnewire : public Tx {
 
 class TxOnewire {
  private:
-  volatile bool locked = false;
   RawTxOnewire _raw_tx;
   RingBuffer<onewire::Value, ONEWIRE_BUFFER_SIZE> buffer;
 
@@ -186,7 +185,10 @@ class TxOnewire {
   void kill() { _raw_tx.kill(); }
 
   bool transmitted() const {
-    return buffer.is_empty() && _raw_tx.transmitted();
+    DISABLE_TIMER_INTERUPT();
+    bool ret = buffer.is_empty() && _raw_tx.transmitted();
+    ENABLE_TIMER_INTERUPT();
+    return ret;
   }
 
   void setup(int _buffer_size = -1) {
@@ -197,13 +199,9 @@ class TxOnewire {
   }
 
   void transmit(Value value) {
-    while (locked) {
-      yield();
-    }
-    locked = true;
+    DISABLE_TIMER_INTERUPT();
     buffer.push(value);
-    if (onewire::one_wire_double_check) buffer.push(value);
-    locked = false;
+    ENABLE_TIMER_INTERUPT();
   }
 
   void begin() { _raw_tx.begin(); }
@@ -211,18 +209,14 @@ class TxOnewire {
   bool active() const __attribute__((always_inline)) {
     return _raw_tx.active();
   }
-
   MOVE2RAM void timer_interrupt() __attribute__((always_inline)) {
-    locked = true;
     if (!buffer.is_empty() && _raw_tx.transmitted()) {
       _raw_tx.transmit(buffer.pop());
       if (!buffer.is_empty()) {
         ESP_LOGD(TAG, "tx: buffer not empty, size: %d", buffer.size());
       }
-      locked = false;
       return;
     } else {
-      locked = false;
       _raw_tx.timer_interrupt();
     }
   }

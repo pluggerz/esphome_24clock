@@ -150,16 +150,25 @@ struct IndividualLeds : public Message {
       : Message(-1, MsgEnum::MSG_INDIVIDUAL_LEDS_SET, performer_id) {}
 } __attribute__((packed, aligned(1)));
 
+struct RequestPositions : public Message {
+ public:
+  uint8_t puid;
+
+  RequestPositions(MsgEnum msg, uint8_t puid) : Message(-1, msg), puid(puid) {}
+} __attribute__((packed, aligned(1)));
+
 }  // namespace messages
 
 class MessageBuilder {
  public:
-  Message request_positions() {
-    return Message(-1, MsgEnum::MSG_REQUEST_POSITIONS);
+  messages::RequestPositions request_positions(uint8_t puid) {
+    return messages::RequestPositions(MsgEnum::MSG_REQUEST_POSITIONS, puid);
   }
 
-  Message request_kill_keys_or_request_position() {
-    return Message(-1, MsgEnum::MSG_KILL_KEYS_OR_REQUEST_POSITIONS);
+  messages::RequestPositions request_kill_keys_or_request_position(
+      uint8_t puid) {
+    return messages::RequestPositions(
+        MsgEnum::MSG_KILL_KEYS_OR_REQUEST_POSITIONS, puid);
   }
 
   Message dump_performers_by_director() {

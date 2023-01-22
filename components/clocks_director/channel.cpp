@@ -42,6 +42,7 @@ class BasicProtocol : public rs485::Protocol {
 
   // count of errors
   unsigned long errorCount_ = 0L;
+  unsigned long errorCrcCount_ = 0L;
 
   // variables below are set when we get an STX
   bool haveETX_;
@@ -73,6 +74,7 @@ class BasicProtocol : public rs485::Protocol {
   }  // end of RS485::sendComplemented
 
  public:
+  int errors() const override { return errorCount_; }
   // reset to no incoming data (eg. after a timeout)
   void reset(const char *reason) override {
     LOGI(TAG, "reset: %s", reason);
@@ -103,8 +105,7 @@ class BasicProtocol : public rs485::Protocol {
 
     int av = Serial.availableForWrite();
     while (av < 42) {
-      yield();
-      // delay(3);  // FIX CRC ERRORS ?
+      // delay(1);  // FIX CRC ERRORS ?
       av = Serial.availableForWrite();
     }
   }
@@ -112,7 +113,7 @@ class BasicProtocol : public rs485::Protocol {
   // send a message of "length" bytes (max 255) to other end
   // put STX at start, ETX at end, and add CRC
   inline void sendMsg(const byte *data, const byte length) override {
-    wait_for_room();
+    // wait_for_room();
     Serial.write(STX);  // STX
     for (byte i = 0; i < length; i++) {
       // wait_for_room();
@@ -120,9 +121,11 @@ class BasicProtocol : public rs485::Protocol {
     }
     // wait_for_room();
     Serial.write(ETX);  // ETX
+
     // wait_for_room();
     sendComplemented(crc8(data, length));
-    delay(2);
+    // delay(2);
+    // Serial.flush();
   }  // end of RS485::sendMsg
 
   // returns true if packet available
@@ -166,7 +169,8 @@ bool BasicProtocol::update() {
   Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
 #endif
 
-  while (Serial.available() > 0)
+  int8_t max_read = 10;
+  while (Serial.available() > 0 && max_read-- > 0)
   // if (Serial.available() > 0)
   {
     byte inByte = Serial.read();

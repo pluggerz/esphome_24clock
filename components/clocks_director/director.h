@@ -23,6 +23,8 @@ class Performer {
  public:
   int animator_id = -1;
   Stepper stepper0, stepper1;
+  int channel_errors = 0;
+  int one_wire_errors = 0;
 
   void set_animator_id(int value) { this->animator_id = value; }
   void set_magnet_offsets(int _offset0, int _offset1) {
@@ -57,6 +59,20 @@ class Director : public esphome::Component {
 
  public:
   Director();
+
+  int get_channel_error_count() const {
+    int ret = 0;
+    for (int idx = 0; idx < NMBR_OF_PERFORMERS; ++idx)
+      ret += performers[idx].channel_errors;
+    return ret;
+  }
+
+  int get_one_wire_error_count() const {
+    int ret = 0;
+    for (int idx = 0; idx < NMBR_OF_PERFORMERS; ++idx)
+      ret += performers[idx].one_wire_errors;
+    return ret;
+  }
 
   Performer &performer(int idx) { return performers[idx]; }
 

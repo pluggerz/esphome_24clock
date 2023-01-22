@@ -91,6 +91,7 @@ class Protocol {
   virtual void set_buffer(byte *data, const int length) = 0;
   virtual void reset(const char *reason) = 0;
   virtual void sendMsg(const byte *data, const byte length) = 0;
+  virtual int errors() const;
 
   static Protocol *create_default();
 };
@@ -156,6 +157,8 @@ class BufferChannel : public Channel {
 
     Channel::setup();
   }
+
+  int errors() const { return _protocol->errors(); }
 
   void skip();
 

@@ -27,7 +27,9 @@ enum CmdEnum {
   PERFORMER_PREPPING,
   PERFORMER_CHECK_POINT,
   DIRECTOR_POSITION_ACK,
-  DUMP_PERFORMERS
+  DUMP_PERFORMERS,
+  TO_DEBUG,
+  KILL_STEPPERS
 };
 
 #ifdef ESP8266
@@ -81,6 +83,12 @@ union OneCommand {
         break;
       case CmdEnum::DUMP_PERFORMERS:
         what = "DUMP_PERFORMERS";
+        break;
+      case CmdEnum::TO_DEBUG:
+        what = "TO_DEBUG";
+        break;
+      case CmdEnum::KILL_STEPPERS:
+        what = "KILL_STEPPERS";
         break;
 
       default:
@@ -170,6 +178,12 @@ union OneCommand {
     uint32_t baudrate : 18;
     uint32_t reserved : RESERVED_BITS - 18;
   } __attribute__((packed, aligned(1))) accept;
+
+  struct PostionAck {
+    SOURCE_HEADER;
+    uint32_t puid : 8;
+    uint32_t reserved : RESERVED_BITS - 8;
+  } __attribute__((packed, aligned(1))) position_ack;
 
   struct Position {
     SOURCE_HEADER;
@@ -282,10 +296,17 @@ class CommandBuilder {
   OneCommand dump_performers_by_performer() {
     return OneCommand::Msg::by_performer(CmdEnum::DUMP_PERFORMERS);
   }
-  OneCommand director_position_ack(int guid) {
+  OneCommand switch_to_debug() {
+    return OneCommand::Msg::by_director(CmdEnum::TO_DEBUG);
+  }
+  OneCommand kill_steppers() {
+    return OneCommand::Msg::by_director(CmdEnum::KILL_STEPPERS);
+  }
+  OneCommand director_position_ack(uint8_t puid) {
     OneCommand ret =
         OneCommand::Msg::by_director(CmdEnum::DIRECTOR_POSITION_ACK);
-    ret.msg.reserved = guid;
+    ret.position_ack.puid = puid;
+    ret.position.remainder = random();
     return ret.fix_parity();
   }
 } extern command_builder;

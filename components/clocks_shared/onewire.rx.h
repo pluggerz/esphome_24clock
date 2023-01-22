@@ -32,9 +32,6 @@ constexpr Micros one_block = bit_block * 1.8;
 class RxOnewire : public onewire::Rx {
  private:
   Micros rx_start = 0;
-  int rx_start_detected_after_data = 0;
-  int rx_too_long_empty_detected_after_data = 0;
-  int rx_invalid_start = 0;
   Value _rx_value = 0;
 
  protected:
@@ -46,6 +43,16 @@ class RxOnewire : public onewire::Rx {
   bool _rx_last_state = false;  // last read state
 
  public:
+  int rx_start_detected_after_data = 0;
+  int rx_too_long_empty_detected_after_data = 0;
+
+  void reset_error_count() {
+    rx_start_detected_after_data = rx_too_long_empty_detected_after_data = 0;
+  }
+  int error_count() const {
+    return rx_start_detected_after_data + rx_too_long_empty_detected_after_data;
+  }
+
   MOVE2RAM void follow_change() {
     if (this->_rx_bit >= 0 && this->_rx_bit < MAX_DATA_BITS) {
       Micros delta = micros() - rx_start;
@@ -98,7 +105,6 @@ class RxOnewire : public onewire::Rx {
         this->_rx_bit = 0;
         this->rx_start = micros();
       } else {
-        rx_invalid_start++;
         LOGV(TAG, "START too short, expected at least %d got %d (RESET)",
              start_block, delta);
         this->_rx_bit = RX_BIT_INITIAL;
@@ -125,7 +131,12 @@ class RxOnewire : public onewire::Rx {
    * true: a byte is available
    * false: no byte is available
    */
-  bool pending() const { return !buffer.is_empty(); }
+  bool pending() const {
+    DISABLE_TIMER_INTERUPT();
+    auto ret = !buffer.is_empty();
+    ENABLE_TIMER_INTERUPT();
+    return ret;
+  }
 
   bool reading() const { return _rx_bit != RX_BIT_INITIAL; }
 
@@ -134,7 +145,12 @@ class RxOnewire : public onewire::Rx {
   /***
    * if pending() == true, then returns the read byte, otherwise -1
    */
-  onewire::Value flush() { return buffer.pop(); }
+  onewire::Value flush() {
+    DISABLE_TIMER_INTERUPT();
+    auto val = buffer.is_empty() ? 0 : buffer.pop();
+    ENABLE_TIMER_INTERUPT();
+    return val;
+  }
 
   void begin() {
     OnewireInterrupt::attach();

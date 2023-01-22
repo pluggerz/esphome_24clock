@@ -15,6 +15,7 @@ class StepExecutors {
    * @return true it at least one key is still being executed
    * @return false
    */
+  void kill();
   bool active();
   /**
    * @brief will inject stop keys
