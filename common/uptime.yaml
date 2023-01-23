@@ -9,6 +9,6 @@ text_sensor:
     update_interval: 42s
     icon: mdi:clock-start
     entity_category: diagnostic
-    lambda: return { clock24::Util::format_up_time(id(uptime_seconds).state).c_str(); };
+    lambda: return "";//{ clock24::Util::format_up_time(id(uptime_seconds).state).c_str(); };
 
 
