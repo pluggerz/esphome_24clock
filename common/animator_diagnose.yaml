@@ -1,3 +1,12 @@
+switch:
+  - platform: template
+    entity_category: diagnostic
+    name: "Save Settings"
+    on_press:
+      - then:
+         - lambda: "global_preferences->sync();"
+
+
 text_sensor:
   - platform: template
     name: ${node_name} - 0/Report
@@ -14,4 +23,12 @@ text_sensor:
     icon: mdi:file-document-alert-outline 
     lambda: |-
       auto idx=1; auto &performer=id(director)->performer(idx);
+      return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
+  - platform: template
+    name: ${node_name} - 2/Report
+    entity_category: diagnostic
+    update_interval: 31s
+    icon: mdi:file-document-alert-outline 
+    lambda: |-
+      auto idx=3; auto &performer=id(director)->performer(idx);
       return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
