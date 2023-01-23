@@ -1,12 +1,14 @@
 sensor:
   - platform: uptime
     id: uptime_seconds
+    entity_category: diagnostic
 
 text_sensor:
   - platform: template
     name: ${node_name} - Uptime
     update_interval: 42s
     icon: mdi:clock-start
+    entity_category: diagnostic
     lambda: |-
       int seconds = (id(uptime_seconds).state);
       int days = seconds / (24 * 3600);
