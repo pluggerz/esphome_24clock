@@ -11,7 +11,7 @@ text_sensor:
     entity_category: diagnostic
     lambda: |-
       int seconds = (id(uptime_seconds).state);
-      clock24::Util::format_up_time(seconds);
+      return { clock24::Util::format_up_time(seconds).c_str() };
       int days = seconds / (24 * 3600);
       seconds = seconds % (24 * 3600);
       int hours = seconds / 3600;
