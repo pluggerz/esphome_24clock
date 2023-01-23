@@ -1,0 +1,15 @@
+text_sensor:
+  - platform: template
+    name: ${node_name} - 0/Errors
+    update_interval: 31s
+    icon: mdi:file-document-alert-outline 
+    lambda: |-
+      auto idx=0; auto &performer=id(director)->performer(idx);
+      return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
+  - platform: template
+    name: ${node_name} - 1/Errors
+    update_interval: 31s
+    icon: mdi:file-document-alert-outline 
+    lambda: |-
+      auto idx=1; auto &performer=id(director)->performer(idx);
+      return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
