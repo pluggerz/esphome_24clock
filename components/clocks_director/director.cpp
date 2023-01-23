@@ -25,9 +25,12 @@ using channel::message_builder;
 using onewire::CmdEnum;
 using onewire::command_builder;
 using rs485::BufferChannel;
+using rs485::Protocol;
 
 uint8_t ChannelInterop::id = ChannelInterop::DIRECTOR;
 int guid = rand();
+
+bool Protocol::is_skippable_message(byte first_byte) { return true; }
 
 static const char *const TAG = "controller";
 
@@ -214,6 +217,7 @@ class TestOnewireAction : public IntervalAction {
 void Director::setup() {}
 
 bool Director::is_started() {
+  if (_killed) return true;
   if (!async::interop::suspended) return true;
   if (!this->wi_fi_component->is_connected()) return false;
 
@@ -387,12 +391,13 @@ void Director::loop() {
         else
           LOGI(TAG, "%s", cmd.format());
         if (cmd.msg.source_id >= 0 && cmd.msg.source_id < 24) {
+          auto &performer = performers[cmd.msg.source_id];
           if (cmd.check_point.id == 'C')
-            performers[cmd.msg.source_id].channel_errors =
-                cmd.check_point.value;
+            performer.channel_errors = cmd.check_point.value;
           else if (cmd.check_point.id == 'O')
-            performers[cmd.msg.source_id].one_wire_errors =
-                cmd.check_point.value;
+            performer.one_wire_errors = cmd.check_point.value;
+          else if (cmd.check_point.id == 'S')
+            performer.channel_skips = cmd.check_point.value;
         }
         break;
 
@@ -467,15 +472,14 @@ void Director::loop() {
           for (int performer_id = 0; performer_id < NMBR_OF_PERFORMERS;
                performer_id++) {
             const auto &settings = performer(performer_id);
-            auto message = channel::messages::StepperSettings(
+            auto message = channel::messages::PerformerSettings(
                 performer_id, settings.stepper0.offset,
                 settings.stepper1.offset);
             my_channel.send(message);
 
             this->accepted = true;
-            on_attach();
-            // this->get_lighting_controller()->on_performer_online();
           }
+          on_attach();
         }
       } break;
 
@@ -542,6 +546,7 @@ void Director::kill() {
   tx.kill();
   rx.kill();
   _killed = true;
+  async::interop::suspended = true;
 }
 
 BufferChannel *Director::get_channel() { return &my_channel; }

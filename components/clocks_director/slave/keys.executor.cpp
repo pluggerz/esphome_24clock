@@ -350,7 +350,8 @@ void StepExecutors::process_begin_keys(const Message *msg) {
   animationKeysArray[0].clear();
   animationKeysArray[1].clear();
 
-  transmit(onewire::OneCommand::CheckPoint::for_debug('B', msg->getDstId()));
+  transmit(onewire::OneCommand::CheckPoint::for_debug(
+      'B', msg->get_handle_destination_id()));
 }
 
 void StepExecutors::process_end_keys(int stepper_id,
@@ -376,13 +377,14 @@ void StepExecutors::process_end_keys(int stepper_id,
                   speed_detection1);
 
   stopped = false;
-  transmit(onewire::OneCommand::CheckPoint::for_debug('E', msg->getDstId()));
+  transmit(onewire::OneCommand::CheckPoint::for_debug(
+      'E', msg->get_handle_destination_id()));
 }
 
 void StepExecutors::process_add_keys(const UartKeysMessage *msg) {
-  animationKeysArray[msg->getDstId() & 1].addAll(*msg);
+  animationKeysArray[msg->get_handle_destination_id() & 1].addAll(*msg);
   transmit(onewire::OneCommand::CheckPoint::for_debug(
-      msg->getDstId() & 1 ? '1' : '0', msg->size()));
+      msg->get_handle_destination_id() & 1 ? '1' : '0', msg->size()));
 }
 
 void StepExecutors::loop(Micros now) {

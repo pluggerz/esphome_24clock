@@ -15,7 +15,6 @@ using async::async_executor;
 using channel::Message;
 using channel::MsgEnum;
 using channel::messages::UartEndKeysMessage;
-using channel::messages::UartKeysMessage;
 using handles::ClockCharacters;
 using handles::ClockUtil;
 using keys::cmdSpeedUtil;
@@ -32,6 +31,15 @@ struct Text {
 
   bool __equal__(const Text &t) const {
     return ch0 == t.ch0 && ch1 == t.ch1 && ch2 == t.ch2 && ch3 == t.ch3;
+  }
+
+  static Text from_char(char ch) {
+    Text text;
+    text.ch0 = ch;
+    text.ch1 = ch;
+    text.ch2 = ch;
+    text.ch3 = ch;
+    return text;
   }
 
   static Text from_time(uint8_t hour, uint8_t minute) {
@@ -114,7 +122,7 @@ void copyTo(const ClockCharacters &chars, HandlesState &state) {
 
 void send_text(const AnimationSettings &settings,
                AnimationController *controller, const Text &text) {
-  LOGI(TAG, "do_track_time -> follow up: [%c %c %c %c]", text.ch0, text.ch1,
+  LOGI(TAG, "do_send_text -> follow up: [%c %c %c %c]", text.ch0, text.ch1,
        text.ch2, text.ch3);
 
   // get characters
@@ -161,27 +169,34 @@ void send_text(const AnimationSettings &settings,
       .sendInstructions(instructions, millis_left);
 }
 
-class TimeChangeAsyncRequest : public Async {
-  const int hours;
-  const int minutes;
+class TextChangeAsyncRequest : public Async {
+  const Text text;
   ClocksAnimator *animator;
 
  public:
-  TimeChangeAsyncRequest(ClocksAnimator *animator, int hours, int minutes)
-      : hours(hours), minutes(minutes), animator(animator) {}
+  TextChangeAsyncRequest(ClocksAnimator *animator, const Text &text)
+      : text(text), animator(animator) {}
 
   Async *loop() override {
-    ESP_LOGW(TAG, "request_time_change %d:%d", hours, minutes);
+    ESP_LOGW(TAG, "request_text_change: %c%c%c%c", text.ch0, text.ch1, text.ch2,
+             text.ch3);
 
     auto director = animator->director;
-    send_text(*animator, director->get_animation_controller(),
-              Text::from_time(hours, minutes));
+    send_text(*animator, director->get_animation_controller(), text);
     return nullptr;
   }
 };
 
+void ClocksAnimator::request_test_pattern_change(char pattern) {
+  ESP_LOGW(TAG, "request_test_pattern_change %c", pattern);
+  director->request_positions();
+  async_executor.queue(
+      new TextChangeAsyncRequest(this, Text::from_char(pattern)));
+}
+
 void ClocksAnimator::request_time_change(int hours, int minutes) {
   ESP_LOGW(TAG, "request_time_change %d:%d", hours, minutes);
   director->request_positions();
-  async_executor.queue(new TimeChangeAsyncRequest(this, hours, minutes));
+  async_executor.queue(
+      new TextChangeAsyncRequest(this, Text::from_time(hours, minutes)));
 }

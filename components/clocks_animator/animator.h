@@ -99,6 +99,7 @@ class ClocksAnimator : public esphome::Component, public AnimationSettings {
   }
 
   void request_time_change(int hours, int minutes);
+  void request_test_pattern_change(char ch);
 
   void set_director(clock24::Director *director) { this->director = director; }
 };  // namespace animator24

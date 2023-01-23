@@ -41,7 +41,7 @@
 namespace onewire {
 const char *const TAG = "onewire";
 
-constexpr int ONEWIRE_BUFFER_SIZE = 16;
+constexpr int ONEWIRE_BUFFER_SIZE = 32;
 
 constexpr int UNO_TIMER2_1024_OCR2A = 7 * 1;
 constexpr int UNO_TIMER2_256_OCR2A = 24 * 1;

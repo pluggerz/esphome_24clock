@@ -45,9 +45,10 @@ class BasicProtocol : public rs485::Protocol {
   unsigned long errorCrcCount_ = 0L;
 
   // variables below are set when we get an STX
-  bool haveETX_;
-  byte inputPos_;
+  int inputPos_;
   byte currentByte_;
+  byte message_size;
+  byte crc;
   bool firstNibble_;
   unsigned long startTime_;
 
@@ -75,27 +76,14 @@ class BasicProtocol : public rs485::Protocol {
 
  public:
   int errors() const override { return errorCount_; }
-  // reset to no incoming data (eg. after a timeout)
-  void reset(const char *reason) override {
-    LOGI(TAG, "reset: %s", reason);
-    haveSTX_ = false;
-    available_ = false;
-    inputPos_ = 0;
-    startTime_ = 0;
-#ifdef DOLED
-    Leds::set_ex(LED_CHANNEL_DATA, LedColors::red);
-    Leds::set_ex(LED_CHANNEL_STATE, LedColors::purple);
-#endif
-  }
 
   // reset
   void begin() {
-    reset("begin");
+    haveSTX_ = false;
     errorCount_ = 0;
   }
 
-  // free memory in buf_
-  void stop() { reset("stop"); }
+  virtual void start_receiving() override { this->haveSTX_ = false; }
 
   // handle incoming data, return true if packet ready
   bool update();
@@ -110,23 +98,24 @@ class BasicProtocol : public rs485::Protocol {
     }
   }
 
-  // send a message of "length" bytes (max 255) to other end
+  // send a message of "length" bytes (max 100) to other end
   // put STX at start, ETX at end, and add CRC
   inline void sendMsg(const byte *data, const byte length) override {
+    if (length >= 100) {
+      ESP_LOGW(TAG, "RS485: MAX 100 bytes !!  (E=%ld)", errorCount_);
+      return;
+    }
     // wait_for_room();
     Serial.write(STX);  // STX
+    sendComplemented(length);
+    sendComplemented(crc8(data, length));
     for (byte i = 0; i < length; i++) {
       // wait_for_room();
       sendComplemented(data[i]);
     }
     // wait_for_room();
     Serial.write(ETX);  // ETX
-
-    // wait_for_room();
-    sendComplemented(crc8(data, length));
-    // delay(2);
-    // Serial.flush();
-  }  // end of RS485::sendMsg
+  }
 
   // returns true if packet available
   bool available() const { return available_; };
@@ -169,25 +158,42 @@ bool BasicProtocol::update() {
   Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
 #endif
 
-  int8_t max_read = 10;
-  while (Serial.available() > 0 && max_read-- > 0)
-  // if (Serial.available() > 0)
-  {
+  while (Serial.available() > 0) {
     byte inByte = Serial.read();
     switch (inByte) {
-      case STX:  // start of text
+      case STX:  // start of message
         ESP_LOGD(TAG, "RS485: STX  (E=%ld)", errorCount_);
         haveSTX_ = true;
-        haveETX_ = false;
-        inputPos_ = 0;
+        inputPos_ = -2;
         firstNibble_ = true;
         startTime_ = millis();
+        message_size = 2;
         break;
 
       case ETX:  // end of text (now expect the CRC check)
-        ESP_LOGD(TAG, "RS485: ETX  (E=%ld)", errorCount_);
-        haveETX_ = true;
-        break;
+        if (!haveSTX_) {
+          // ignore, skip
+          break;
+        }
+        if (inputPos_ != message_size) {
+          ESP_LOGW(TAG, "%d(inputPos_) != %d(message_size)", inputPos_,
+                   message_size);
+          errorCount_++;
+          haveSTX_ = false;
+          break;
+        }
+
+        if (crc8(buffer, inputPos_) != crc) {
+          errorCount_++;
+          ESP_LOGE(TAG, "CRC!? (E=%ld)", errorCount_);
+          haveSTX_ = false;
+          break;  // bad crc
+        }         // end of bad CRC
+        available_ = true;
+#ifdef DOLED
+        Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
+#endif
+        return true;  // show data ready
 
       default:
         // wait until packet officially starts
@@ -195,10 +201,17 @@ bool BasicProtocol::update() {
           ESP_LOGD(TAG, "ignoring %d (E=%ld)", (int)inByte, errorCount_);
           break;
         }
+
+        if (inputPos_ == message_size) {
+          ESP_LOGE(TAG, "EXPECTED ETX (E=%ld)", errorCount_);
+          haveSTX_ = false;
+          break;
+        }
+
         ESP_LOGVV(TAG, "received nibble %d (E=%ld)", (int)inByte, errorCount_);
         // check byte is in valid form (4 bits followed by 4 bits complemented)
         if ((inByte >> 4) != ((inByte & 0x0F) ^ 0x0F)) {
-          reset("invlaid nibble");
+          haveSTX_ = false;
           errorCount_++;
           ESP_LOGE(TAG, "invalid nibble !? (E=%ld)", errorCount_);
           break;  // bad character
@@ -219,33 +232,37 @@ bool BasicProtocol::update() {
         currentByte_ |= inByte;
         firstNibble_ = true;
 
-        // if we have the ETX this must be the CRC
-        if (haveETX_) {
-          if (crc8(buffer, inputPos_) != currentByte_) {
-            reset("crc!");
-            errorCount_++;
-            ESP_LOGE(TAG, "CRC!? (E=%ld)", errorCount_);
-            break;  // bad crc
-          }         // end of bad CRC
-
-          available_ = true;
-#ifdef DOLED
-          Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
-#endif
-          return true;  // show data ready
-        }               // end if have ETX already
-
         // keep adding if not full
-        if (inputPos_ < buffer_size) {
-          ESP_LOGVV(TAG, "received byte %d (E=%ld)", (int)currentByte_,
-                    errorCount_);
-          buffer[inputPos_++] = currentByte_;
-        } else {
-          reset("overflow");  // overflow, start again
+        if (inputPos_ >= buffer_size) {
           errorCount_++;
+          haveSTX_ = false;
           ESP_LOGE(TAG, "OVERFLOW !? (E=%ld)", errorCount_);
+          break;
         }
 
+        ESP_LOGVV(TAG, "received byte %d (E=%ld)", (int)currentByte_,
+                  errorCount_);
+        if (inputPos_ == -2) {
+          ESP_LOGVV(TAG, "REMARK SIZE: =%d", currentByte_);
+          inputPos_ = -1;
+          message_size = currentByte_;
+          if (message_size >= 100) {
+            errorCount_++;
+            ESP_LOGE(TAG, "RS485: MAX 100 bytes !!  (E=%ld)", errorCount_);
+            break;
+          }
+          break;
+        } else if (inputPos_ == -1) {
+          ESP_LOGVV(TAG, "CRC: =%d", currentByte_);
+          crc = currentByte_;
+          inputPos_ = 0;
+          break;
+        } else if (inputPos_ == 0 && is_skippable_message(currentByte_)) {
+          skipped_message_count++;
+          haveSTX_ = false;
+          break;
+        }
+        buffer[inputPos_++] = currentByte_;
         break;
 
     }  // end of switch

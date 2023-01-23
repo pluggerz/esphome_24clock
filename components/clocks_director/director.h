@@ -24,6 +24,7 @@ class Performer {
   int animator_id = -1;
   Stepper stepper0, stepper1;
   int channel_errors = 0;
+  int channel_skips = 0l;
   int one_wire_errors = 0;
 
   void set_animator_id(int value) { this->animator_id = value; }

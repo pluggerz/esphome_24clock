@@ -20,18 +20,28 @@ void onewire::RxOnewire::debug(onewire::Value value) {}
 
 using channel::ChannelInterop;
 using channel::Message;
+using channel::messages::PerformerSettings;
 using channel::messages::RequestPositions;
+using channel::messages::TickMessage;
 using channel::messages::UartEndKeysMessage;
 using channel::messages::UartKeysMessage;
 using onewire::CmdEnum;
 using onewire::OneCommand;
 using onewire::OnewireInterrupt;
+using rs485::Protocol;
 
 uint8_t ChannelInterop::id = ChannelInterop::UNDEFINED;
 
 int performer_puid = -1;
 
 int onewire::my_performer_id() { return ChannelInterop::id; }
+
+bool Protocol::is_skippable_message(byte first_byte) {
+  if (first_byte == ChannelInterop::ALL_PERFORMERS) {
+    return false;
+  }
+  return (first_byte >> 1) != ChannelInterop::id;
+}
 
 // steppers
 int guid_of_director = -1;
@@ -128,9 +138,13 @@ void dump_performer(int source) {
   transmit(onewire::OneCommand::CheckPoint::for_info('D', source));
   transmit(onewire::OneCommand::CheckPoint::for_info(
       '@', my_channel.baudrate() / 100));
-  if (my_channel.errors()) {
-    transmit(
-        onewire::OneCommand::CheckPoint::for_info('C', my_channel.errors()));
+  if (my_channel.error_count()) {
+    transmit(onewire::OneCommand::CheckPoint::for_info(
+        'C', my_channel.error_count()));
+  }
+  if (my_channel.skip_count()) {
+    transmit(onewire::OneCommand::CheckPoint::for_info(
+        'S', my_channel.skip_count()));
   }
   if (rx.error_count()) {
     transmit(onewire::OneCommand::CheckPoint::for_info('O', rx.error_count()));
@@ -448,15 +462,15 @@ void loop() {
 }
 #endif
 
-void execute_settings(const channel::messages::StepperSettings *settings) {
-  if (settings->getDstId() != ChannelInterop::id) return;
+void execute_performer_settings(const PerformerSettings *settings) {
+  if (settings->get_performer_destination_id() != ChannelInterop::id) return;
   stepper0.set_offset_steps(settings->magnet_offet0);
   stepper1.set_offset_steps(settings->magnet_offet1);
   Leds::blink(LedColors::purple, 1 + ChannelInterop::id);
 }
 
 void process_individual_lighting(channel::messages::IndividualLeds *msg) {
-  if (msg->getDstId() != ChannelInterop::id) {
+  if (msg->get_performer_destination_id() != ChannelInterop::id) {
     return;
   }
   if (lighting::current != &lighting::individual) {
@@ -540,7 +554,7 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
       return;
 
     case channel::MsgEnum::MSG_SEND_KEYS: {
-      auto performer_id = msg->getDstId() >> 1;
+      auto performer_id = msg->get_performer_destination_id();
       if (performer_id == ChannelInterop::id) {
         step_executors.process_add_keys(
             reinterpret_cast<const UartKeysMessage *>(msg));
@@ -581,14 +595,13 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
       break;
 
     case channel::MsgEnum::MSG_PERFORMER_SETTINGS:
-      execute_settings(static_cast<channel::messages::StepperSettings *>(msg));
+      execute_performer_settings(static_cast<PerformerSettings *>(msg));
       rx.reset_error_count();
       EEPROM.update(0, EEPROM_ACCEPTED);
       break;
 
     case channel::MsgEnum::MSG_TICK: {
-      channel::messages::TickMessage *tick =
-          (channel::messages::TickMessage *)bytes;
+      TickMessage *tick = (TickMessage *)bytes;
       if (ChannelInterop::id != ChannelInterop::UNDEFINED)
         transmit(onewire::OneCommand::tock(ChannelInterop::get_my_id(),
                                            tick->value));

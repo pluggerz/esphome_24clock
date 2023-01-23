@@ -88,10 +88,15 @@ class Buffer {
 
 class Protocol {
  public:
+  unsigned long skipped_message_count;
+
   virtual void set_buffer(byte *data, const int length) = 0;
-  virtual void reset(const char *reason) = 0;
   virtual void sendMsg(const byte *data, const byte length) = 0;
+  virtual void start_receiving() {}
+  virtual void start_transmitting() {}
   virtual int errors() const;
+
+  bool is_skippable_message(byte first_byte);
 
   static Protocol *create_default();
 };
@@ -115,13 +120,13 @@ class Channel {
 
   void start_receiving() {
     gate.start_receiving();
-    if (_protocol) _protocol->reset("start_receiving");
+    if (_protocol) _protocol->start_receiving();
   }
 
   // NOTE: 'start_transmitting' should be private
   void start_transmitting() {
     gate.start_transmitting();
-    if (_protocol) _protocol->reset("start_transmitting");
+    if (_protocol) _protocol->start_transmitting();
   }
 
   void dump_config() {
@@ -145,7 +150,7 @@ class Channel {
   virtual void process(const byte *bytes, const byte length) = 0;
 };
 
-constexpr int RECEIVER_BUFFER_SIZE = 128;
+constexpr int RECEIVER_BUFFER_SIZE = 100;
 
 class BufferChannel : public Channel {
  private:
@@ -158,7 +163,8 @@ class BufferChannel : public Channel {
     Channel::setup();
   }
 
-  int errors() const { return _protocol->errors(); }
+  int error_count() const { return _protocol->errors(); }
+  int skip_count() const { return _protocol->skipped_message_count; }
 
   void skip();
 

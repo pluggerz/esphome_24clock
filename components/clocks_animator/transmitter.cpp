@@ -77,7 +77,7 @@ void Transmitter::sendCommands(std::vector<HandleCmd> &cmds) {
       // ignore ('deleted')
       continue;
     }
-    seenHandleIds[handleCmd.handleId] = true;
+    // seenHandleIds[handleCmd.handleId] = true;
     if (handleCmd.handleId != lastHandleId) {
       if (lastHandleId != -1) {
         sendAndClear(lastHandleId, selected);

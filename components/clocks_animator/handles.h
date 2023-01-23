@@ -61,6 +61,9 @@ extern const ClockCharacter FORCED_ZERO;
 extern const ClockCharacter FORCED_ONE;
 extern const ClockCharacter EMPTY;
 
+extern const ClockCharacter VERTICAL_LINE;
+extern const ClockCharacter SLASH, BACK_SLASH;
+
 extern const ClockCharacter *NMBRS[];
 
 class ClockCharacters {
@@ -78,7 +81,19 @@ class ClockUtil {
  private:
   static const ClockCharacter *from_character(char ch) {
     if (ch >= '0' && ch <= '9') return fromNumber(ch - '0');
-    return &EMPTY;
+    switch (ch) {
+      case '|':
+        return &VERTICAL_LINE;
+
+      case '/':
+        return &SLASH;
+
+      case '\\':
+        return &BACK_SLASH;
+
+      default:
+        return &EMPTY;
+    }
   }
 
   static const ClockCharacter *fromNumber(int nmbr) {
@@ -176,4 +191,4 @@ class ClockUtil {
     iterate_clocks(srcChars, innerFunc);
   }
 };
-}
+}  // namespace handles

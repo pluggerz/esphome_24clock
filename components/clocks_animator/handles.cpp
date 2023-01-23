@@ -55,6 +55,18 @@ const ClockCharacter handles::EMPTY = ClockCharacter(
     ClockHandleRow(-1, -1, -1, -1), ClockHandleRow(-1, -1, -1, -1),
     ClockHandleRow(-1, -1, -1, -1));
 
+const ClockCharacter handles::VERTICAL_LINE =
+    ClockCharacter(ClockHandleRow(0, 6, 0, 6), ClockHandleRow(0, 6, 0, 6),
+                   ClockHandleRow(0, 6, 0, 6));
+
+const ClockCharacter handles::SLASH =
+    ClockCharacter(ClockHandleRow(1, 7, 1, 7), ClockHandleRow(1, 6, 1, 6),
+                   ClockHandleRow(1, 7, 1, 7));
+
+const ClockCharacter handles::BACK_SLASH =
+    ClockCharacter(ClockHandleRow(11, 5, 11, 5), ClockHandleRow(11, 5, 11, 5),
+                   ClockHandleRow(11, 5, 11, 5));
+
 const ClockCharacter *handles::NMBRS[] = {
     &handles::ZERO,  &handles::ONE,  &handles::TWO, &handles::THREE,
     &handles::FOUR,  &handles::FIVE, &handles::SIX, &handles::SEVEN,
