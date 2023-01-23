@@ -11,3 +11,39 @@ i2c:
 time: # depends on api 
   - platform: homeassistant
     id: current_time   
+
+
+
+output:
+  - platform: gpio
+    id: led_output_1
+    pin:
+      pcf8574: pcf8574_hub
+      number: 1
+      mode:
+        output: true
+      inverted: false
+  - platform: gpio
+    id: led_output_2
+    pin:
+      pcf8574: pcf8574_hub
+      number: 3
+      mode:
+        output: true
+      inverted: false
+  - platform: gpio
+    id: led_output_3
+    pin:
+      pcf8574: pcf8574_hub
+      number: 5
+      mode:
+        output: true
+      inverted: false
+  - platform: gpio
+    id: led_output_4
+    pin:
+      pcf8574: pcf8574_hub
+      number: 7
+      mode:
+        output: true
+      inverted: false
