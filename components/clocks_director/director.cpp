@@ -43,7 +43,7 @@ Director::Director() {}
 onewire::RxOnewire rx;
 onewire::TxOnewire tx;
 
-#define UART_BAUDRATE 28800
+#define UART_BAUDRATE 115200
 // 57600 // 256000  // 115200  // 28800  // 115200  // 9600
 
 class DirectorChannel : public BufferChannel {
@@ -398,6 +398,8 @@ void Director::loop() {
             performer.one_wire_errors = cmd.check_point.value;
           else if (cmd.check_point.id == 'S')
             performer.channel_skips = cmd.check_point.value;
+          else if (cmd.check_point.id == 'U')
+            performer.uptime_in_seconds = cmd.check_point.value;
         }
         break;
 

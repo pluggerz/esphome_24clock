@@ -138,6 +138,7 @@ void dump_performer(int source) {
   transmit(onewire::OneCommand::CheckPoint::for_info('D', source));
   transmit(onewire::OneCommand::CheckPoint::for_info(
       '@', my_channel.baudrate() / 100));
+  transmit(onewire::OneCommand::CheckPoint::for_info('U', millis() / 1000));
   if (my_channel.error_count()) {
     transmit(onewire::OneCommand::CheckPoint::for_info(
         'C', my_channel.error_count()));

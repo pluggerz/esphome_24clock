@@ -152,7 +152,7 @@ struct IndividualLeds : public Message {
   Rgb leds[12];
 
   IndividualLeds(int performer_id)
-      : Message(-1, MsgEnum::MSG_INDIVIDUAL_LEDS_SET, performer_id) {}
+      : Message(-1, MsgEnum::MSG_INDIVIDUAL_LEDS_SET, 2 * performer_id) {}
 } __attribute__((packed, aligned(1)));
 
 struct RequestPositions : public Message {

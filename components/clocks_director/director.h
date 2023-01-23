@@ -19,18 +19,51 @@ class Stepper {
 };
 using esphome::wifi::WiFiComponent;
 
+class Util {
+ public:
+  static String format_up_time(int seconds) {
+    int days = seconds / (24 * 3600);
+    seconds = seconds % (24 * 3600);
+    int hours = seconds / 3600;
+    seconds = seconds % 3600;
+    int minutes = seconds / 60;
+    seconds = seconds % 60;
+    if (days) {
+      return {(String(days) + "d " + String(hours) + "h " + String(minutes) +
+               "m " + String(seconds) + "s")
+                  .c_str()};
+    } else if (hours) {
+      return {(String(hours) + "h " + String(minutes) + "m " + String(seconds) +
+               "s")
+                  .c_str()};
+    } else if (minutes) {
+      return {(String(minutes) + "m " + String(seconds) + "s").c_str()};
+    } else {
+      return {(String(seconds) + "s").c_str()};
+    }
+  }
+};
+
 class Performer {
  public:
   int animator_id = -1;
   Stepper stepper0, stepper1;
   int channel_errors = 0;
-  int channel_skips = 0l;
+  int channel_skips = 0;
   int one_wire_errors = 0;
+  int uptime_in_seconds = 0;
 
   void set_animator_id(int value) { this->animator_id = value; }
   void set_magnet_offsets(int _offset0, int _offset1) {
     this->stepper0.offset = _offset0;
     this->stepper1.offset = _offset1;
+  }
+
+  String report() {
+    auto p0 = stepper0.ticks;
+    auto p1 = stepper1.ticks;
+    return String("uptime: ") + Util::format_up_time(uptime_in_seconds) +
+           String(" T:") + String(p0 / 60.0) + String(" ") + String(p1 / 60.0);
   }
 };
 
