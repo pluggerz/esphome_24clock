@@ -1,6 +1,7 @@
-switch:
+button:
   - platform: template
     entity_category: diagnostic
+    icon: mdi:content-save
     name: "Save Settings"
     on_press:
       - then:
