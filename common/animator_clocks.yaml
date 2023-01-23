@@ -4,10 +4,10 @@ text_sensor:
     update_interval: 10s
     icon: mdi:file-document-alert-outline 
     name: ${node_name} - 0/Time
-    lambda: auto idx=0; return { id(director)->performer(idx)report().c_str() };
+    lambda: auto idx=0; return { id(director)->performer(idx).report().c_str() };
   - platform: template
     entity_category: diagnostic
     update_interval: 10s
     icon: mdi:file-document-alert-outline 
     name: ${node_name} - 1/Time
-    lambda: auto idx=1; return { id(director)->performer(idx)report().c_str() };
+    lambda: auto idx=1; return { id(director)->performer(idx).report().c_str() };
