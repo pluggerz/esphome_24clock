@@ -1,0 +1,17 @@
+text_sensor:
+  - platform: template
+    entity_category: diagnostic
+    update_interval: 10s
+    icon: mdi:file-document-alert-outline 
+    name: ${node_name} - 0/Time
+    lambda: |-
+      auto idx=0; auto &p=id(director)->performer(idx); auto p0=p.stepper0.ticks; auto p1=p.stepper1.ticks;
+      return { ((p0 < 10 ? String("0") + String(p0) : String(p0)) + String(":") + (p1 < 10 ? String("0") + String(p1) : String(p1))).c_str() };
+  - platform: template
+    entity_category: diagnostic
+    update_interval: 10s
+    icon: mdi:file-document-alert-outline 
+    name: ${node_name} - 1/Time
+    lambda: |-
+      auto idx=1; auto &p=id(director)->performer(idx); auto p0=p.stepper0.ticks; auto p1=p.stepper1.ticks;
+      return { ((p0 < 10 ? String("0") + String(p0) : String(p0)) + String(":") + (p1 < 10 ? String("0") + String(p1) : String(p1))).c_str() };
