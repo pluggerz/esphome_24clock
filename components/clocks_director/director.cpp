@@ -114,7 +114,7 @@ class DirectorOnlineAction : public IntervalAction {
   bool active = true;
   int send_count = 0;
 
-  static constexpr int delay = 500;
+  static constexpr int delay = 2500;
 
   DirectorOnlineAction() : IntervalAction(delay) {}
 
