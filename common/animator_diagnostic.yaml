@@ -1,4 +1,4 @@
-butto:
+button:
   - platform: template
     entity_category: diagnostic
     icon: mdi:content-save 
