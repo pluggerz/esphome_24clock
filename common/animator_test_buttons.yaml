@@ -1,10 +1,5 @@
 button:
  - platform: template
-   name: 'Request positions.'
-   on_press:
-    - then: 
-        - lambda:  id(director).request_positions();
- - platform: template
    name: '00:01'
    on_press:
     - then: 

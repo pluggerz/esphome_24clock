@@ -6,6 +6,13 @@ button:
     on_press:
       - then:
          - lambda: "global_preferences->sync();"
+  - platform: template
+    name: 'Request positions'
+    entity_category: diagnostic
+    icon: mdi:clock-in
+    on_press:
+     - then: 
+        - lambda:  id(director).request_positions();
 
 
 text_sensor:
