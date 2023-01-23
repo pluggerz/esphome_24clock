@@ -1,7 +1,7 @@
 text_sensor:
   - platform: template
     name: ${node_name} - 0/Report
-    entity_category: diagnose
+    entity_category: diagnostic
     update_interval: 31s
     icon: mdi:file-document-alert-outline 
     lambda: |-
@@ -9,7 +9,7 @@ text_sensor:
       return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
   - platform: template
     name: ${node_name} - 1/Report
-    entity_category: diagnose
+    entity_category: diagnostic
     update_interval: 31s
     icon: mdi:file-document-alert-outline 
     lambda: |-
