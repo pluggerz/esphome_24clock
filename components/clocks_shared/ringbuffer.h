@@ -2,12 +2,12 @@
 
 #include "Arduino.h"
 
-template <class VALUE_TYPE, int16_t MAX_SIZE>
+template <class VALUE_TYPE, uint8_t MAX_SIZE>
 class RingBuffer {
-  volatile uint16_t writeIndex, readIndex, bufferLength;
+  volatile uint8_t writeIndex, readIndex, bufferLength;
   volatile bool overflow_{false};
   VALUE_TYPE buffer[MAX_SIZE];
-  volatile uint16_t SIZE = MAX_SIZE;
+  volatile uint8_t SIZE = MAX_SIZE;
 
  public:
   void setup(int _buffer_size = -1) {
@@ -24,7 +24,7 @@ class RingBuffer {
 
   RingBuffer() { reset(); }
 
-  uint16_t size() const { return bufferLength; }
+  uint8_t size() const { return bufferLength; }
 
   bool is_empty() const { return bufferLength == 0; }
 
