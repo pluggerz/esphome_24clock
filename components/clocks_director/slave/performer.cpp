@@ -543,6 +543,7 @@ void process_lighting(channel::messages::LightingMode *msg) {
 }
 
 void PerformerChannel::process(const byte *bytes, const byte length) {
+#if MODE != MODE_ONEWIRE_PASSTROUGH
   channel::Message *msg = (channel::Message *)bytes;
 
   switch (msg->getMsgEnum()) {
@@ -621,4 +622,5 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
       lighting::individual.show();
       break;
   }
+#endif
 }

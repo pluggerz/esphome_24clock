@@ -45,9 +45,10 @@ MOVE2RAM void follow_change() {
   auto rx = OnewireInterrupt::rx;
   if (rx) rx->follow_change();
 #if MODE == MODE_ONEWIRE_PASSTROUGH
-  PIN_WRITE(SYNC_OUT_PIN, state);
+  const bool led_state = PIN_READ(SYNC_IN_PIN);
+  PIN_WRITE(SYNC_OUT_PIN, led_state);
 #ifdef DOLED
-  Leds::set_ex(LED_SYNC_OUT, state ? LedColors::red : LedColors::green);
+  Leds::set_ex(LED_SYNC_OUT, led_state ? LedColors::red : LedColors::green);
 #endif
 #endif
 #ifdef DOLED
