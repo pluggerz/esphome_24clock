@@ -1,0 +1,1 @@
+{"scripts":{"build":"node build.js"},"dependencies":{"@mdi/svg":"^7.1.96","@mdi/util":"^0.3.2"}}
