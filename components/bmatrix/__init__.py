@@ -53,7 +53,6 @@ CONFIG_SCHEMA = _Schema(
 )
 
 async def to_code(config):
-    
     var_display = await cg.get_variable(config[CONF_DISPLAY])
     var = cg.new_Pvariable(config[CONF_ID], var_display)
     var_group = await cg.get_variable(config[CONF_GROUP])

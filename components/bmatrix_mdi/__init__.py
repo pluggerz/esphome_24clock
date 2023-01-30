@@ -132,9 +132,18 @@ async def to_screen(size, reversed_mapping, config):
         if not any:
             raise Exception(f"Glyph '{reversed_mapping[glyph]}' does not contain data !?")
         
-           
+#using skia: https://stackoverflow.com/questions/6589358/convert-svg-to-png-in-python
+          
+import subprocess
+import sys
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
 async def to_code(config):
+    install('pymupdf')
+    install('svglib')
+
     var = cg.new_Pvariable(config[CONF_ID])
     
     if GLOBAL_MDI_KEY not in CORE.data:
