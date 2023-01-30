@@ -8,7 +8,8 @@
 from cgitb import text
 from logging import Logger
 import logging
-from os import defpath
+import os.path
+from os import defpath, path
 from typing import Optional
 from esphome.components.font import (
     CONF_RAW_DATA_ID,
@@ -132,13 +133,44 @@ async def to_screen(size, reversed_mapping, config):
         if not any:
             raise Exception(f"Glyph '{reversed_mapping[glyph]}' does not contain data !?")
         
-#using skia: https://stackoverflow.com/questions/6589358/convert-svg-to-png-in-python
-          
+# based on https://stackoverflow.com/questions/6589358/convert-svg-to-png-in-python
 import subprocess
 import sys
 
 def install(package):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+
+DOMAIN = "svg"
+import hashlib
+
+def _compute_local_svg_dir(name) -> Path:
+    base_dir = Path(CORE.config_dir) / ".esphome" / DOMAIN
+    if not path.exists(base_dir):
+        os.mkdir(base_dir)
+    return base_dir / name
+
+def download(icon):
+    file=f"{icon}.svg"
+    src=f"https://raw.githubusercontent.com/Templarian/MaterialDesign/master/svg/{file}"
+    dst=_compute_local_svg_dir(file)
+    if not path.exists(dst):
+        print(f'download: {src} -> {dst}')
+
+        import requests
+        r=requests.get(src)
+        
+        if not r.ok:
+            raise Exception(f'Failed to download: {src}')
+        with open(dst, 'wb') as f:
+            f.write(r.content)
+    else:
+        print(f'Already available: {dst}')
+    
+        
+        
+    
+
 
 async def to_code(config):
     install('pymupdf')
@@ -182,6 +214,7 @@ async def to_code(config):
                    for i in json.load(metaJson))
     # check if we are complete
     for icon in MDI_SELECTED_GLYPHS_NAMES:
+        download(icon)
         if icon not in MDI_MAP:
             raise cv.Invalid(f"Icon not mapped: {icon}")
 
