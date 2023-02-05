@@ -5,50 +5,27 @@
 #  'npm install @mdi/svg' the actual glyphs
 # https://www.cdnpkg.com/MaterialDesign-Webfont/file/materialdesignicons-webfont.ttf the font
 
-from cgitb import text
-from logging import Logger
 import logging
-from os import defpath
-from typing import Optional
-from esphome.components.font import (
-    CONF_RAW_DATA_ID,
-    CONF_RAW_GLYPH_ID
-)
 from esphome.core import CORE
-import importlib
 from esphome import automation
-from esphome.automation import LambdaAction, maybe_simple_id
-from esphome.cpp_generator import MockObj, Pvariable
+from esphome.automation import  maybe_simple_id
 from esphome.voluptuous_schema import _Schema
 from esphome import core
 from pathlib import Path
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import loader
-import sys
-import json
-from esphome.components import sensor, binary_sensor, switch, image, font, time, text_sensor
+from esphome.components import binary_sensor, switch, font, time, text_sensor
 from esphome.const import (
     CONF_BINARY_SENSOR,
-    CONF_DEVICE_CLASS,
-    CONF_DISABLED_BY_DEFAULT,
-    CONF_FILE,
     CONF_FORMAT,
-    CONF_GLYPHS,
     CONF_ID,
     CONF_NAME_FONT,
-    CONF_NAME,
     CONF_RANDOM,
-    CONF_SENSOR,
     CONF_GROUP,
-    CONF_SIZE,
-    CONF_SOURCE,
     CONF_TYPE,
-    CONF_VISIBLE,
     CONF_VALUE,
     CONF_TIME,
-    DEVICE_CLASS_MOTION,
-    DEVICE_CLASS_TEMPERATURE,
 )
 
 CONF_WIDGETS = "widgets"
@@ -57,10 +34,6 @@ CONF_TEXT = "text"
 CONF_TEXT_SENSOR = "text_sensor"
 CONF_SWITCH = "switch"
 CONF_ALERT_AGO = "alert_ago"
-
-_LOGGER = logging.getLogger(__name__)
-
-
 
 DEPENDENCIES = ["display"]
 CODEOWNERS = ["@hvandenesker"]
