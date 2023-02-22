@@ -38,5 +38,53 @@ text_sensor:
     update_interval: 31s
     icon: mdi:file-document-alert-outline 
     lambda: |-
+      auto idx=2; auto &performer=id(director)->performer(idx);
+      return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
+  - platform: template
+    name: ${node_name} - 3/Report
+    entity_category: diagnostic
+    update_interval: 31s
+    icon: mdi:file-document-alert-outline 
+    lambda: |-
       auto idx=3; auto &performer=id(director)->performer(idx);
+      return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
+  - platform: template
+    name: ${node_name} - 4/Report
+    entity_category: diagnostic
+    update_interval: 31s
+    icon: mdi:file-document-alert-outline 
+    lambda: |-
+      auto idx=4; auto &performer=id(director)->performer(idx);
+      return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
+  - platform: template
+    name: ${node_name} - 5/Report
+    entity_category: diagnostic
+    update_interval: 31s
+    icon: mdi:file-document-alert-outline 
+    lambda: |-
+      auto idx=5; auto &performer=id(director)->performer(idx);
+      return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
+  - platform: template
+    name: ${node_name} - 6/Report
+    entity_category: diagnostic
+    update_interval: 31s
+    icon: mdi:file-document-alert-outline 
+    lambda: |-
+      auto idx=6; auto &performer=id(director)->performer(idx);
+      return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
+  - platform: template
+    name: ${node_name} - 7/Report
+    entity_category: diagnostic
+    update_interval: 31s
+    icon: mdi:file-document-alert-outline 
+    lambda: |-
+      auto idx=7; auto &performer=id(director)->performer(idx);
+      return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
+  - platform: template
+    name: ${node_name} - 8/Report
+    entity_category: diagnostic
+    update_interval: 31s
+    icon: mdi:file-document-alert-outline 
+    lambda: |-
+      auto idx=8; auto &performer=id(director)->performer(idx);
       return { (String("C:") + String( performer.channel_errors ) + String(" S:") + String( performer.channel_skips ) + String(" O:") + String(performer.one_wire_errors)).c_str() };
