@@ -178,8 +178,8 @@ class TextChangeAsyncRequest : public Async {
       : text(text), animator(animator) {}
 
   Async *loop() override {
-    ESP_LOGW(TAG, "request_text_change: %c%c%c%c", text.ch0, text.ch1, text.ch2,
-             text.ch3);
+    ESP_LOGW(TAG, "request_text_change: %d,%d,%d,%d", text.ch0, text.ch1,
+             text.ch2, text.ch3);
 
     auto director = animator->director;
     send_text(*animator, director->get_animation_controller(), text);
@@ -188,7 +188,7 @@ class TextChangeAsyncRequest : public Async {
 };
 
 void ClocksAnimator::request_test_pattern_change(char pattern) {
-  ESP_LOGW(TAG, "request_test_pattern_change %c", pattern);
+  ESP_LOGW(TAG, "request_test_pattern_change %d", pattern);
   director->request_positions();
   async_executor.queue(
       new TextChangeAsyncRequest(this, Text::from_char(pattern)));

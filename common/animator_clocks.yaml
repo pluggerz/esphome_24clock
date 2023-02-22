@@ -11,3 +11,39 @@ text_sensor:
     icon: mdi:file-document-alert-outline 
     name: ${node_name} - 1/Time
     lambda: auto idx=1; return { id(director)->performer(idx).report().c_str() };
+  - platform: template
+    entity_category: diagnostic
+    update_interval: 10s
+    icon: mdi:file-document-alert-outline 
+    name: ${node_name} - 2/Time
+    lambda: auto idx=2; return { id(director)->performer(idx).report().c_str() };
+  - platform: template
+    entity_category: diagnostic
+    update_interval: 10s
+    icon: mdi:file-document-alert-outline 
+    name: ${node_name} - 3/Time
+    lambda: auto idx=3; return { id(director)->performer(idx).report().c_str() };
+  - platform: template
+    entity_category: diagnostic
+    update_interval: 10s
+    icon: mdi:file-document-alert-outline 
+    name: ${node_name} - 4/Time
+    lambda: auto idx=4; return { id(director)->performer(idx).report().c_str() };
+  - platform: template
+    entity_category: diagnostic
+    update_interval: 10s
+    icon: mdi:file-document-alert-outline 
+    name: ${node_name} - 5/Time
+    lambda: auto idx=5; return { id(director)->performer(idx).report().c_str() };
+  - platform: template
+    entity_category: diagnostic
+    update_interval: 10s
+    icon: mdi:file-document-alert-outline 
+    name: ${node_name} - 6/Time
+    lambda: auto idx=6; return { id(director)->performer(idx).report().c_str() };
+  - platform: template
+    entity_category: diagnostic
+    update_interval: 10s
+    icon: mdi:file-document-alert-outline 
+    name: ${node_name} - 7/Time
+    lambda: auto idx=7; return { id(director)->performer(idx).report().c_str() };
