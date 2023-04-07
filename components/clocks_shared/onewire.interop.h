@@ -182,7 +182,7 @@ union OneCommand {
   struct PostionAck {
     SOURCE_HEADER;
     uint32_t puid : 8;
-    uint32_t reserved : RESERVED_BITS - 8;
+    uint32_t remainder : RESERVED_BITS - 8;
   } __attribute__((packed, aligned(1))) position_ack;
 
   struct Position {
@@ -306,7 +306,7 @@ class CommandBuilder {
     OneCommand ret =
         OneCommand::Msg::by_director(CmdEnum::DIRECTOR_POSITION_ACK);
     ret.position_ack.puid = puid;
-    ret.position.remainder = random();
+    ret.position_ack.remainder = random();
     return ret.fix_parity();
   }
 } extern command_builder;

@@ -43,7 +43,7 @@ Director::Director() {}
 onewire::RxOnewire rx;
 onewire::TxOnewire tx;
 
-#define UART_BAUDRATE 115200
+#define UART_BAUDRATE 57600
 // 57600 // 256000  // 115200  // 28800  // 115200  // 9600
 
 class DirectorChannel : public BufferChannel {
@@ -523,6 +523,7 @@ class RequestPositionsAsync : public DelayAsync {
     LOGI(TAG, "RequestPositionsAsync: UPDATE");
     if (age_in_millis() > 10000) {
       LOGI(TAG, "Took too long to obtain positions... killing async.");
+      guid_position_ack++;
       return nullptr;
     } else {
       request();

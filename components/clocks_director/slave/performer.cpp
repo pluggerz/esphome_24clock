@@ -577,6 +577,7 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
         if (step_executors.active()) {
           step_executors.request_stop();
           performer_puid = -1;
+          transmit(onewire::OneCommand::CheckPoint::for_info('(', 0));
         } else {
           transmit_ticks();
           performer_puid =
@@ -584,6 +585,8 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
           transmit(
               onewire::OneCommand::CheckPoint::for_info('?', performer_puid));
         }
+      } else {
+        transmit(onewire::OneCommand::CheckPoint::for_info(')', 0));
       }
       break;
 
@@ -593,6 +596,8 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
         performer_puid = reinterpret_cast<const RequestPositions *>(msg)->puid;
         transmit(
             onewire::OneCommand::CheckPoint::for_info('?', performer_puid));
+      } else {
+        transmit(onewire::OneCommand::CheckPoint::for_info(')', 1));
       }
       break;
 

@@ -60,7 +60,7 @@ const ClockCharacter handles::VERTICAL_LINE =
                    ClockHandleRow(0, 6, 0, 6));
 
 const ClockCharacter handles::SLASH =
-    ClockCharacter(ClockHandleRow(1, 7, 1, 7), ClockHandleRow(1, 6, 1, 6),
+    ClockCharacter(ClockHandleRow(1, 7, 1, 7), ClockHandleRow(1, 7, 1, 7),
                    ClockHandleRow(1, 7, 1, 7));
 
 const ClockCharacter handles::BACK_SLASH =
