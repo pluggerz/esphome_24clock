@@ -5,16 +5,16 @@
 #ifdef MASTER
 
 const int MASTER_GPI0_PIN = 0;  // 18; // GPI00
-const int ESP_TXD_PIN = 1;      // 22; // GPI01/TXD
-const int RS485_RE_PIN = 2;     // 17; // GPI02
-const int ESP_RXD_PIN = 3;      // 21; // GPI03/RXD
-const int I2C_SDA_PIN = 4;      // 19; // GPI04
-const int I2C_SCL_PIN = 5;      // 20; // GPI05
-const int SYNC_OUT_PIN = 12;    // 6; // GPI12
-const int SYNC_IN_PIN = 13;     // 7; // GPI13
-const int GPIO_14 = 14;         // 5; // GPI14
-const int RS485_DE_PIN = 15;    // 16; // GPI15
-const int USB_POWER_PIN = 16;   // 4; // GPI16
+// const int ESP_TXD_PIN = 1;      // 22; // GPI01/TXD
+// const int RS485_RE_PIN = 2;  // 17; // GPI02
+// const int ESP_RXD_PIN = 3;      // 21; // GPI03/RXD
+const int I2C_SDA_PIN = 4;     // 19; // GPI04
+const int I2C_SCL_PIN = 5;     // 20; // GPI05
+const int SYNC_OUT_PIN = 12;   // 6; // GPI12
+const int SYNC_IN_PIN = 13;    // 7; // GPI13
+const int GPIO_14 = 14;        // 5; // GPI14
+const int RS485_DE_PIN = 15;   // 16; // GPI15
+const int USB_POWER_PIN = 16;  // 4; // GPI16
 
 #else
 

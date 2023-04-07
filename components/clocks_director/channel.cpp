@@ -6,7 +6,6 @@
 #include "../clocks_shared/stub.h"
 
 #ifdef ESP8266
-
 #define DOLOG
 #endif
 
@@ -67,11 +66,11 @@ class BasicProtocol : public rs485::Protocol {
 
     // first nibble
     c = what >> 4;
-    Serial.write((c << 4) | (c ^ 0x0F));
+    SerialDelegate.write((c << 4) | (c ^ 0x0F));
 
     // second nibble
     c = what & 0x0F;
-    Serial.write((c << 4) | (c ^ 0x0F));
+    SerialDelegate.write((c << 4) | (c ^ 0x0F));
   }  // end of RS485::sendComplemented
 
  public:
@@ -91,10 +90,10 @@ class BasicProtocol : public rs485::Protocol {
   inline void wait_for_room() {
     // return;
 
-    int av = Serial.availableForWrite();
+    int av = SerialDelegate.availableForWrite();
     while (av < 42) {
       // delay(1);  // FIX CRC ERRORS ?
-      av = Serial.availableForWrite();
+      av = SerialDelegate.availableForWrite();
     }
   }
 
@@ -106,7 +105,7 @@ class BasicProtocol : public rs485::Protocol {
       return;
     }
     // wait_for_room();
-    Serial.write(STX);  // STX
+    SerialDelegate.write(STX);  // STX
     sendComplemented(length);
     sendComplemented(crc8(data, length));
     for (byte i = 0; i < length; i++) {
@@ -114,7 +113,7 @@ class BasicProtocol : public rs485::Protocol {
       sendComplemented(data[i]);
     }
     // wait_for_room();
-    Serial.write(ETX);  // ETX
+    SerialDelegate.write(ETX);  // ETX
   }
 
   // returns true if packet available
@@ -145,7 +144,7 @@ class BasicProtocol : public rs485::Protocol {
 } basic_protocol;  // end of class RS485Protocol
 
 bool BasicProtocol::update() {
-  int available = Serial.available();
+  int available = SerialDelegate.available();
   if (available == 0) {
 #ifdef DOLED
     Leds::set_ex(LED_CHANNEL_DATA, LedColors::red);
@@ -158,8 +157,8 @@ bool BasicProtocol::update() {
   Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
 #endif
 
-  while (Serial.available() > 0) {
-    byte inByte = Serial.read();
+  while (SerialDelegate.available() > 0) {
+    byte inByte = SerialDelegate.read();
     switch (inByte) {
       case STX:  // start of message
         ESP_LOGD(TAG, "RS485: STX  (E=%ld)", errorCount_);
@@ -275,16 +274,18 @@ using rs485::Protocol;
 
 Protocol *Protocol::create_default() { return &basic_protocol; }
 
+#ifdef MASTER
 void Channel::_send(const byte *bytes, const byte length) {
   LOGD(TAG, "Channel::_send(%d bytes)", length);
   gate.start_transmitting();
   _protocol->sendMsg(bytes, length);
 }
+#endif
 
 Millis last_channel_process_ = 0;
 
 bool Channel::bytes_available_for_write(int bytes) const {
-  return Serial.availableForWrite() > bytes;
+  return SerialDelegate.availableForWrite() > bytes;
 }
 
 void Channel::loop() {

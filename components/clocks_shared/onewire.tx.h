@@ -47,7 +47,8 @@ class RawTxOnewire : public Tx {
 
   void dump_config() {
     LOGI(TAG, "  TxOnewire");
-    LOGI(TAG, "     re_pin: %d", RS485_RE_PIN);
+    LOGI(TAG, "     out: %d", SYNC_OUT_PIN);
+    LOGI(TAG, "     in:  %d", SYNC_IN_PIN);
     LOGI(TAG, "     OnewireInterrupt::tx: 0x%d", OnewireInterrupt::tx);
     // LOGI(TAG, "     state: %d", state);
   }

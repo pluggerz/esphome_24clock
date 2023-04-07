@@ -5,6 +5,12 @@
 #include "../clocks_shared/pins.h"
 #include "../clocks_shared/stub.h"
 
+#ifdef ESP8266
+#define SerialDelegate Serial1
+#else
+#define SerialDelegate Serial
+#endif
+
 namespace rs485 {
 const char *const TAG = "channel";
 
@@ -34,7 +40,11 @@ class Gate  // : public Gate
   void dump_config() {
     LOGI(TAG, "  rs485::Gate");
     LOGI(TAG, "     de_pin: %d", RS485_DE_PIN);
+#ifdef MASTER
+    LOGI(TAG, "     re_pin: N/A");
+#else
     LOGI(TAG, "     re_pin: %d", RS485_RE_PIN);
+#endif
     LOGI(TAG, "     state: %d", state);
   }
 
@@ -42,18 +52,21 @@ class Gate  // : public Gate
 
   void setup() {
     pinMode(RS485_DE_PIN, OUTPUT);
+#ifndef MASTER
     pinMode(RS485_RE_PIN, OUTPUT);
+#endif
 #ifdef DOLED
     // Leds::set_ex(LED_CHANNEL_STATE, LedColors::green);
 #endif
     LOGI(TAG, "state: setup");
   }
 
+#ifndef MASTER
   void start_receiving() {
     if (state == RECEIVING) return;
 
     // make sure we are done with sending
-    Serial.flush();
+    SerialDelegate.flush();
 
     PIN_WRITE(RS485_DE_PIN, false);
     PIN_WRITE(RS485_RE_PIN, false);
@@ -64,15 +77,20 @@ class Gate  // : public Gate
     state = RECEIVING;
     LOGI(TAG, "state: RECEIVING");
   }
+#endif
+
+#ifdef MASTER
   void start_transmitting() {
     if (state == TRANSMITTING) return;
 
     PIN_WRITE(RS485_DE_PIN, HIGH);
+#ifndef MASTER
     PIN_WRITE(RS485_RE_PIN, LOW);
-
+#endif
     state = TRANSMITTING;
     LOGI(TAG, "state: TRANSMITTING");
   }
+#endif
 };
 
 template <uint16_t SIZE>
@@ -118,16 +136,20 @@ class Channel {
  public:
   bool bytes_available_for_write(int bytes) const;
 
+#ifndef MASTER
   void start_receiving() {
     gate.start_receiving();
     if (_protocol) _protocol->start_receiving();
   }
+#endif
 
+#ifdef MASTER
   // NOTE: 'start_transmitting' should be private
   void start_transmitting() {
     gate.start_transmitting();
     if (_protocol) _protocol->start_transmitting();
   }
+#endif
 
   void dump_config() {
     LOGI(TAG, "channel: %d BAUD", _baudrate);
@@ -137,11 +159,11 @@ class Channel {
   Baudrate baudrate() { return _baudrate; }
 
   void baudrate(Baudrate baud_rate) {
-    if (_baudrate) Serial.end();
+    if (_baudrate) SerialDelegate.end();
     _baudrate = baud_rate;
-    Serial.begin(_baudrate);
+    SerialDelegate.begin(_baudrate);
 
-    LOGI(TAG, "state: Serial.begin(%d)", baud_rate);
+    LOGI(TAG, "state: SerialDelegate.begin(%d)", baud_rate);
   }
 
   void setup() { gate.setup(); }

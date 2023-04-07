@@ -260,8 +260,8 @@ void Director::start() {
   rx.setup();
   rx.begin();
 
-  // Serial.setRxBufferSize(256);
-  // Serial.setTxBufferSize(1024);
+  // SerialDelegate.setRxBufferSize(256);
+  // SerialDelegate.setTxBufferSize(1024);
 
 #if MODE == MODE_ONEWIRE_VALUE || MODE == MODE_ONEWIRE_PASSTROUGH || \
     MODE == MODE_ONEWIRE_MIRROR
