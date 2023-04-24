@@ -1,5 +1,6 @@
 #pragma once
 
+#ifndef ESP8266
 #include <APA102.h>
 
 #include "../clocks_shared/stub.h"
@@ -19,6 +20,7 @@ class LedColors {
   static rgb_color red;
   static rgb_color green;
   static rgb_color black;
+  static rgb_color white;
 };
 
 namespace Leds {
@@ -50,3 +52,4 @@ void publish();
 #define LED_CHANNEL_DATA 10
 
 // #define LED_EXECUTOR_STATE 9
+#endif

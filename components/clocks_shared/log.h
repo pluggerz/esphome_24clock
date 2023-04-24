@@ -1,3 +1,4 @@
+
 #ifdef ESP8266
 #include "esphome/core/log.h"
 
@@ -30,4 +31,30 @@ using esphome::esp_log_printf_;
 #define ESP_LOGI(...)
 #define ESP_LOGW(...)
 #define ESP_LOGE(...)
+
+#endif
+
+#ifdef ESP8266
+
+#define spit_info(ch, value) LOGD(TAG, "spit_info(%c > %d)", ch, value);
+#define spit_debug(ch, value) LOGD(TAG, "spit_debug(%c > %d)", ch, value);
+
+#else
+
+#ifndef PERFORMER_DEBUG
+#error please define ! PERFORMER_DEBUG=true or PERFORMER_DEBUG=false
+#endif
+
+void spit_info_impl(char ch, int value);
+#define spit_info(ch, value) spit_info_impl(ch, value)
+
+#if PERFORMER_DEBUG == true
+#warning spit_debug -> impl
+void spit_debug_impl(char ch, int value);
+#define spit_debug(ch, value) spit_debug_impl(ch, value)
+#else
+#warning spit_debug -> null
+#define spit_debug(ch, value)
+#endif
+
 #endif

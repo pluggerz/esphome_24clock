@@ -43,8 +43,9 @@ class LightingController : public esphome::Component, public AttachListener {
     }
     LOGI(TAG, "LightingMode: %d", mode);
     this->mode = mode;
-    async_interop.queue_message(
-        channel::messages::LightingMode(mode, red, green, blue, brightness));
+    auto msg =
+        channel::messages::LightingMode(mode, red, green, blue, brightness);
+    async_interop.queue_message(msg);
   }
 
   void set_solid_red(float state) {

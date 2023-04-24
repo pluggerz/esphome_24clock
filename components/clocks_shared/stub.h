@@ -2,35 +2,35 @@
 
 #include "../clocks_shared/shared.types.h"
 
-#define MODE_ONEWIRE_PASSTROUGH 1
-#define MODE_ONEWIRE_MIRROR 2
-#define MODE_ONEWIRE_VALUE 3
-
-#define MODE_ONEWIRE_CMD 4
-
-// make sure all slaves+master use this one as well
-#define MODE_CHANNEL 6
-
-// MODE_ONEWIRE_INTERACT can work with PASSTHROUGH and MIRROR for slaves
-#define MODE_ONEWIRE_INTERACT 7
-
-#define MODE MODE_ONEWIRE_INTERACT
-
 constexpr int NMBR_OF_PERFORMERS = 24;
 
 constexpr int MAX_HANDLES = 48;
 
 #ifdef ESP8266
 #define MASTER
-#define MASTER
 
-#include "../clocks_director/stub.master.h"
+#define UART_BAUDRATE 115200
+// 57600 // 256000  // 115200  // 28800  // 115200  // 9600
+
+#include "Arduino.h"
+
+#define NUMBER_OF_STEPS 720
 
 #else
 #define SLAVE
 #define PERFORMER
 
-#include "slave/stub.slave.h"
+// #include "slave/stub.slave.h"
+
+#include <FastGPIO.h>
+
+#include "Arduino.h"
+#define APA102_USE_FAST_GPIO
+
+#define LED_COUNT 12
+
+#define STEP_MULTIPLIER 4
+#define NUMBER_OF_STEPS (720 * STEP_MULTIPLIER)
 
 #endif
 

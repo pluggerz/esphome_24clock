@@ -1,7 +1,7 @@
 #pragma once
 
 // #include "oclock.h"
-#include "../clocks_director/keys.h"
+#include "../clocks_performer/keys.h"
 #include "../clocks_shared/ticks.h"
 
 class AnimationController {

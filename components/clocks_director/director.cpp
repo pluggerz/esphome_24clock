@@ -34,7 +34,7 @@ bool Protocol::is_skippable_message(byte first_byte) { return true; }
 
 static const char *const TAG = "controller";
 
-uint8_t guid_position_ack = 0;
+volatile uint8_t guid_position_ack = 0;
 
 using clock24::Director;
 
@@ -43,18 +43,15 @@ Director::Director() {}
 onewire::RxOnewire rx;
 onewire::TxOnewire tx;
 
-#define UART_BAUDRATE 57600
-// 57600 // 256000  // 115200  // 28800  // 115200  // 9600
-
 class DirectorChannel : public BufferChannel {
  public:
-  DirectorChannel() { baudrate(UART_BAUDRATE); }
+  DirectorChannel() {}
 
   virtual void process(const byte *bytes, const byte length) override {}
 } my_channel;
 
 void transmit(onewire::OneCommand command) {
-  ESP_LOGD(TAG, "(via onewire:) %s", command.format());
+  ESP_LOGD(TAG, "transmit (via onewire:) %s", command.format());
   tx.transmit(command.raw);
 }
 
@@ -254,7 +251,9 @@ void Director::start() {
   pinMode(GPIO_14, INPUT);
   pinMode(USB_POWER_PIN, INPUT);
 
+  // Serial1.begin(baudrate);
   my_channel.setup();
+  my_channel.begin(UART_BAUDRATE);
   my_channel.start_transmitting();
 
   rx.setup();
@@ -263,105 +262,11 @@ void Director::start() {
   // SerialDelegate.setRxBufferSize(256);
   // SerialDelegate.setTxBufferSize(1024);
 
-#if MODE == MODE_ONEWIRE_VALUE || MODE == MODE_ONEWIRE_PASSTROUGH || \
-    MODE == MODE_ONEWIRE_MIRROR
-  tx.setup(1);
-#else
   tx.setup();
-#endif
   tx.begin();
 
-#if MODE >= MODE_ONEWIRE_INTERACT
-  // accept_action.start();
-#endif
   async::interop::suspended = false;
 }
-
-#if MODE == MODE_ONEWIRE_VALUE || MODE == MODE_ONEWIRE_PASSTROUGH || \
-    MODE == MODE_ONEWIRE_MIRROR
-onewire::Value value = 0;
-int received = 0;
-
-void Director::loop() {
-  if (!is_started()) return;
-
-  while (rx.pending()) {
-    auto value = rx.flush();
-    if (onewire::USED_BAUD < 2000)
-      LOGI(TAG, "RECEIVED: {%d}", value);
-    else
-      ESP_LOGD(TAG, "RECEIVED: {%d}", value);
-    received++;
-  }
-  if (tx.transmitted()) {
-    delay(20);
-    if (onewire::USED_BAUD < 2000)
-      LOGI(TAG, "TRANSMIT: {value=%d}", value);
-    else
-      ESP_LOGD(TAG, "TRANSMIT: {value=%d}", value);
-
-    tx.transmit(value++);
-
-    if (value >= 48) {
-      LOGI(TAG, "TRANSMIT: transmitted 48 values received %d values, uptime ",
-           received);
-
-      value = 0;
-      received = 0;
-    }
-  }
-}
-#endif
-
-#if MODE == MODE_ONEWIRE_CMD
-int baud_idx = 0;
-void Director::loop() {
-  if (!is_started()) return;
-
-  while (rx.pending()) {
-    auto value = rx.flush();
-    if (onewire::USED_BAUD < 200)
-      LOGI(TAG, "RECEIVED: {%d}", value);
-    else
-      LOGI(TAG, "RECEIVED: {%d}", value);
-  }
-  if (tx.transmitted()) {
-    auto cmd = command_builder.accept(baud_idx++);
-    auto value = cmd.raw;
-    if (onewire::USED_BAUD < 200)
-      LOGI(TAG, "TRANSMIT: {value=%d}", value);
-    else
-      LOGI(TAG, "TRANSMIT: {value=%d}", value);
-
-    tx.transmit(value);
-  }
-}
-#endif
-
-#if MODE == MODE_CHANNEL
-int test_count_value = 0;
-void Director::loop() {
-  if (!dumped) return;
-
-#if MODE == MODE_CHANNEL
-    // channel.loop();
-    // tick_action.loop();
-
-    // test_onewire_action.loop();
-#endif
-
-  Micros now = micros();
-  if (rx.pending()) {
-    onewire::OneCommand cmd;
-    cmd.raw = rx.flush();
-    if (cmd.raw == 100) {
-      LOGI(TAG, "  GOT: %d", cmd.raw);
-    }
-  }
-}
-#endif
-
-#if MODE >= MODE_ONEWIRE_INTERACT
 
 bool pheripal_online = true;
 
@@ -377,7 +282,7 @@ void Director::loop() {
   // accept_action.loop();
   ping_onewire_action.loop();
   tick_action.loop();
-  my_channel.loop();
+  // my_channel.loop(); note we never receive so not needed!
   if (accepted) async_executor.loop();
 
   if (rx.pending()) {
@@ -416,7 +321,9 @@ void Director::loop() {
       } break;
 
       case CmdEnum::DIRECTOR_POSITION_ACK:
-        ESP_LOGW(TAG, "DIRECTOR_POSITION_ACK: puid=%d", cmd.position_ack.puid);
+        ESP_LOGW(TAG,
+                 "DIRECTOR_POSITION_ACK: cmd.puid=%d and guid_position_ack=%d",
+                 cmd.position_ack.puid, guid_position_ack);
         guid_position_ack++;
         break;
 
@@ -425,6 +332,7 @@ void Director::loop() {
         break;
 
       case CmdEnum::PERFORMER_ONLINE:
+        ESP_LOGW(TAG, "PERFORMER_ONLINE: start accept... ");
         accept_action.start();
         break;
 
@@ -442,9 +350,7 @@ void Director::loop() {
 
         if (cmd.from_master()) {
           _performers = 0;
-          ESP_LOGW(TAG,
-                   "DIRECTOR_ONLINE: No performers ? Make sure, one is not "
-                   "MODE_ONEWIRE_PASSTROUGH!");
+          ESP_LOGW(TAG, "DIRECTOR_ONLINE: No performers ?!?");
         } else {
           ESP_LOGW(TAG, "DIRECTOR_ONLINE: Sending ACCEPT message");
           director_online_action.active = false;
@@ -458,9 +364,7 @@ void Director::loop() {
           ESP_LOGW(TAG, "IGNORED!");
         } else if (cmd.from_master()) {
           _performers = 0;
-          LOGI(TAG,
-               "DIRECTOR_ACCEPT(%d): No performers ? Make sure, one is not "
-               "MODE_ONEWIRE_PASSTROUGH!",
+          LOGI(TAG, "DIRECTOR_ACCEPT(%d): No performers ?!?",
                cmd.accept.baudrate);
         } else {
           ping_onewire_action.set_delay_in_millis(5000);
@@ -492,25 +396,25 @@ void Director::loop() {
   }
 }
 
-#endif
-
 class RequestPositionsAsync : public DelayAsync {
   const uint8_t current_position_ack;
   Director *director;
 
  public:
   RequestPositionsAsync(Director *director)
-      : DelayAsync(1500),
+      : DelayAsync(750),
         current_position_ack(guid_position_ack),
         director(director) {}
 
   void request() {
-    LOGI(TAG, "RequestPositionsAsync: REQUEST");
+    LOGI(TAG, "RequestPositionsAsync: REQUEST current_position_ack=%d",
+         current_position_ack);
 
     my_channel.send(message_builder.request_kill_keys_or_request_position(
         current_position_ack));
     // my_channel.send(message_builder.request_positions());
-    transmit(command_builder.director_position_ack(current_position_ack));
+    auto ack = command_builder.director_position_ack(current_position_ack);
+    transmit(ack);
   }
 
   Async *first() override {

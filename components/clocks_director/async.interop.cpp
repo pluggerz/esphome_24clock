@@ -45,10 +45,14 @@ class MessageAsyncRequest : public Async {
   MessageAsyncRequest(BufferChannel *channel, const byte *msg_bytes, int size)
       : channel(channel), size(size) {
     this->bytes = new byte[size];
+    LOGI(TAG, "For %d alloc %d size", (int)this->bytes, size);
     memcpy(this->bytes, msg_bytes, size);
   }
 
-  ~MessageAsyncRequest() { delete[] this->bytes; }
+  ~MessageAsyncRequest() {
+    LOGI(TAG, "For %d freed", (int)this);
+    delete[] this->bytes;
+  }
 
   Async *loop() override {
     if (channel == nullptr) {
@@ -58,7 +62,7 @@ class MessageAsyncRequest : public Async {
     if (!channel->bytes_available_for_write(min(size, 20))) {
       return this;
     }
-    LOGD(TAG, "Message transmitted!");
+    LOGI(TAG, "Message via channel transmitted!");
     channel->raw_send(bytes, size);
     return nullptr;
   }
@@ -77,6 +81,7 @@ void AsyncInterop::queue_raw_message(const byte *bytes, int length) {
   }
   // channel->raw_send(bytes, length);
   queue_async(new MessageAsyncRequest(this->get_channel(), bytes, length));
+  // direct_raw_message(bytes, length);
 }
 
 void AsyncInterop::direct_raw_message(const byte *bytes, int length) {

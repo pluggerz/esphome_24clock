@@ -1,7 +1,12 @@
-
 #include "../clocks_shared/onewire.interop.h"
 #include "../clocks_shared/onewire.rx.h"
 #include "../clocks_shared/onewire.tx.h"
+#include "../clocks_shared/stub.h"
+
+#ifndef ESP8266
+// TODO: NEED TO DISCOUPLE FROM transmit
+#include "final/stub.slave.h"
+#endif
 
 using onewire::command_builder;
 using onewire::OnewireInterrupt;
@@ -44,13 +49,6 @@ const char *const TAG = "1wireTimer";
 MOVE2RAM void follow_change() {
   auto rx = OnewireInterrupt::rx;
   if (rx) rx->follow_change();
-#if MODE == MODE_ONEWIRE_PASSTROUGH
-  const bool led_state = PIN_READ(SYNC_IN_PIN);
-  PIN_WRITE(SYNC_OUT_PIN, led_state);
-#ifdef DOLED
-  Leds::set_ex(LED_SYNC_OUT, led_state ? LedColors::red : LedColors::green);
-#endif
-#endif
 #ifdef DOLED
   const bool state = PIN_READ(SYNC_IN_PIN);
   if (!rx || !rx->reading())

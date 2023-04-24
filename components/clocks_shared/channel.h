@@ -70,6 +70,7 @@ class Gate  // : public Gate
 
     PIN_WRITE(RS485_DE_PIN, false);
     PIN_WRITE(RS485_RE_PIN, false);
+
 #ifdef DOLED
     Leds::set_ex(LED_CHANNEL_STATE, LedColors::blue);
 #endif
@@ -158,7 +159,9 @@ class Channel {
 
   Baudrate baudrate() { return _baudrate; }
 
-  void baudrate(Baudrate baud_rate) {
+  void begin(Baudrate baud_rate) {
+    spit_info('^', baud_rate / 100);
+
     if (_baudrate) SerialDelegate.end();
     _baudrate = baud_rate;
     SerialDelegate.begin(_baudrate);

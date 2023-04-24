@@ -2,7 +2,7 @@
 
 // #define USE_LED_BUFFER
 
-#include "leds.h"
+#include "common/leds.h"
 
 namespace BackgroundLedAnimations {
 class Solid;

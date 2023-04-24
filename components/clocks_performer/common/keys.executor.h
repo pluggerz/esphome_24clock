@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../clocks_shared/channel.interop.h"
-#include "stepper.h"
+#include "common/stepper.h"
 
 class StepExecutors {
   bool stopped = true;

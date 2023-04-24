@@ -16,7 +16,7 @@
 #ifdef DOLED
 #define LED 4
 #define DATALED 5
-#include "slave/leds.h"
+#include "common/leds.h"
 #endif
 
 using rs485::Channel;
@@ -144,6 +144,8 @@ class BasicProtocol : public rs485::Protocol {
 } basic_protocol;  // end of class RS485Protocol
 
 bool BasicProtocol::update() {
+  // Leds::error(9);
+
   int available = SerialDelegate.available();
   if (available == 0) {
 #ifdef DOLED
@@ -152,6 +154,7 @@ bool BasicProtocol::update() {
     return false;
   }
   ESP_LOGD(TAG, "RS485: available() = %d", available);
+  // Leds::error(10);
 
 #ifdef DOLED
   Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
@@ -159,8 +162,14 @@ bool BasicProtocol::update() {
 
   while (SerialDelegate.available() > 0) {
     byte inByte = SerialDelegate.read();
+    spit_debug('b', inByte);
+    spit_debug('s', haveSTX_ ? 1 : 0);
+    // Leds::error(11);
+
     switch (inByte) {
       case STX:  // start of message
+        spit_debug('*', 0);
+
         ESP_LOGD(TAG, "RS485: STX  (E=%ld)", errorCount_);
         haveSTX_ = true;
         inputPos_ = -2;
@@ -172,9 +181,14 @@ bool BasicProtocol::update() {
       case ETX:  // end of text (now expect the CRC check)
         if (!haveSTX_) {
           // ignore, skip
+          spit_debug('*', 1);
+
           break;
         }
+
         if (inputPos_ != message_size) {
+          spit_debug('*', 2);
+
           ESP_LOGW(TAG, "%d(inputPos_) != %d(message_size)", inputPos_,
                    message_size);
           errorCount_++;
@@ -183,12 +197,16 @@ bool BasicProtocol::update() {
         }
 
         if (crc8(buffer, inputPos_) != crc) {
+          spit_debug('*', 3);
+
           errorCount_++;
           ESP_LOGE(TAG, "CRC!? (E=%ld)", errorCount_);
           haveSTX_ = false;
           break;  // bad crc
         }         // end of bad CRC
         available_ = true;
+        spit_debug('*', 4);
+
 #ifdef DOLED
         Leds::set_ex(LED_CHANNEL_DATA, LedColors::green);
 #endif
@@ -202,6 +220,8 @@ bool BasicProtocol::update() {
         }
 
         if (inputPos_ == message_size) {
+          spit_debug('*', 10);
+
           ESP_LOGE(TAG, "EXPECTED ETX (E=%ld)", errorCount_);
           haveSTX_ = false;
           break;
@@ -210,6 +230,8 @@ bool BasicProtocol::update() {
         ESP_LOGVV(TAG, "received nibble %d (E=%ld)", (int)inByte, errorCount_);
         // check byte is in valid form (4 bits followed by 4 bits complemented)
         if ((inByte >> 4) != ((inByte & 0x0F) ^ 0x0F)) {
+          spit_debug('*', 11);
+
           haveSTX_ = false;
           errorCount_++;
           ESP_LOGE(TAG, "invalid nibble !? (E=%ld)", errorCount_);
@@ -233,6 +255,9 @@ bool BasicProtocol::update() {
 
         // keep adding if not full
         if (inputPos_ >= buffer_size) {
+          spit_debug('*', 30);
+          spit_debug('B', buffer_size);
+
           errorCount_++;
           haveSTX_ = false;
           ESP_LOGE(TAG, "OVERFLOW !? (E=%ld)", errorCount_);
@@ -257,6 +282,8 @@ bool BasicProtocol::update() {
           inputPos_ = 0;
           break;
         } else if (inputPos_ == 0 && is_skippable_message(currentByte_)) {
+          spit_debug('*', 9);
+
           skipped_message_count++;
           haveSTX_ = false;
           break;
@@ -266,7 +293,7 @@ bool BasicProtocol::update() {
 
     }  // end of switch
   }    // end of while incoming data
-
+  spit_debug('S', haveSTX_ ? 1 : 0);
   return false;  // not ready yet
 }  // end of Protocol::update
 
@@ -276,7 +303,7 @@ Protocol *Protocol::create_default() { return &basic_protocol; }
 
 #ifdef MASTER
 void Channel::_send(const byte *bytes, const byte length) {
-  LOGD(TAG, "Channel::_send(%d bytes)", length);
+  LOGI(TAG, "Channel::_send(%d bytes)", length);
   gate.start_transmitting();
   _protocol->sendMsg(bytes, length);
 }
@@ -288,18 +315,30 @@ bool Channel::bytes_available_for_write(int bytes) const {
   return SerialDelegate.availableForWrite() > bytes;
 }
 
+void ignore(char ch) {
+  if (Serial.available()) {
+    auto value = Serial.read();
+    spit_debug(ch, value);
+  }
+}
+
 void Channel::loop() {
   if (_baudrate == 0) {
 #ifdef DOLED
+    // Leds::blink(LedColors::orange);
+
     Leds::set_ex(LED_CHANNEL_STATE, LedColors::purple);
 #endif
+    ignore('0');
     return;
   }
 
   if (!gate.is_receiving() || !_protocol) {
 #ifdef DOLED
+    // Leds::error(3);
     Leds::set_ex(LED_CHANNEL_STATE, LedColors::red);
 #endif
+    ignore('!');
     return;
   }
 
@@ -313,6 +352,7 @@ void Channel::loop() {
     Leds::set_ex(LED_CHANNEL_STATE, LedColors::purple);
   }
 #endif
+  // Leds::error(6);
 
   if (!((BasicProtocol *)_protocol)->update()) {
 #ifdef DOLED

@@ -62,7 +62,7 @@ class AnimationSettings {
   }                                                                         \
   void turn_on(const ENUM::Enum &mode) {                                    \
     ENUM##_flags |= (1 << mode);                                            \
-    LOGI(TAG, #ENUM "/turn_on: %d / $d", mode, ENUM##_flags);               \
+    LOGI(TAG, #ENUM "/turn_on: %d / %d", mode, ENUM##_flags);               \
   }                                                                         \
   void turn_off(const ENUM::Enum &mode) {                                   \
     ENUM##_flags &= ~(1 << mode);                                           \

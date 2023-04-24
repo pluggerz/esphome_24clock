@@ -21,7 +21,6 @@ ForegroundLayer *current_foreground_layer = &empty_foreground_led_layer;
 RgbLeds ForegroundLayer::colors;
 BrightnessLeds ForegroundLayer::brightness;
 uint8_t FollowHandlesLedLayer::ledAlphas[LED_COUNT];
-
 rgb_color debug_leds[LED_COUNT];
 bool dirty = true;
 
@@ -31,6 +30,7 @@ rgb_color LedColors::blue = rgb_color(0x00, 0x00, 0xFF);
 rgb_color LedColors::red = rgb_color(0xFF, 0x00, 0x00);
 rgb_color LedColors::green = rgb_color(0x00, 0xFF, 0x00);
 rgb_color LedColors::black = rgb_color(0x00, 0x00, 0x00);
+rgb_color LedColors::white = rgb_color(0xFF, 0xFF, 0xFF);
 
 // Create an object for writing to the LED strip.
 extern APA102<LED_DATA_PIN, LED_CLOCK_PIN> ledStrip;

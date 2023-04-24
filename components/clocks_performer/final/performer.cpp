@@ -10,10 +10,11 @@
 #include "../clocks_shared/pins.h"
 #include "../clocks_shared/stub.h"
 #include "../clocks_shared/ticks.h"
-#include "keys.executor.h"
-#include "leds.background.h"
-#include "leds.h"
-#include "stepper.h"
+#include "common/keys.executor.h"
+#include "common/leds.background.h"
+#include "common/leds.h"
+#include "common/stepper.h"
+#include "common/stepper.util.h"
 
 // note nice, shoulde be removed...
 void onewire::RxOnewire::debug(onewire::Value value) {}
@@ -30,13 +31,14 @@ using onewire::OneCommand;
 using onewire::OnewireInterrupt;
 using rs485::Protocol;
 
-uint8_t ChannelInterop::id = ChannelInterop::UNDEFINED;
-
 int performer_puid = -1;
+
+uint8_t ChannelInterop::id = ChannelInterop::UNDEFINED;
 
 int onewire::my_performer_id() { return ChannelInterop::id; }
 
 bool Protocol::is_skippable_message(byte first_byte) {
+  return false;
   if (first_byte == ChannelInterop::ALL_PERFORMERS) {
     return false;
   }
@@ -46,9 +48,6 @@ bool Protocol::is_skippable_message(byte first_byte) {
 // steppers
 int guid_of_director = -1;
 lighting::LightingMode current_lighting_mode = -1;
-
-Stepper0 stepper0(NUMBER_OF_STEPS);
-Stepper1 stepper1(NUMBER_OF_STEPS);
 
 // OneWireProtocol protocol;
 onewire::RxOnewire rx;
@@ -69,6 +68,14 @@ typedef void (*LoopFunction)();
 typedef void (*ListenFunction)();
 
 void transmit(const onewire::OneCommand &value) { tx.transmit(value.raw); }
+
+void spit_info_impl(char ch, int value) {
+  transmit(onewire::OneCommand::CheckPoint::for_info(ch, value));
+}
+
+void spit_debug_impl(char ch, int value) {
+  transmit(onewire::OneCommand::CheckPoint::for_debug(ch, value));
+}
 
 void set_action(Action *action);
 
@@ -92,12 +99,6 @@ void show_action(const onewire::OneCommand &cmd) {
   }
   Leds::publish();
 }
-
-#if MODE == MODE_ONEWIRE_PASSTROUGH || MODE == MODE_ONEWIRE_MIRROR
-void StepExecutors::send_positions() {}
-#endif
-
-#if MODE >= MODE_ONEWIRE_INTERACT
 
 class DefaultAction : public IntervalAction {
  public:
@@ -165,7 +166,7 @@ void to_debug() {
 void kill_steppers() { step_executors.kill(); }
 
 void DefaultAction::loop() {
-  my_channel.loop();
+  // my_channel.loop();
 
   IntervalAction::loop();
 
@@ -277,15 +278,20 @@ void ResetAction::loop() {
 
       case CmdEnum::DIRECTOR_ACCEPT:
         ChannelInterop::id = cmd.derive_next_source_id();
+        spit_info('@', 1);
         if (my_channel.baudrate() != cmd.accept.baudrate) {
-          my_channel.baudrate(cmd.accept.baudrate);
+          my_channel.begin(cmd.accept.baudrate);
           my_channel.start_receiving();
+          spit_info('@', 2);
         } else {
+          my_channel.start_receiving();
+
           set_action(&default_action);
 
           // send after we 'heard' twice the right baudrate
           transmit(cmd.increase_performer_id_and_forward());
-          transmit_ticks();
+          // transmit_ticks();
+          spit_info('@', 3);
         }
         break;
 
@@ -296,8 +302,6 @@ void ResetAction::loop() {
     }
   }
 }
-
-#endif
 
 Action *current_action = nullptr;
 
@@ -310,63 +314,20 @@ void set_action(Action *action) {
   if (current_action != nullptr) current_action->setup();
 }
 
-void setup_steppers() {
-  // set mode
-  pinMode(MOTOR_SLEEP_PIN, OUTPUT);
-  pinMode(MOTOR_ENABLE, OUTPUT);
-  pinMode(MOTOR_RESET, OUTPUT);
-
-  stepper0.setup();
-  stepper1.setup();
-
-  delay(10);
-
-  // set state
-  digitalWrite(MOTOR_SLEEP_PIN, LOW);
-  digitalWrite(MOTOR_ENABLE, HIGH);
-  digitalWrite(MOTOR_RESET, LOW);
-
-  // wait at least 1ms
-  delay(10);
-  digitalWrite(MOTOR_SLEEP_PIN, HIGH);
-  digitalWrite(MOTOR_ENABLE, LOW);
-  digitalWrite(MOTOR_RESET, HIGH);
-
-  // wait at least 200ns
-  delay(10);
-}
-
-void calibrate_steppers() {
-  int speed = 10;
-  stepper0.set_speed_in_revs_per_minute(speed);
-  stepper1.set_speed_in_revs_per_minute(speed);
-  while (!stepper0.find_magnet_tick() || !stepper1.find_magnet_tick()) {
-  }
-  for (int idx = 0; idx < 240; ++idx) {
-    stepper0.step(-1);
-    stepper1.step(-1);
-  }
-
-  stepper0.set_speed_in_revs_per_minute(speed);
-  stepper1.set_speed_in_revs_per_minute(speed);
-  while (!stepper0.find_magnet_tick() || !stepper1.find_magnet_tick()) {
-  }
-  for (int idx = 0; idx < 240; ++idx) {
-    stepper0.step(-1);
-    stepper1.step(-1);
-  }
-  StepExecutors::setup(stepper0, stepper1);
-}
-
 void setup() {
   bool accepted = EEPROM.read(0) == EEPROM_ACCEPTED;
   EEPROM.write(0, 0);
 
-  Leds::set_blink_delay(accepted ? 10 : 500);
+  Leds::set_blink_delay(accepted ? 20 : 500);
   Leds::blink(accepted ? LedColors::green : LedColors::red);
 
-  setup_steppers();
-  calibrate_steppers();
+  StepperUtil::setup_steppers();
+  Leds::blink(LedColors::orange);
+
+  StepperUtil::calibrate_steppers();
+  StepExecutors::setup(stepper0, stepper1);
+
+  Leds::blink(LedColors::blue);
 
   pinMode(SLAVE_RS485_TXD_DPIN, OUTPUT);
   pinMode(SLAVE_RS485_RXD_DPIN, INPUT);
@@ -375,66 +336,29 @@ void setup() {
   Leds::blink(LedColors::green, 1);
 
   rx.setup();
-#if MODE != MODE_ONEWIRE_PASSTROUGH
 #ifdef DOLED
   Leds::set_ex(LED_ONEWIRE, LedColors::purple);
 #endif
   rx.begin();
   Leds::blink(LedColors::green, 2);
-#endif
 
   tx.setup();
-#if MODE != MODE_ONEWIRE_PASSTROUGH
   tx.begin();
-#endif
+
   Leds::blink(LedColors::green, 3);
   my_channel.setup();
-
-#if MODE == MODE_CHANNEL || MODE == MODE_ONEWIRE_CMD || \
-    MODE == MODE_ONEWIRE_PASSTROUGH
-  my_channel.baudrate(9600);
-  my_channel.start_receiving();
-  Leds::blink(LedColors::green, 4);
-#endif
-
-  gate.setup();
-  gate.start_receiving();
-  Leds::blink(LedColors::green, 5);
 
 #ifndef APA102_USE_FAST_GPIO
   Leds::error(LEDS_ERROR_MISSING_APA102_USE_FAST_GPIO);
 #endif
 
-#if MODE >= MODE_ONEWIRE_INTERACT
   set_action(&reset_action);
-
   lighting::current->start();
-#endif
 }
 
 LoopFunction current = reset_mode;
 
-#if MODE == MODE_ONEWIRE_PASSTROUGH
-
 void loop() {
-  // for debugging
-  Millis now = millis();
-  if (now - t0 > 25) {
-    t0 = now;
-    Leds::publish();
-  }
-
-  my_channel.loop();
-  // StepExecutors.loop(now);
-}
-#endif
-
-#if MODE >= MODE_ONEWIRE_MIRROR
-
-void loop() {
-#if MODE == MODE_ONEWIRE_INTERACT
-  // StepExecutors::loop(micros());
-#endif
   // for debugging
   Millis now = millis();
   if (now - t0 > 50) {
@@ -445,23 +369,13 @@ void loop() {
     }
   }
 
-  my_channel.loop();
-
-  if (rx.pending()) {
-#if MODE == MODE_ONEWIRE_MIRROR
-    auto value = rx.flush();
-    tx.transmit(value);
-#endif
-#if MODE == MODE_ONEWIRE_CMD
-    onewire::OneCommand cmd;
-    cmd.raw = rx.flush();
-    tx.transmit(cmd.forward().raw);
-#endif
+  if (Serial.available()) {
+    auto value = Serial.peek();
+    spit_info('&', value);
   }
-
-  if (current_action != nullptr) current_action->loop();
+  my_channel.loop();
+  if (current_action) current_action->loop();
 }
-#endif
 
 void execute_performer_settings(const PerformerSettings *settings) {
   if (settings->get_performer_destination_id() != ChannelInterop::id) return;
@@ -543,8 +457,8 @@ void process_lighting(channel::messages::LightingMode *msg) {
 }
 
 void PerformerChannel::process(const byte *bytes, const byte length) {
-#if MODE != MODE_ONEWIRE_PASSTROUGH
   channel::Message *msg = (channel::Message *)bytes;
+  spit_debug('$', msg->getMsgEnum());
 
   switch (msg->getMsgEnum()) {
     case channel::MsgEnum::MSG_DUMP_PERFORMERS_VIA_CHANNEL:
@@ -627,5 +541,4 @@ void PerformerChannel::process(const byte *bytes, const byte length) {
       lighting::individual.show();
       break;
   }
-#endif
 }

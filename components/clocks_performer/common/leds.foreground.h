@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../clocks_shared/stub.h"
-#include "leds.h"
+#include "common/leds.h"
 #include "stepper.h"
 
 class ForegroundLayer {

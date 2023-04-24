@@ -38,9 +38,11 @@ class RawTxOnewire : public Tx {
   int bit_state = false;
 
   const int8_t LAST_TX_BIT = MAX_DATA_BITS + 2;
-  int8_t _tx_bit = LAST_TX_BIT;
+  volatile int8_t _tx_bit = LAST_TX_BIT;
 
-  onewire::Value _tx_value, _tx_remainder_value, _tx_transmitted_value;
+  volatile onewire::Value _tx_value;
+  volatile onewire::Value _tx_remainder_value;
+  volatile onewire::Value _tx_transmitted_value;
 
  public:
   RawTxOnewire() {}
@@ -62,7 +64,7 @@ class RawTxOnewire : public Tx {
     if (bit == MAX_DATA_BITS + 1) {
       write(false);
 
-      ESP_LOGD(
+      ESP_LOGV(
           TAG,
           "transmit: DONE %d, total_time=%d pulses=%d(?=%d) pulse_length=%d "
           "expected=%d",
@@ -104,7 +106,7 @@ class RawTxOnewire : public Tx {
       this->_tx_bit++;
       return;
     } else if (bit == -1) {
-      ESP_LOGD(TAG, "transmit: START value=%d", _tx_value);
+      ESP_LOGV(TAG, "transmit: START value=%d", _tx_value);
 
       tx_start = micros();
       tx_pulses = 1;
@@ -163,7 +165,7 @@ class RawTxOnewire : public Tx {
       ESP_LOGW(TAG, "Warning masked value(=%d) is not same as input(=%d)",
                _tx_value, value);
     }
-    ESP_LOGD(TAG, "transmit: START tx_value=%d", _tx_value);
+    ESP_LOGV(TAG, "transmit: START tx_value=%d", _tx_value);
     ESP_LOGVV(TAG, "transmit: START HIGH tx_value=%d, tx_bit=%d)", _tx_value,
               _tx_bit);
     // OnewireInterrupt::enableTimer();

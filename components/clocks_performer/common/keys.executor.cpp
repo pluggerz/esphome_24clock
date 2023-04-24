@@ -1,9 +1,10 @@
 #include "keys.executor.h"
 
-#include "../clocks_director/keys.h"
+#include "../clocks_performer/keys.h"
+#include "../clocks_shared/log.h"
 #include "../clocks_shared/onewire.h"  //TODO: get red of this one and move into Hal
 #include "../clocks_shared/ticks.h"
-#include "leds.h"
+#include "common/leds.h"
 
 using channel::Message;
 using channel::messages::UartEndKeysMessage;
@@ -317,7 +318,7 @@ typedef Animator<Stepper1> Animator1;
 Animator0 animator0;
 Animator1 animator1;
 
-void stepepers_loop(Micros micros) { step_executors.loop(micros); }
+void steppers_loop(Micros micros) { step_executors.loop(micros); }
 
 void StepExecutors::setup(Stepper0 &stepper0, Stepper1 &stepper1) {
   animator0.stepperPtr = &stepper0;
@@ -326,7 +327,7 @@ void StepExecutors::setup(Stepper0 &stepper0, Stepper1 &stepper1) {
   // Leds::set_ex(LED_EXECUTOR_STATE, LedColors::purple);
   Leds::publish();
 
-  onewire::OnewireInterrupt::timer_loop = stepepers_loop;
+  onewire::OnewireInterrupt::timer_loop = steppers_loop;
   // onewire::OnewireInterrupt::timer_loop = check;
 }
 
@@ -350,8 +351,7 @@ void StepExecutors::process_begin_keys(const Message *msg) {
   animationKeysArray[0].clear();
   animationKeysArray[1].clear();
 
-  transmit(onewire::OneCommand::CheckPoint::for_debug(
-      'B', msg->get_handle_destination_id()));
+  spit_debug('B', msg->get_handle_destination_id());
 }
 
 void StepExecutors::process_end_keys(int stepper_id,
@@ -377,14 +377,12 @@ void StepExecutors::process_end_keys(int stepper_id,
                   speed_detection1);
 
   stopped = false;
-  transmit(onewire::OneCommand::CheckPoint::for_debug(
-      'E', msg->get_handle_destination_id()));
+  spit_debug('E', msg->get_handle_destination_id());
 }
 
 void StepExecutors::process_add_keys(const UartKeysMessage *msg) {
   animationKeysArray[msg->get_handle_destination_id() & 1].addAll(*msg);
-  transmit(onewire::OneCommand::CheckPoint::for_debug(
-      msg->get_handle_destination_id() & 1 ? '1' : '0', msg->size()));
+  spit_debug(msg->get_handle_destination_id() & 1 ? '1' : '0', msg->size());
 }
 
 void StepExecutors::loop(Micros now) {
