@@ -29,18 +29,18 @@ class AnimationSettings {
   E pick_random(uint32_t flags, E random_enum) const {
     uint32_t mask = (1 << random_enum) - 1;
     uint32_t masked_flags = mask & flags;
-    LOGI(TAG, "pick_random: flags=% mask=%d, masked_flags=%d max_enum=%d",
+    LOGD(TAG, "pick_random: flags=% mask=%d, masked_flags=%d max_enum=%d",
          flags, mask, masked_flags, random_enum);
 
     if (masked_flags == 0) {
-      LOGI(TAG, "pick_random: 0");
+      LOGD(TAG, "pick_random: 0");
       return static_cast<E>(0);
     }
     while (true) {
       auto bit = ::random(random_enum);
-      LOGI(TAG, "pick_random: %d? max: %d ?", bit, random_enum);
+      LOGD(TAG, "pick_random: %d? max: %d ?", bit, random_enum);
       if (masked_flags & (1 << bit)) {
-        LOGI(TAG, "pick_random: %d! max %d", bit, random_enum);
+        LOGD(TAG, "pick_random: %d! max %d", bit, random_enum);
         return static_cast<E>(bit);
       }
     }
@@ -54,7 +54,7 @@ class AnimationSettings {
   ENUM::Enum pick_##ENUM() const {                                          \
     auto ret = ENUM##_mode;                                                 \
     if (ret >= ENUM::RANDOM) ret = pick_random(ENUM##_flags, ENUM::RANDOM); \
-    LOGI(TAG, #ENUM " pick: %d -> %d", ENUM##_mode, ret);                   \
+    LOGD(TAG, #ENUM " pick: %d -> %d", ENUM##_mode, ret);                   \
     return ret;                                                             \
   }                                                                         \
   bool state(const ENUM::Enum &mode) const {                                \
@@ -62,15 +62,15 @@ class AnimationSettings {
   }                                                                         \
   void turn_on(const ENUM::Enum &mode) {                                    \
     ENUM##_flags |= (1 << mode);                                            \
-    LOGI(TAG, #ENUM "/turn_on: %d / %d", mode, ENUM##_flags);               \
+    LOGD(TAG, #ENUM "/turn_on: %d / %d", mode, ENUM##_flags);               \
   }                                                                         \
   void turn_off(const ENUM::Enum &mode) {                                   \
     ENUM##_flags &= ~(1 << mode);                                           \
-    LOGI(TAG, #ENUM "/turn_off: %d / %d", mode, ENUM##_flags);              \
+    LOGD(TAG, #ENUM "/turn_off: %d / %d", mode, ENUM##_flags);              \
   }                                                                         \
   void pick(const ENUM::Enum &mode) {                                       \
     this->ENUM##_mode = mode;                                               \
-    LOGI(TAG, #ENUM ": %d", mode);                                          \
+    LOGD(TAG, #ENUM ": %d", mode);                                          \
   }
   PICK_CODE(handles_animation)
   PICK_CODE(handles_distance)

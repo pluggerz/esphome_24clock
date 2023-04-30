@@ -9,7 +9,7 @@ const char *const TAG = "animation";
 void HandlesState::dump() {
   LOGI(TAG, "HandlesState:");
 #define DRAW_ROW(S)                                                            \
-  LOGI(                                                                        \
+  LOGD(                                                                        \
       TAG,                                                                     \
       "   A%02d(%3d %3d)    A%02d(%3d %3d)   A%02d(%3d %3d)   A%02d(%3d %3d) " \
       "  A%02d(%3d %3d)   A%02d(%3d %3d)   A%02d(%3d %3d)   A%02d(%3d %3d)",   \
@@ -22,7 +22,7 @@ void HandlesState::dump() {
       tickz[(S + 18) * 2 + 0], tickz[(S + 18) * 2 + 1], S + 19,                \
       tickz[(S + 19) * 2 + 0], tickz[(S + 19) * 2 + 1]);
 #define DRAW_ROW2(S)                                                           \
-  LOGI(                                                                        \
+  LOGD(                                                                        \
       TAG,                                                                     \
       "      %3.2f %3.2f       %3.2f %3.2f      %3.2f %3.2f      %3.2f %3.2f " \
       "     %3.2f %3.2f      %3.2f %3.2f      %3.2f %3.2f      %3.2f %3.2f",   \

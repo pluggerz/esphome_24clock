@@ -43,18 +43,18 @@ void Transmitter::sendCommandsForHandle(
     const auto cmd = InflatedCmdKey(msg.get_key(idx));
     if (cmd.extended()) {
       const auto extended_cmd = cmd.steps();
-      LOGI(TAG, "Cmd: extended_cmd=%d", int(extended_cmd));
+      LOGD(TAG, "Cmd: extended_cmd=%d", int(extended_cmd));
     } else {
       const auto ghosting = cmd.ghost();
       const auto steps = cmd.steps();
       const auto speed = cmdSpeedUtil.deflate_speed(cmd.inflated_speed());
       const auto clockwise = cmd.clockwise();
       const auto relativePosition = true;
-      LOGI(TAG, "Cmd: %s=%3d sp=%d gh=%s cl=%s",
+      LOGD(TAG, "Cmd: %s=%3d sp=%d gh=%s cl=%s",
            ghosting || relativePosition ? "steps" : "   to", steps, speed,
            YESNO(ghosting), ghosting ? "N/A" : YESNO(clockwise));
     }
-    LOGI(TAG, "  done");
+    LOGD(TAG, "  done");
   }
 }
 
