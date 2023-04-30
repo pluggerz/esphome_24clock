@@ -14,8 +14,8 @@ class AnimationController;
 namespace clock24 {
 class Stepper {
  public:
-  int offset = 0;
-  int ticks = -1;
+  int16_t offset = 0;
+  int16_t ticks = -1;
 };
 using esphome::wifi::WiFiComponent;
 
