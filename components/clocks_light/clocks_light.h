@@ -21,13 +21,7 @@ class ClocksLightOutput : public AddressableLight {
 
   int32_t size() const override { return TOTAL_LEDS; }
 
-  void clear_effect_data() override {
-    if (!this->effect_data_) {
-      LOGE(TAG, "effect_data_  == nulprt !?");
-      return;
-    }
-    for (int i = 0; i < this->size(); i++) this->effect_data_[i] = 0;
-  }
+  void clear_effect_data() override {}
 
   light::LightTraits get_traits() override {
     auto traits = light::LightTraits();
@@ -38,7 +32,7 @@ class ClocksLightOutput : public AddressableLight {
   light::ESPColorView get_view_internal(int32_t index) const override {
     Color *base = (Color *)&internal_view_leds[index];
     return light::ESPColorView(&base->red, &base->green, &base->blue, nullptr,
-                               this->effect_data_ + index, &this->correction_);
+                               nullptr, &this->correction_);
   }
 
   // ========== INTERNAL METHODS ==========
@@ -46,20 +40,11 @@ class ClocksLightOutput : public AddressableLight {
     for (int i = 0; i < this->size(); i++) {
       (*this)[i] = Color(0, 0, 0, 0);
     }
-
-    this->effect_data_ = new uint8_t[this->size()];  // NOLINT
-    clear_effect_data();
-    // this->controller_->Begin();
   }
 
   void dump();
 
-  void write_state(light::LightState *state) override {
-    // this->mark_shown_();
-    // this->controller_->Dirty();
-    // this->controller_->Show();
-    dump();
-  }
+  void write_state(light::LightState *state) override { dump(); }
 
   virtual void loop() override;
 
@@ -69,12 +54,12 @@ class ClocksLightOutput : public AddressableLight {
   }
 
  protected:
-  uint8_t *effect_data_{nullptr};
   uint8_t rgb_offsets_[4]{0, 1, 2, 3};
 
  public:
   Color internal_view_leds[TOTAL_LEDS];
-  Color dirty_leds[TOTAL_LEDS];
+  Color snapshot[TOTAL_LEDS];
+
   bool dirty = false;
   Millis last_send_in_millis = 0L;
 };

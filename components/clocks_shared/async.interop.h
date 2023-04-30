@@ -39,6 +39,9 @@ class AsyncInterop {
   }
 
   void direct_raw_message(const byte *m, int size);
+
+  bool direct_raw_message_bytes_available_for_write(int bytes);
+
   template <class M>
   void direct_message(const M &m) {
     direct_raw_message((const byte *)&m, sizeof(M));

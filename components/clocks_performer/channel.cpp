@@ -303,7 +303,7 @@ Protocol *Protocol::create_default() { return &basic_protocol; }
 
 #ifdef MASTER
 void Channel::_send(const byte *bytes, const byte length) {
-  LOGI(TAG, "Channel::_send(%d bytes)", length);
+  LOGD(TAG, "Channel::_send(%d bytes)", length);
   gate.start_transmitting();
   _protocol->sendMsg(bytes, length);
 }

@@ -84,6 +84,10 @@ void AsyncInterop::queue_raw_message(const byte *bytes, int length) {
   // direct_raw_message(bytes, length);
 }
 
+bool AsyncInterop::direct_raw_message_bytes_available_for_write(int bytes) {
+  return channel ? channel->bytes_available_for_write(bytes) : false;
+}
+
 void AsyncInterop::direct_raw_message(const byte *bytes, int length) {
   if (channel == nullptr) {
     LOGE(TAG, "Unable to queue, because tx not set!");

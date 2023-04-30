@@ -8,10 +8,10 @@
 #include "../clocks_shared/onewire.rx.h"
 #include "../clocks_shared/onewire.tx.h"
 #include "../clocks_shared/ticks.h"
-#include "../common/leds.h"
 #include "common/keys.executor.h"
 #include "common/stepper.h"
 #include "common/stepper.util.h"
+#include "lights.h"
 
 using channel::ChannelInterop;
 using channel::messages::PerformerSettings;
@@ -74,13 +74,13 @@ class PerformerChannel : public rs485::BufferChannel {
         break;
 
       case channel::MsgEnum::MSG_BEGIN_KEYS:
-        spit_info('k', 0);
+        spit_debug('k', 0);
 
         step_executors.process_begin_keys(msg);
         return;
 
       case channel::MsgEnum::MSG_SEND_KEYS: {
-        spit_info('k', 1);
+        spit_debug('k', 1);
 
         auto performer_id = msg->get_performer_destination_id();
         if (performer_id == ChannelInterop::id) {
@@ -91,7 +91,7 @@ class PerformerChannel : public rs485::BufferChannel {
         return;
 
       case channel::MsgEnum::MSG_END_KEYS:
-        spit_info('k', 2);
+        spit_debug('k', 2);
 
         step_executors.process_end_keys(
             ChannelInterop::id << 1,
@@ -144,7 +144,7 @@ class PerformerChannel : public rs485::BufferChannel {
       } break;
 
       default:
-        // Leds::blink(LedColors::blue);
+        light_controller.process_message(msg);
         break;
     }
   }
@@ -332,11 +332,11 @@ void setup() {
 }
 
 bool Protocol::is_skippable_message(byte first_byte) {
-  return false;
   if (first_byte == ChannelInterop::ALL_PERFORMERS) {
     return false;
   }
-  return (first_byte >> 1) != ChannelInterop::id;
+  auto mine = (first_byte >> 1) == ChannelInterop::id;
+  return mine ? false : true;
 }
 
 void loop() {
@@ -345,47 +345,7 @@ void loop() {
     spit_debug('&', value);
   }
   my_channel.loop();
+  light_controller.loop();
+
   if (current_action) current_action->loop();
-  /*
-    if (rx.pending()) {
-      OneCommand cmd;
-      cmd.raw = rx.flush();
-      if (!cmd.parity_okay()) {
-        Leds::blink(LedColors::red);
-        return;
-      }
-      switch (cmd.msg.cmd) {
-        case CmdEnum::DUMP_PERFORMERS:
-          Leds::blink(LedColors::red, cmd.msg.cmd);
-          transmit(cmd.increase_performer_id_and_forward());
-          break;
-
-        case CmdEnum::DIRECTOR_ONLINE:
-          Leds::blink(LedColors::green, cmd.msg.cmd);
-          transmit(cmd.increase_performer_id_and_forward());
-          break;
-
-        case CmdEnum::DIRECTOR_ACCEPT:
-          ChannelInterop::id = cmd.derive_next_source_id();
-
-          Leds::blink(LedColors::orange, cmd.msg.cmd);
-
-          my_channel.begin(cmd.accept.baudrate);
-          my_channel.start_receiving();
-
-          transmit(cmd.increase_performer_id_and_forward());
-          break;
-
-        case CmdEnum::DIRECTOR_PING:
-          Leds::blink(LedColors::blue, cmd.msg.cmd);
-          transmit(cmd);
-          break;
-
-        default:
-          // forward
-          // Leds::blink(LedColors::purple, cmd.msg.cmd);
-          transmit(cmd);
-          break;
-      }
-    }*/
 }
