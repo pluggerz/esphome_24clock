@@ -312,46 +312,4 @@ void loop() {
   }
   my_channel.loop();
   if (current_action) current_action->loop();
-  /*
-    if (rx.pending()) {
-      OneCommand cmd;
-      cmd.raw = rx.flush();
-      if (!cmd.parity_okay()) {
-        Leds::blink(LedColors::red);
-        return;
-      }
-      switch (cmd.msg.cmd) {
-        case CmdEnum::DUMP_PERFORMERS:
-          Leds::blink(LedColors::red, cmd.msg.cmd);
-          transmit(cmd.increase_performer_id_and_forward());
-          break;
-
-        case CmdEnum::DIRECTOR_ONLINE:
-          Leds::blink(LedColors::green, cmd.msg.cmd);
-          transmit(cmd.increase_performer_id_and_forward());
-          break;
-
-        case CmdEnum::DIRECTOR_ACCEPT:
-          ChannelInterop::id = cmd.derive_next_source_id();
-
-          Leds::blink(LedColors::orange, cmd.msg.cmd);
-
-          my_channel.begin(cmd.accept.baudrate);
-          my_channel.start_receiving();
-
-          transmit(cmd.increase_performer_id_and_forward());
-          break;
-
-        case CmdEnum::DIRECTOR_PING:
-          Leds::blink(LedColors::blue, cmd.msg.cmd);
-          transmit(cmd);
-          break;
-
-        default:
-          // forward
-          // Leds::blink(LedColors::purple, cmd.msg.cmd);
-          transmit(cmd);
-          break;
-      }
-    }*/
 }

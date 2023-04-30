@@ -60,7 +60,11 @@ MOVE2RAM void follow_change() {
 
 void MOVE2RAM TxTimerHandler() {
   auto tx = OnewireInterrupt::tx;
-  if (tx && tx->active()) tx->timer_interrupt();
+  if (tx && tx->active()) {
+    noInterrupts();
+    tx->timer_interrupt();
+    interrupts();
+  }
 }
 
 #ifndef ESP8266
